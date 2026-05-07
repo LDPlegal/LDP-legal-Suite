@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
 import { adminDb } from "@/lib/db/admin";
 import * as schema from "@/lib/db/schema";
 
@@ -29,10 +30,10 @@ export const auth = betterAuth({
   database: drizzleAdapter(adminDb, {
     provider: "pg",
     schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
+      users: schema.users,
+      sessions: schema.sessions,
+      accounts: schema.accounts,
+      verifications: schema.verifications,
     },
     usePlural: true,
   }),
@@ -66,7 +67,18 @@ export const auth = betterAuth({
   },
   advanced: {
     cookiePrefix: "ldp",
+    database: {
+      // Schema uses uuid PKs (users.id, etc.). Better-auth's default id
+      // generator emits short random strings that Postgres rejects when
+      // casting to uuid. Force UUIDs so all PKs match the column type.
+      generateId: () => crypto.randomUUID(),
+    },
   },
+  // nextCookies() must be the LAST plugin so it wraps all cookie writes from
+  // earlier plugins. Without it, server actions (signUp, signOut) can't set
+  // or clear the session cookie, which causes ERR_TOO_MANY_REDIRECTS on
+  // logout (cookie persists → middleware redirects /login → /dashboard → ...).
+  plugins: [nextCookies()],
 });
 
 export type Auth = typeof auth;

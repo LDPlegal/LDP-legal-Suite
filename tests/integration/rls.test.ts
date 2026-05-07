@@ -130,19 +130,24 @@ describe("RLS / multi-tenant isolation (Fase 0 verification)", () => {
     expect(r.rows[0]?.rolbypassrls).toBe(false);
   });
 
-  it("Without firm context, SELECT on a firm-scoped table fails (no silent leak)", async () => {
+  it("Without firm context, SELECT on a firm-scoped table returns no rows (no leak)", async () => {
+    // Postgres allows NULL to cast to any type silently, so
+    // `current_setting('app.firm_id', true)::uuid` evaluates to NULL when the
+    // setting was never SET. The policy clause `firm_id = NULL` is then UNKNOWN
+    // for every row, and RLS filters them all out. No exception is raised, but
+    // critically NO ROWS LEAK either — which is the actual security guarantee
+    // that matters. Both outcomes (throw, empty result) prevent cross-firm
+    // exposure; we accept either.
     const client = await appPool.connect();
     try {
-      let threw = false;
+      let result: { rowCount: number | null } | null = null;
       try {
-        await client.query("SELECT * FROM clients");
+        result = await client.query("SELECT * FROM clients");
       } catch {
-        threw = true;
+        // Throwing is also acceptable. No-op.
+        return;
       }
-      // The cast NULL::uuid raises an error; the alternative would be returning
-      // zero rows, both of which prevent leakage. Either is acceptable;
-      // raising is the documented preferred outcome.
-      expect(threw).toBe(true);
+      expect(result.rowCount).toBe(0);
     } finally {
       client.release();
     }
