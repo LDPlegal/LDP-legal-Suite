@@ -1,0 +1,358 @@
+# DECISIONS.md — LDP Legal Suite, Fase 0
+
+Decisiones arquitectónicas y excepciones documentadas. Sigue el formato del
+BRIEF (§ Paso 11). Para alcance, modelo de datos completo y fases siguientes,
+ver [`prompt-claude-code-ldp-legal-suite_final.md`](./prompt-claude-code-ldp-legal-suite_final.md)
+en Desktop del usuario.
+
+---
+
+## 9.1 — Multi-tenant: RLS de Postgres + helper aplicativo (defensa en profundidad)
+
+**Decisión:** Habilitar Row Level Security en todas las tablas con `firm_id`
+desde la primera migración. Adicionalmente, mantener el helper aplicativo
+`withFirm(firmId, userId, fn)` por el que pasan TODAS las queries de dominio.
+El usuario de Postgres de runtime es `app_user` con `BYPASSRLS = false`.
+
+**Implementación en este repo:**
+
+- Roles + grants: [`scripts/migrate.ts`](./scripts/migrate.ts) crea `app_user`
+  (NOBYPASSRLS), valida `rolbypassrls = false` antes de continuar (BRIEF
+  Trampa #1), y otorga privilegios mínimos (`SELECT/INSERT/UPDATE/DELETE`).
+- Migración inicial: [`drizzle/migrations/0000_initial_with_rls.sql`](./drizzle/migrations/0000_initial_with_rls.sql)
+  — schema y `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY ... USING ... WITH CHECK`
+  van en el MISMO archivo (no separados, BRIEF § Paso 4).
+- Helper: [`lib/db/with-firm.ts`](./lib/db/with-firm.ts) ejecuta
+  `set_config('app.firm_id', $1, true)` y `app.user_id` dentro de una
+  transacción y pasa `tx` al callback. Usar `db` directo dentro del
+  callback rompe el aislamiento — el código de queries
+  ([`lib/db/queries/*.ts`](./lib/db/queries/)) usa `tx` siempre.
+- Conexiones: dos pools distintos —
+  [`lib/db/client.ts`](./lib/db/client.ts) (runtime, `app_user`) y
+  [`lib/db/admin.ts`](./lib/db/admin.ts) (admin, solo migrate/seed/auth).
+
+**Por qué así y no de otra manera:** Una sola query que omita `withFirm`
+filtraría datos entre firmas. RLS contiene ese error a nivel de motor —
+es un costo único de setup contra una clase entera de bugs en software
+legal. La doble capa (RLS + helper) es defensa en profundidad: si un
+desarrollador olvida el helper, RLS falla la query (no la silencia).
+
+**Pendientes / a revisar:**
+
+- Trampa #4 (BRIEF): la policy de `cases` con la subquery a `case_assignments`
+  + `users` para resolver visibility puede degradarse a escala (cientos de
+  miles de casos). No se premature-optimiza con índices funcionales en Fase 0;
+  revisar plan de query con `EXPLAIN ANALYZE` cuando un firm seedeado real
+  exceda ~10k casos.
+- Si en algún momento se quiere multi-firm-per-user (un usuario en dos
+  firmas distintas), revisar el constraint compuesto `(firm_id, email)` y
+  agregar selección de firma en el login (ver § Excepción E1).
+
+---
+
+## 9.2 — Autorización a nivel de caso (`case_assignments` + `cases.visibility`)
+
+**Decisión:** Roles globales (`admin`, `partner`, `lawyer`, `paralegal`,
+`client`) controlan capacidades transversales. La visibilidad de un caso
+individual se controla por `case_assignments` cuando `case.visibility = 'restricted'`.
+
+**Implementación en este repo:**
+
+- Tablas: [`cases.visibility`](./lib/db/schema.ts) con default `'firm'`;
+  tabla `case_assignments` con índice único `(case_id, user_id)`.
+- Policy de RLS sobre `cases` codifica las tres ramas: visibility = 'firm',
+  membresía en `case_assignments`, o `users.role = 'admin'` para el firm
+  del caso. Ver bloque "cases_firm_visibility" en
+  [`drizzle/migrations/0000_initial_with_rls.sql`](./drizzle/migrations/0000_initial_with_rls.sql).
+- UI: el toggle "Caso restringido" del drawer de creación
+  ([`app/(app)/casos/_components/caso-form-drawer.tsx`](./app/(app)/casos/_components/caso-form-drawer.tsx))
+  muestra el editor de asignaciones cuando se activa; el schema Zod
+  ([`lib/schemas/caso.ts`](./lib/schemas/caso.ts)) valida que un caso
+  restringido tenga al menos un `lead`.
+- Tests: el seed crea un caso restringido por firma; el test de RLS
+  ([`tests/integration/rls.test.ts`](./tests/integration/rls.test.ts))
+  verifica las tres ramas (lawyer no asignado → no ve, admin → sí ve,
+  caso 'firm' → todos ven). E2E equivalente en
+  [`tests/e2e/cross-tenant.spec.ts`](./tests/e2e/cross-tenant.spec.ts).
+
+**Por qué así y no de otra manera:** Murallas chinas, conflictos entre
+socios, casos sensibles. Modelarlo desde Fase 0 cuesta una columna y una
+tabla; agregarlo en Fase 2 es un refactor de autorización entera (afecta
+`time_entries`, `tasks`, `events`, `documents`, `notes`, `expenses`,
+`invoices` que en futuras fases heredan visibilidad vía join con cases).
+
+**Pendientes / a revisar:**
+
+- Cuando se introduzcan `time_entries`, `tasks`, etc. (Fase 1+), sus
+  policies de RLS deben hacer `JOIN cases` y heredar la visibilidad. Hay
+  que validarlo con un test cross-tenant equivalente para cada nueva tabla.
+
+---
+
+## 9.3 — Estrategia fiscal RD: NCF/e-CF con doble modo
+
+**Decisión:** El sistema soportará dos modos de facturación configurables por
+firm: **interno/proforma** (default) y **fiscal** con NCF/e-CF. En Fase 0 NO
+se implementa facturación; en Fase 2 se construye respetando la decisión.
+
+**Implementación en este repo:**
+
+- Fase 0 NO crea tablas `invoices`, `invoice_items`, `payments`. El
+  schema ([`lib/db/schema.ts`](./lib/db/schema.ts)) las posterga.
+- Constancia: el sidebar tiene "Facturación" como link disabled apuntando
+  a una página `ComingSoon` con texto "Fase 2".
+- Las constantes de impuestos (ITBIS 18%, retención ISR 10%, retención
+  ITBIS 30% para servicios profesionales a personas jurídicas) se modelarán
+  en `firms.settings` (jsonb) o en una tabla `tax_settings` cuando
+  Facturación llegue.
+
+**Por qué así y no de otra manera:** Facturación electrónica obligatoria en
+RD. No modelar NCF desde el inicio significa rehacer Facturación entera. El
+doble modo permite que firmas sin facturación electrónica configurada usen
+el sistema sin trabarse.
+
+**Pendientes / a revisar:**
+
+- Antes de Fase 2, decidir si la integración con DGII se hace directa o vía
+  proveedor externo. La interfaz `EInvoiceProvider` debe abstraer el detalle.
+- Confirmar qué tipos de NCF/e-CF (B01, B02, E31, E32) son los que LDP
+  necesita realmente — el documento maestro asume los cuatro pero podría
+  haber otros.
+
+---
+
+## 9.4 — Timer server-side con `active_timers` + heartbeat
+
+**Decisión:** El timer activo vive en una tabla `active_timers` (un registro
+máximo por usuario, PK `user_id`). El cliente envía heartbeat cada 30s. Nunca
+se usa localStorage para el timer.
+
+**Implementación en este repo:**
+
+- Fase 0 NO crea la tabla `active_timers`. El schema la posterga a Fase 1.
+- Verificación: `grep -rn "localStorage" app/ components/ lib/` no devuelve
+  nada relacionado con timer (preferencias UI menores como columnas
+  configurables sí pueden usarlo, pero NO el timer).
+- El sidebar muestra "Sin timer activo · El timer llega en Fase 1" como
+  recordatorio visible (no es un placeholder funcional, es texto explícito).
+
+**Por qué así y no de otra manera:** localStorage duplica horas si el
+usuario abre dos tabs y se pierde si limpia el navegador. Un sistema de
+billing legal que pierde horas o duplica es un sistema que pierde clientes.
+
+**Pendientes / a revisar:**
+
+- Implementar `active_timers` + heartbeat en Fase 1 con cleanup de timers
+  con `last_heartbeat_at` > 15min vía pg-boss o similar.
+
+---
+
+## 9.5 — Zona horaria: UTC en DB, tz del firm en presentación
+
+**Decisión:** Todos los timestamps en DB tipo `timestamptz` (UTC). Cada
+firm tiene `timezone` (default `America/Santo_Domingo`). La conversión
+ocurre en la capa de presentación.
+
+**Implementación en este repo:**
+
+- Schema: TODAS las columnas timestamp son `timestamp with time zone` (ver
+  [`lib/db/schema.ts`](./lib/db/schema.ts)).
+- `firms.timezone`: string IANA, default `America/Santo_Domingo`.
+- Helper: [`lib/datetime/format.ts`](./lib/datetime/format.ts) expone
+  `formatInFirmTz(date, timezone, pattern)` y `formatDateOnly`. Usa
+  `date-fns-tz` con locale `es`.
+- Render: `app/(app)/casos/page.tsx` y `app/(app)/casos/[id]/page.tsx` ya
+  usan `formatInFirmTz` para `openedAt`/`closedAt`.
+
+**Por qué así y no de otra manera:** Sin esta decisión clavada, el primer
+reporte de "audiencia mañana 9am" que aparezca a las 5am o 1pm es inevitable.
+
+**Pendientes / a revisar:**
+
+- Cuando se implementen Eventos (Fase 1) con export `.ics`, asegurar que
+  `TZID` sea correcto. Test específico para esto.
+- El timezone del firm es por ahora un campo de DB sin UI para editarlo —
+  Configuración (Fase 1+) lo expondrá.
+
+---
+
+## 9.6 — Conflict check: modelo soportado, ejecución en Fase 4
+
+**Decisión:** Conflict check automático (alerta cuando la contraparte fue
+cliente del firm o trabajó con un abogado del firm) se difiere a Fase 4.
+Pero el modelo de datos lo soporta desde Fase 0.
+
+**Implementación en este repo:**
+
+- Columnas: `cases.counterparty_name` (text) y `cases.counterparty_tax_id`
+  (text nullable, con índice compuesto `(firm_id, counterparty_tax_id)`).
+- UI: el drawer de creación de caso captura `counterparty_name` y
+  `counterparty_tax_id` desde Fase 0 — los datos ya quedan estructurados.
+- Form Zod ([`lib/schemas/caso.ts`](./lib/schemas/caso.ts)) los valida
+  como opcionales pero estructurados.
+
+**Por qué así y no de otra manera:** Capturar `counterparty` como string
+libre desde el inicio sin tax_id estructurado significa migrar y limpiar
+datos sucios cuando llegue Fase 4. Capturarlo bien desde Fase 0 cuesta
+una columna extra.
+
+**Pendientes / a revisar:**
+
+- En Fase 4, el algoritmo de conflict check comparará `counterparty_tax_id`
+  contra `clients.tax_id` (mismo firm) y contra el historial de
+  `case_assignments` cruzado con casos donde el abogado fue parte. Definir
+  reglas exactas en ese momento.
+
+---
+
+## 9.7 — OCR: decisión binaria, no placeholder
+
+**Decisión:** OCR no se incluye en Fase 0 ni Fase 1. En Fase 2 (Documentos)
+se integra OCR real vía Tesseract local (en imagen Docker) con interfaz
+abstracta `OCRProvider` que permite cambiar a AWS Textract o Google
+Document AI.
+
+**Implementación en este repo:**
+
+- Fase 0 NO crea tabla `documents` ni función de OCR. La página
+  `/documentos` muestra `ComingSoon` con texto "Fase 2".
+- No existe ninguna función `extractTextFromPdf`, `runOCR`, etc. en `lib/`.
+  Verificable con `grep -ri "ocr\|tesseract" lib/ app/`.
+
+**Por qué así y no de otra manera:** Un placeholder de OCR que no hace
+nada termina en producción y los usuarios no se dan cuenta hasta que
+buscan "demanda 2024" en un PDF escaneado y no encuentran nada.
+
+**Pendientes / a revisar:**
+
+- Fase 2: implementar worker en background con `pg-boss`, interfaz
+  `OCRProvider`, llenado async de `documents.ocr_text`, integración con
+  el índice tsvector de búsqueda.
+
+---
+
+# Excepciones documentadas
+
+Estas son desviaciones del documento maestro/BRIEF que se tomaron de
+forma consciente durante la Fase 0. Cada una se justifica.
+
+---
+
+## E1 — Email globalmente único con índice único compuesto parcial
+
+**Decisión:** En lugar de un `UNIQUE (email)` global, el schema tiene un
+`UNIQUE (firm_id, email) WHERE deleted_at IS NULL` parcial. La unicidad
+es por firma, no global. El soft-delete libera el email para reuso.
+
+**Implementación:** [`users.users_firm_email_unique`](./lib/db/schema.ts)
+en el schema; la migración SQL inicial lo crea.
+
+**Por qué:** El BRIEF lo pide explícitamente ("unique por firm — usar
+índice único compuesto, no UNIQUE solo en email"). Para Fase 0, los seeds
+están curados sin colisiones de email entre firmas, así que el login por
+email solo (sin selector de firma) funciona correctamente. Si en el futuro
+se quiere multi-firm-per-email, hay que añadir selector de firma en el
+login flow.
+
+**Riesgo / mitigación:** Si dos firmas distintas registran un usuario con
+el mismo email, el login con solo `(email, password)` no podrá distinguirlos.
+Better-auth fallaría buscando `WHERE email = $1 LIMIT 1` (no determinista).
+Mitigación: monitorear; cuando ocurra, agregar un dropdown "Firma" al login.
+
+---
+
+## E2 — Excepción de `withFirm` en signup (Trampa #6)
+
+**Decisión:** `app/_actions/auth/signup.ts` NO usa `withFirm`. Inserta el
+firm con la conexión admin (`adminDb`) y luego invoca
+`auth.api.signUpEmail()` que también opera con la conexión admin.
+
+**Por qué:** Cuando el primer admin de un firm se registra, el firm aún
+no existe — `withFirm` no puede aplicar. Es la única excepción razonable.
+El INSERT del firm + el INSERT del user son atómicos en el sentido de que
+si el segundo falla, el primero se rollback explícitamente
+(`adminDb.delete(firms).where(...)`).
+
+**Riesgo / mitigación:** El rollback no es transaccional (son dos
+conexiones distintas). Si el rollback falla, queda un firm huérfano.
+Para Fase 0 con baja frecuencia de signup esto es aceptable; Fase 1 puede
+mejorarlo con una transacción explícita que envuelva ambas operaciones.
+
+---
+
+## E3 — Better-auth usa la conexión admin (BYPASSRLS) para todas sus operaciones
+
+**Decisión:** `auth = betterAuth({ database: drizzleAdapter(adminDb, ...) })`.
+Better-auth lee/escribe `users`, `sessions`, `accounts`, `verifications`
+con la conexión admin (que bypassa RLS).
+
+**Por qué:** Durante signin/signup, better-auth no tiene contexto de
+firma — debe leer la tabla `users` por email para encontrar al usuario
+antes de saber a qué firma pertenece. RLS filtraría todo. Forzar
+better-auth a operar con la conexión admin es la solución más limpia.
+
+**Riesgo / mitigación:** Better-auth tiene acceso ilimitado a las tablas
+auxiliares. Domain code NUNCA debe consultar `sessions`, `accounts`,
+`verifications` directamente — solo via `auth.api.getSession()`. RLS sigue
+ENABLE en esas tablas con policies que validan `users.firm_id` (defensa
+en profundidad), por si código de dominio futuro hiciera la query
+incorrecta vía `app_user`.
+
+---
+
+## E4 — Postgres nativo en Windows (no Docker) para desarrollo
+
+**Decisión:** El usuario instala Postgres 16 nativamente en Windows
+(`winget install PostgreSQL.PostgreSQL.16` o instalador EnterpriseDB).
+[`docker-compose.yml`](./docker-compose.yml) se mantiene en el repo para
+self-hosting eventual, pero NO se usa en dev local.
+
+**Por qué:** El usuario no tenía Docker Desktop instalado y prefirió no
+agregar esa dependencia para empezar. Postgres nativo es más liviano,
+sin WSL2, y más fácil de inspeccionar con `psql` o pgAdmin. Para
+producción / staging, `docker compose up -d` debe seguir funcionando con
+el `.env` correcto.
+
+**Riesgo / mitigación:** Versiones de Postgres entre dev (Windows 16.x)
+y prod (Linux Docker 16-alpine) podrían diferir en patches menores. Para
+Fase 0 esto es aceptable. El RLS test corre contra la misma DB local así
+que las políticas son validadas con la misma versión que se usará.
+
+---
+
+## E5 — `eslint.config.mjs` usa flat config sin tipo `experimental`
+
+**Decisión:** Al usar Next.js 15 + ESLint 9, el config toma la forma
+flat (no `.eslintrc.json`). Eso es lo que `eslint-config-next` recomienda
+para la versión 15+.
+
+**Por qué:** Forward-compatible con ESLint 10. Sin warnings al correr
+`pnpm lint`.
+
+---
+
+# Decisiones menores
+
+(Pequeñas decisiones técnicas tomadas durante la implementación que no
+ameritan secciones completas.)
+
+- **Estilo shadcn:** `new-york`, base color `slate`, CSS variables.
+  Definido en [`components.json`](./components.json). Cambiar a `default`
+  más adelante es ~30 min de re-tematizar tokens.
+- **Forms:** Server actions con FormData puro + Zod en server. No
+  `react-hook-form` para Fase 0 — los forms son lo bastante simples y
+  los errores se renderizan desde el state del action. `react-hook-form`
+  está instalado por si se necesita en Fase 1+ con UX más rica.
+- **TanStack Table:** instalado pero no usado en las tablas de Fase 0
+  (uso `<Table>` semántica directa). En Fase 1 con filtros de columna
+  por usuario y persistencia, conviene migrar a TanStack.
+- **nuqs:** instalado y proveedor montado en [`app/layout.tsx`](./app/layout.tsx)
+  pero los filtros de listas usan `searchParams` server-side puro en
+  Fase 0 (no necesitan reactividad client-side). Cuando se agreguen
+  filtros que cambian sin recargar, migrar a `useQueryState` de nuqs.
+- **Fuentes:** Inter (UI) y JetBrains Mono (códigos, RNC, factura). Cargadas
+  vía `next/font/google` en [`app/layout.tsx`](./app/layout.tsx).
+- **Icon library:** `lucide-react` (decidido por el documento maestro).
+- **Naming `users` plural vs `user` singular de better-auth:** Se mantiene
+  `users` (plural) en español/inglés del dominio; better-auth se configura
+  con `usePlural: true` para coincidir.

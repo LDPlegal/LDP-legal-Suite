@@ -1,0 +1,35 @@
+# Optional self-hosting target for LDP Legal Suite.
+#
+# This file mirrors the BRIEF Paso 2 specification (Postgres 16 with healthcheck
+# and persistent volume). It is NOT used during local development on Windows —
+# dev uses a native Postgres install (decided with the user in the project memo).
+# It is kept here so production / staging self-hosting can `docker compose up -d`
+# from a single command, and so the dev environment matches what production sees.
+#
+# To use locally instead of native Postgres:
+#   1. Stop your local Postgres service.
+#   2. `docker compose up -d`.
+#   3. Update .env DATABASE_URL / DATABASE_MIGRATE_URL passwords to match below.
+#   4. `pnpm db:migrate && pnpm db:seed && pnpm dev`.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ldp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ldp_legal_suite
+    ports:
+      - "5432:5432"
+    volumes:
+      - ldp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ldp_legal_suite"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ldp-postgres-data:
