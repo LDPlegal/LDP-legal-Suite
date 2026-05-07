@@ -356,3 +356,150 @@ ameritan secciones completas.)
 - **Naming `users` plural vs `user` singular de better-auth:** Se mantiene
   `users` (plural) en español/inglés del dominio; better-auth se configura
   con `usePlural: true` para coincidir.
+
+---
+
+# Fase 1 — Tiempos · Tareas · Calendario · Gastos
+
+Decisiones específicas tomadas durante la implementación de la Fase 1.
+Todas se validan con tests (`tests/integration/fase1-rls.test.ts`).
+
+## F1.1 — Visibilidad de tablas hijas hereda del caso
+
+**Decisión:** Las policies de RLS de `time_entries`, `tasks` (con `case_id`),
+`events` (con `case_id`) y `expenses` reutilizan el helper SECURITY DEFINER
+`app_user_can_see_case(case_id, user_id, firm_id)` para heredar la
+visibilidad del caso. Si un caso es `restricted` y el usuario no está en
+`case_assignments` (ni es admin), también se ocultan sus tiempos, tareas,
+eventos y gastos.
+
+**Implementación:** [`drizzle/migrations/0002_phase1_with_rls.sql`](./drizzle/migrations/0002_phase1_with_rls.sql) —
+policy "X_firm_case_visibility" en cada tabla. Funcion `app_user_can_see_case`
+es SECURITY DEFINER STABLE con `SET search_path = public, pg_temp`.
+
+**Por qué SECURITY DEFINER:** la lógica de visibilidad joinea `cases` +
+`case_assignments` + `users`. Sin SECURITY DEFINER, esos joins disparan
+las policies de esas tablas y caemos en recursión (mismo problema que
+0001 en Fase 0). La función bypassea RLS internamente al ejecutarse como
+owner.
+
+**Pendientes:** revisar plan de query con `EXPLAIN ANALYZE` cuando un firm
+exceda ~10k time_entries. La función se evalúa por fila durante el filtro;
+agregar índices o materialized views si es lento.
+
+## F1.2 — `tasks.case_id` y `events.case_id` son nullable
+
+**Decisión:** Tareas y eventos pueden vivir fuera del contexto de un caso
+(`case_id IS NULL` significa firm-wide). La policy maneja ambos: si
+`case_id IS NULL`, basta con la coincidencia de `firm_id`; si tiene caso,
+delega al helper de visibilidad.
+
+**Por qué:** Hay tareas de admin/operación (renovar membresías, reuniones
+internas) que no son de un caso específico. Forzar un caso obligaría a
+crear casos ficticios.
+
+## F1.3 — Timer es personal: solo el dueño lo ve
+
+**Decisión:** Policy de `active_timers` filtra por `user_id`, no solo por
+`firm_id`. Ni siquiera el admin del firm ve el timer activo de otro
+usuario por la conexión runtime.
+
+**Por qué:** Un timer es estado privado de la sesión del usuario.
+Reportes (Fase 3) pueden agregarlo via SECURITY DEFINER si hace falta
+visibilidad cruzada para facturación.
+
+**Pendientes:** cuando se haga "supervisor view" en Fase 3, decidir si
+el partner/admin debe ver timers activos del equipo en tiempo real.
+
+## F1.4 — Timer server-side con upsert por user_id
+
+**Decisión:** PK de `active_timers` es `user_id` solo. Iniciar un timer
+mientras otro está activo lo REEMPLAZA atómicamente vía
+`INSERT ... ON CONFLICT (user_id) DO UPDATE`. Nunca hay dos timers para
+el mismo usuario, ni siquiera transitoriamente.
+
+**Implementación:** [`lib/db/queries/timers.ts`](./lib/db/queries/timers.ts)
+`startTimer()` usa `onConflictDoUpdate`. Test verifica no-duplicación
+(`tests/integration/fase1-rls.test.ts`).
+
+## F1.5 — Heartbeat 30s + stale > 15min
+
+**Decisión:** Cliente envía POST a `/api/timer/heartbeat` cada 30s.
+`isStale()` retorna true si `last_heartbeat_at < now() - 15min`. UI muestra
+banner amarillo "inactivo >15min" con opción de descartar.
+
+**Implementación:**
+- [`app/api/timer/heartbeat/route.ts`](./app/api/timer/heartbeat/route.ts)
+- [`components/layout/active-timer.tsx`](./components/layout/active-timer.tsx)
+  — `setInterval(HEARTBEAT_MS = 30000)` mientras hay timer; polling adicional
+  cada 60s al endpoint `/api/timer/active` para reflejar timers iniciados
+  desde otra tab/dispositivo.
+
+**Por qué 30s/15min:** literal del maestro § 9.4. La diferencia 30:1 es
+margen suficiente para que un usuario con red intermitente no caiga en
+"stale" cuando el timer realmente sigue activo.
+
+## F1.6 — Detección de conflictos de eventos sin bloqueo
+
+**Decisión:** Al crear un evento, si los `attendees` tienen otro evento
+solapado en el rango `[startAt, endAt)`, mostramos warning con la lista
+de conflictos. El usuario puede continuar marcando "Crear de todos modos"
+(checkbox `skipConflict`).
+
+**Implementación:** [`lib/db/queries/events.ts`](./lib/db/queries/events.ts)
+`findConflictingEvents()` usa el operador `&&` (overlap) sobre el array
+`attendees::uuid[]`. UI: el form re-submita con `skipConflict=true`.
+
+**Por qué no bloqueante:** doble booking es a veces deseado (delegación,
+asistente paralelo). El sistema avisa, pero no decide.
+
+## F1.7 — Export `.ics` minimal sin librería externa
+
+**Decisión:** `buildIcs()` en `lib/db/queries/expenses.ts` (compartido)
+genera el `.ics` a mano siguiendo RFC 5545. No agregamos `ics` package
+para evitar dep transitivas.
+
+**Implementación:** [`app/api/calendario/export.ics/route.ts`](./app/api/calendario/export.ics/route.ts)
+emite UTC con `Z` (sin TZID porque maestro § 9.5 ya define UTC en DB).
+
+**Limitaciones aceptadas:**
+- No soporta recurrencia (RRULE) — Fase 4 cuando llegue sincronización
+  bidireccional iCal.
+- No usa `VTIMEZONE` — clientes calendario interpretan los UTC `Z` y
+  los muestran en su tz local. Suficiente para el uso bilateral.
+
+## F1.8 — Diferidos a Fases siguientes
+
+Documentar qué se posterga conscientemente para no reabrir la conversación:
+
+- **Sender de email para recordatorios** — el modelo soporta
+  `events.reminder_minutes` y `tasks.dueAt` pero no hay job runner ni
+  email transport en Fase 1. Se integra con el sender de facturación
+  en Fase 2.
+- **Upload real de recibos** — el modelo soporta `expenses.receipt_url`
+  como text. UI de Fase 1 solo acepta URL externa pegada. Storage
+  S3-compatible llega en Fase 2 con Documentos.
+- **Dependencias de tareas (bloquea/bloqueada por)** — se difiere a
+  Fase 1.5 si hay demanda. Modelo no incluye tabla `task_dependencies`
+  todavía.
+- **Aprobación masiva de tiempos** — Fase 1 aprueba uno por uno desde
+  la tab del caso. Vista bulk en Fase 3 (Reportes).
+- **Sincronización bidireccional iCal** — solo export en Fase 1. Import
+  e iCal subscriptions en Fase 4.
+
+## F1.9 — Decisiones menores Fase 1
+
+- **TanStack Table:** instalada pero las listas de tiempos/tareas/gastos
+  usan `<Table>` semántica directa. Cuando se necesiten filtros de columna
+  configurables o sorting client-side, migrar.
+- **@dnd-kit:** se usa en el kanban de tareas (`task-kanban.tsx`). Drop
+  cambia el estado, no el orden dentro de la columna (no hay campo `order`).
+  Si se necesita ordering en Fase 1.5, agregar columna `position int` con
+  fractional indexing.
+- **FullCalendar:** se carga vía `next/dynamic` para evitar SSR de un
+  paquete que toca DOM en module-eval. Locale `es` viene de
+  `@fullcalendar/core/locales/es`.
+- **`reduce` con tabular-nums:** los totales en `/casos/[id]` se calculan
+  en el server component sumando JS — no hay aggregate SQL. Para Fase 0/1
+  con seeds chicos es trivial; cuando los volúmenes crezcan, mover los
+  resúmenes a queries con `SUM()`.

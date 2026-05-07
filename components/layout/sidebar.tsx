@@ -31,9 +31,9 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, enabled: true },
   { href: "/casos", label: "Casos", icon: Briefcase, enabled: true },
   { href: "/clientes", label: "Clientes", icon: Users, enabled: true },
-  { href: "/tiempos", label: "Tiempos", icon: Clock, enabled: false },
-  { href: "/tareas", label: "Tareas", icon: ListChecks, enabled: false },
-  { href: "/calendario", label: "Calendario", icon: Calendar, enabled: false },
+  { href: "/tiempos", label: "Tiempos", icon: Clock, enabled: true },
+  { href: "/tareas", label: "Tareas", icon: ListChecks, enabled: true },
+  { href: "/calendario", label: "Calendario", icon: Calendar, enabled: true },
   { href: "/documentos", label: "Documentos", icon: FileText, enabled: false },
   { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: false },
   { href: "/reportes", label: "Reportes", icon: BarChart3, enabled: false },
@@ -110,11 +110,11 @@ export function Sidebar({ firmName }: { firmName: string }) {
       <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
         {!collapsed ? (
           <div className="space-y-1">
-            <p className="font-medium text-foreground">Sin timer activo</p>
-            <p>El timer llega en Fase 1.</p>
+            <p className="font-medium text-foreground">LDP Legal Suite</p>
+            <p>Fase 1 · Tiempos · Tareas · Calendario · Gastos</p>
           </div>
         ) : (
-          <Clock className="mx-auto h-4 w-4" aria-label="Timer (Fase 1)" />
+          <Clock className="mx-auto h-4 w-4" aria-label="LDP" />
         )}
       </div>
     </aside>

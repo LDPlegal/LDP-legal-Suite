@@ -1,3 +1,4 @@
+import { ActiveTimerWidget } from "./active-timer";
 import { CommandPalette } from "./command-palette";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
@@ -11,6 +12,7 @@ export function Header({
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
       <CommandPalette />
       <div className="flex-1" />
+      <ActiveTimerWidget />
       <ThemeToggle />
       <UserMenu name={user.name} email={user.email} role={user.role} />
     </header>

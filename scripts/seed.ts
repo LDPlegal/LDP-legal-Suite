@@ -25,7 +25,11 @@ import {
   caseAssignments,
   cases,
   clients,
+  events,
+  expenses,
   firms,
+  tasks,
+  timeEntries,
   users,
 } from "../lib/db/schema";
 
@@ -69,6 +73,11 @@ async function main() {
   console.log("[seed] Truncating existing data...");
   await adminDb.execute(sql`
     TRUNCATE
+      "active_timers",
+      "expenses",
+      "events",
+      "tasks",
+      "time_entries",
       "case_assignments",
       "case_counters",
       "cases",
@@ -516,12 +525,203 @@ async function main() {
     userIdsB,
   );
 
+  console.log("[seed] Creating Fase 1 data (time entries, tasks, events, expenses)...");
+  const counts = {
+    timeEntries: 0,
+    tasks: 0,
+    events: 0,
+    expenses: 0,
+  };
+
+  // Helper: seed a few time entries / tasks / expenses per case, plus some
+  // firm-wide events. Restricted cases get the same treatment so we can
+  // verify visibility cascade in tests.
+  async function seedPhase1ForFirm(
+    firmId: string,
+    members: Array<{ id: string; role: Role }>,
+  ) {
+    const casesRows = await adminDb
+      .select({ id: cases.id, code: cases.code, title: cases.title, leadLawyerId: cases.leadLawyerId, visibility: cases.visibility })
+      .from(cases)
+      .where(sql`${cases.firmId} = ${firmId} AND ${cases.deletedAt} IS NULL`);
+
+    const partners = members.filter((m) => m.role === "partner" || m.role === "admin");
+    const lawyers = members.filter((m) => m.role === "lawyer" || m.role === "partner");
+    const today = new Date();
+    today.setUTCHours(9, 0, 0, 0);
+
+    for (const cs of casesRows) {
+      const author = cs.leadLawyerId ?? pickOne(lawyers).id;
+
+      // 3 time entries per case spanning the last 14 days
+      for (let i = 0; i < 3; i++) {
+        const startedAt = new Date(today);
+        startedAt.setUTCDate(today.getUTCDate() - (i * 3 + 1));
+        startedAt.setUTCHours(9 + i * 2);
+        const endedAt = new Date(startedAt.getTime() + (60 + i * 30) * 60 * 1000);
+        const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
+        await adminDb.insert(timeEntries).values({
+          firmId,
+          caseId: cs.id,
+          userId: author,
+          description: i === 0 ? "Reunión con cliente" : i === 1 ? "Redacción de escrito" : "Investigación",
+          startedAt,
+          endedAt,
+          durationSeconds,
+          billable: i !== 2,
+          status: i === 2 ? "approved" : "draft",
+          approvedById: i === 2 ? pickOne(partners).id : null,
+          approvedAt: i === 2 ? new Date() : null,
+        });
+        counts.timeEntries++;
+      }
+
+      // 2 tasks per case
+      const dueIn = new Date(today);
+      dueIn.setUTCDate(today.getUTCDate() + 7);
+      await adminDb.insert(tasks).values([
+        {
+          firmId,
+          caseId: cs.id,
+          title: `Revisar documentación de ${cs.code}`,
+          description: "Validar contratos firmados y agregarlos al expediente.",
+          assigneeId: author,
+          dueAt: dueIn,
+          priority: "med",
+          status: "todo",
+          createdBy: pickOne(partners).id,
+        },
+        {
+          firmId,
+          caseId: cs.id,
+          title: `Llamar al cliente sobre ${cs.code}`,
+          assigneeId: pickOne(lawyers).id,
+          dueAt: null,
+          priority: "low",
+          status: "in_progress",
+          createdBy: pickOne(partners).id,
+        },
+      ]);
+      counts.tasks += 2;
+
+      // 1 expense per case
+      const incurredAt = new Date(today);
+      incurredAt.setUTCDate(today.getUTCDate() - 5);
+      await adminDb.insert(expenses).values({
+        firmId,
+        caseId: cs.id,
+        userId: author,
+        description: "Notarización de documentos",
+        amount: "1500.00",
+        currency: "DOP",
+        incurredOn: incurredAt,
+        billable: true,
+        status: "draft",
+      });
+      counts.expenses++;
+    }
+
+    // Firm-wide tasks (no caseId) — admin reminders.
+    const admin = members.find((m) => m.role === "admin");
+    if (admin) {
+      await adminDb.insert(tasks).values([
+        {
+          firmId,
+          caseId: null,
+          title: "Renovar membresía CARD",
+          assigneeId: admin.id,
+          priority: "high",
+          status: "todo",
+          createdBy: admin.id,
+        },
+        {
+          firmId,
+          caseId: null,
+          title: "Reunión semanal del equipo",
+          assigneeId: admin.id,
+          priority: "med",
+          status: "todo",
+          createdBy: admin.id,
+        },
+      ]);
+      counts.tasks += 2;
+    }
+
+    // 3 firm-wide events spanning the next two weeks (firm-attended)
+    const memberIds = members.map((m) => m.id);
+    const nextWeek = new Date(today);
+    nextWeek.setUTCDate(today.getUTCDate() + 7);
+    const inThreeDays = new Date(today);
+    inThreeDays.setUTCDate(today.getUTCDate() + 3);
+    const inTen = new Date(today);
+    inTen.setUTCDate(today.getUTCDate() + 10);
+
+    await adminDb.insert(events).values([
+      {
+        firmId,
+        caseId: casesRows[0]?.id ?? null,
+        title: `Audiencia ${casesRows[0]?.code ?? ""}`.trim(),
+        description: "Audiencia preliminar.",
+        location: "Palacio de Justicia, Santo Domingo",
+        startAt: inThreeDays,
+        endAt: new Date(inThreeDays.getTime() + 90 * 60 * 1000),
+        allDay: false,
+        attendees: [author2(memberIds)],
+        reminderMinutes: 60,
+        icalUid: `${crypto.randomUUID()}@ldp-legal-suite`,
+        createdBy: admin?.id ?? null,
+      },
+      {
+        firmId,
+        caseId: null,
+        title: "Reunión de socios",
+        description: "Revisión mensual.",
+        location: "Sala de juntas",
+        startAt: nextWeek,
+        endAt: new Date(nextWeek.getTime() + 60 * 60 * 1000),
+        allDay: false,
+        attendees: members.filter((m) => m.role === "partner" || m.role === "admin").map((m) => m.id),
+        reminderMinutes: 30,
+        icalUid: `${crypto.randomUUID()}@ldp-legal-suite`,
+        createdBy: admin?.id ?? null,
+      },
+      {
+        firmId,
+        caseId: casesRows[1]?.id ?? null,
+        title: `Vencimiento ${casesRows[1]?.code ?? ""}`.trim(),
+        description: "Plazo procesal — radicar respuesta.",
+        location: "—",
+        startAt: inTen,
+        endAt: new Date(inTen.getTime() + 30 * 60 * 1000),
+        allDay: true,
+        attendees: memberIds,
+        reminderMinutes: 1440,
+        icalUid: `${crypto.randomUUID()}@ldp-legal-suite`,
+        createdBy: admin?.id ?? null,
+      },
+    ]);
+    counts.events += 3;
+  }
+
+  function author2(arr: string[]): string {
+    const first = arr[0];
+    if (!first) throw new Error("seedPhase1ForFirm: no members");
+    return first;
+  }
+
+  await seedPhase1ForFirm(firmA.id, userIdsA);
+  await seedPhase1ForFirm(firmB.id, userIdsB);
+
   console.log(`[seed] Done.
   Firms:        2
   Users:        ${userIdsA.length + userIdsB.length} (password for all seed users: ${SEED_PASSWORD})
   Clientes:     ${insertedClientsA.length + insertedClientsB.length}
   Casos:        ${CASES_A.length + CASES_B.length}
   Restringidos: 2 (uno por firma)
+  Tiempos:      ${counts.timeEntries}
+  Tareas:       ${counts.tasks}
+  Eventos:      ${counts.events}
+  Gastos:       ${counts.expenses}
 
   Try logging in as:
     carmen.almonte@almontereyes.do (admin / Bufete Almonte & Reyes)

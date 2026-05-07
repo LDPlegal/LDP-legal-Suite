@@ -428,3 +428,306 @@ export type NewCaseAssignment = typeof caseAssignments.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
+
+// =============================================================================
+// FASE 1 — Tiempos · Tareas · Calendario · Gastos
+// =============================================================================
+
+// ----- Enums ---------------------------------------------------------------
+
+export const taskPriorityEnum = pgEnum("task_priority", [
+  "low",
+  "med",
+  "high",
+  "urgent",
+]);
+
+export const taskStatusEnum = pgEnum("task_status", [
+  "todo",
+  "in_progress",
+  "waiting",
+  "done",
+]);
+
+export const timeEntryStatusEnum = pgEnum("time_entry_status", [
+  "draft",
+  "approved",
+  "invoiced",
+]);
+
+export const expenseStatusEnum = pgEnum("expense_status", [
+  "draft",
+  "approved",
+  "invoiced",
+]);
+
+// =============================================================================
+// active_timers — server-side persistent timer (§ 9.4)
+// =============================================================================
+// One timer max per user (PK on user_id). Heartbeat updates last_heartbeat_at;
+// if it falls > 15min behind we treat the timer as stale and offer the user
+// to recover or discard. Opening a new tab queries this table — same timer
+// appears, no duplication.
+// =============================================================================
+
+export const activeTimers = pgTable(
+  "active_timers",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    description: text("description"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("active_timers_firm_idx").on(t.firmId),
+    index("active_timers_case_idx").on(t.caseId),
+  ],
+);
+
+// =============================================================================
+// time_entries — billable / non-billable time logged against a case
+// =============================================================================
+// duration_seconds is computed at write time from started_at / ended_at and
+// stored explicitly so reports don't recompute on every read.
+// hourly_rate_snapshot freezes the rate at billing time; if the user's rate
+// changes later, already-approved entries don't re-price.
+// invoice_id is uuid (no FK yet) — Fase 2 will add the FK to invoices table.
+// =============================================================================
+
+export const timeEntries = pgTable(
+  "time_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    description: text("description"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }).notNull(),
+    durationSeconds: integer("duration_seconds").notNull(),
+    billable: boolean("billable").notNull().default(true),
+    hourlyRateSnapshot: decimal("hourly_rate_snapshot", { precision: 12, scale: 2 }),
+    status: timeEntryStatusEnum("status").notNull().default("draft"),
+    invoiceId: uuid("invoice_id"),
+    approvedById: uuid("approved_by_id").references(() => users.id, { onDelete: "set null" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("time_entries_firm_idx").on(t.firmId),
+    index("time_entries_firm_case_idx").on(t.firmId, t.caseId),
+    index("time_entries_firm_user_idx").on(t.firmId, t.userId),
+    index("time_entries_firm_status_idx").on(t.firmId, t.status),
+    index("time_entries_started_idx").on(t.firmId, t.startedAt),
+  ],
+);
+
+// =============================================================================
+// tasks — case-scoped or firm-wide
+// =============================================================================
+// case_id is nullable: a task with case_id NULL is a firm-wide task (e.g.,
+// internal admin work). When case_id is set, RLS enforces inheritance of the
+// case's visibility (restricted cases hide their tasks too).
+// =============================================================================
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    priority: taskPriorityEnum("priority").notNull().default("med"),
+    status: taskStatusEnum("status").notNull().default("todo"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("tasks_firm_idx").on(t.firmId),
+    index("tasks_firm_case_idx").on(t.firmId, t.caseId),
+    index("tasks_firm_assignee_idx").on(t.firmId, t.assigneeId),
+    index("tasks_firm_status_idx").on(t.firmId, t.status),
+    index("tasks_firm_due_idx").on(t.firmId, t.dueAt),
+  ],
+);
+
+// =============================================================================
+// events — calendar entries
+// =============================================================================
+// Like tasks, case_id is nullable for firm-wide events. attendees is an
+// array of user_ids; when a user is in attendees we surface the event in
+// their personal feed. ical_uid is the UID for .ics export — generated on
+// create and immutable so re-exports stay stable for external calendars.
+// =============================================================================
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    location: text("location"),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    allDay: boolean("all_day").notNull().default(false),
+    attendees: uuid("attendees").array().notNull().default(sql`ARRAY[]::uuid[]`),
+    reminderMinutes: integer("reminder_minutes"),
+    icalUid: text("ical_uid").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("events_firm_idx").on(t.firmId),
+    index("events_firm_case_idx").on(t.firmId, t.caseId),
+    index("events_firm_start_idx").on(t.firmId, t.startAt),
+    uniqueIndex("events_ical_uid_unique").on(t.icalUid),
+  ],
+);
+
+// =============================================================================
+// expenses — case expenses (always case-scoped per maestro)
+// =============================================================================
+// receipt_url is just text in Fase 1 (no upload UI yet — Fase 2). currency
+// defaults to firm.default_currency at create time but stored explicitly so
+// historical reports stay correct if firm currency changes.
+// =============================================================================
+
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("DOP"),
+    incurredOn: timestamp("incurred_on", { withTimezone: true }).notNull(),
+    billable: boolean("billable").notNull().default(true),
+    receiptUrl: text("receipt_url"),
+    status: expenseStatusEnum("status").notNull().default("draft"),
+    invoiceId: uuid("invoice_id"),
+    approvedById: uuid("approved_by_id").references(() => users.id, { onDelete: "set null" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("expenses_firm_idx").on(t.firmId),
+    index("expenses_firm_case_idx").on(t.firmId, t.caseId),
+    index("expenses_firm_user_idx").on(t.firmId, t.userId),
+    index("expenses_firm_status_idx").on(t.firmId, t.status),
+    index("expenses_incurred_idx").on(t.firmId, t.incurredOn),
+  ],
+);
+
+// ----- Relations (Fase 1) ---------------------------------------------------
+
+export const activeTimersRelations = relations(activeTimers, ({ one }) => ({
+  user: one(users, { fields: [activeTimers.userId], references: [users.id] }),
+  firm: one(firms, { fields: [activeTimers.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [activeTimers.caseId], references: [cases.id] }),
+}));
+
+export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+  firm: one(firms, { fields: [timeEntries.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [timeEntries.caseId], references: [cases.id] }),
+  user: one(users, { fields: [timeEntries.userId], references: [users.id] }),
+  approvedBy: one(users, {
+    fields: [timeEntries.approvedById],
+    references: [users.id],
+    relationName: "time_entry_approver",
+  }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  firm: one(firms, { fields: [tasks.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [tasks.caseId], references: [cases.id] }),
+  assignee: one(users, {
+    fields: [tasks.assigneeId],
+    references: [users.id],
+    relationName: "task_assignee",
+  }),
+  createdBy: one(users, {
+    fields: [tasks.createdBy],
+    references: [users.id],
+    relationName: "task_creator",
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  firm: one(firms, { fields: [events.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [events.caseId], references: [cases.id] }),
+  createdBy: one(users, {
+    fields: [events.createdBy],
+    references: [users.id],
+    relationName: "event_creator",
+  }),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  firm: one(firms, { fields: [expenses.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [expenses.caseId], references: [cases.id] }),
+  user: one(users, { fields: [expenses.userId], references: [users.id] }),
+  approvedBy: one(users, {
+    fields: [expenses.approvedById],
+    references: [users.id],
+    relationName: "expense_approver",
+  }),
+}));
+
+// ----- Inferred types (Fase 1) ---------------------------------------------
+
+export type ActiveTimer = typeof activeTimers.$inferSelect;
+export type NewActiveTimer = typeof activeTimers.$inferInsert;
+
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type NewTimeEntry = typeof timeEntries.$inferInsert;
+
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
+
+export type Event = typeof events.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;
+
+export type Expense = typeof expenses.$inferSelect;
+export type NewExpense = typeof expenses.$inferInsert;
