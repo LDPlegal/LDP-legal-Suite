@@ -70,7 +70,14 @@ export async function findConflictingEvents(
       isNull(events.deletedAt),
       sql`${events.endAt} > ${args.start}`,
       sql`${events.startAt} < ${args.end}`,
-      sql`${events.attendees} && ${args.userIds}::text[]`,
+      // Build the parameter array with an explicit ARRAY[...] literal so
+      // Postgres knows the type. Binding a JS array directly via ${arr}::text[]
+      // makes pg send it as an unnamed record, which Postgres rejects with
+      // "no se puede convertir el tipo record a text[]".
+      sql`${events.attendees} && ARRAY[${sql.join(
+        args.userIds.map((id) => sql`${id}`),
+        sql`, `,
+      )}]::text[]`,
     ];
     if (args.excludeId) conds.push(sql`${events.id} <> ${args.excludeId}`);
     return tx
