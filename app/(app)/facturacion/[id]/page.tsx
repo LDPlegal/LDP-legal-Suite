@@ -107,6 +107,15 @@ export default async function InvoiceDetailPage({
                 initialDueOn={invoice.dueOn}
                 initialNotes={invoice.notes}
                 initialTerms={invoice.terms}
+                initialIsr={num(invoice.isrWithholdingAmount) > 0}
+                initialLines={items.map((it) => ({
+                  description: it.description,
+                  quantity: num(it.quantity),
+                  unitPrice: num(it.unitPrice),
+                  taxRate: num(it.taxRate),
+                  sourceType: it.sourceType,
+                  sourceId: it.sourceId,
+                }))}
                 trigger={
                   <Button variant="outline" size="sm">
                     <Pencil className="h-3.5 w-3.5" />

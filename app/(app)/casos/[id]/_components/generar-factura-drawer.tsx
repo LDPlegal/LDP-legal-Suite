@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -108,8 +109,21 @@ export function GenerarFacturaDrawer({
     availableNcfTypes[0] ?? "",
   );
   const [previewing, setPreviewing] = useState(false);
+  const router = useRouter();
   const [state, action, pending] = useActionState<GenerarFacturaState, FormData>(
-    generarFacturaAction,
+    async (prev, fd) => {
+      const result = await generarFacturaAction(prev, fd);
+      if (result.ok) {
+        toast.success("Factura generada");
+        setOpen(false);
+        router.push(`/facturacion/${result.invoiceId}`);
+      } else {
+        // Bubble the server error as a toast too — the inline message inside
+        // the drawer body can be hidden by scroll on a long form.
+        toast.error(result.error);
+      }
+      return result;
+    },
     initial,
   );
 

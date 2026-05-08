@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { generateInvoiceFromCase } from "@/lib/db/queries/invoices";
@@ -114,7 +113,11 @@ export async function generarFacturaAction(
     });
     revalidatePath("/facturacion");
     revalidatePath(`/casos/${parsed.data.caseId}`);
-    redirect(`/facturacion/${inv.id}`);
+    // Returning ok:true (instead of redirect()) lets the drawer toast,
+    // close itself, and call router.push to /facturacion/[id]. Redirect
+    // from here was opaque to useActionState — the drawer thought the
+    // call was still pending, never showed success.
+    return { ok: true, invoiceId: inv.id };
   } catch (e) {
     return {
       ok: false,

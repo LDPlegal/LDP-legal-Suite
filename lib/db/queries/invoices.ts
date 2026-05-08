@@ -283,10 +283,13 @@ export async function voidInvoice(firmId: string, userId: string, invoiceId: str
   });
 }
 
-// Edit allowed only on drafts: header-level fields (dueOn, notes, terms) +
-// optionally the lines' descriptions / qty / price / tax. Source IDs stay
-// frozen — if the user wants to change which time entries / expenses are
-// included they should delete the draft and regenerate.
+// Edit allowed only on drafts.
+// - Header fields: dueOn, notes, terms, isrWithholding (recomputes totals)
+// - Lines: optional. If provided, replaces ALL invoice_items rows and
+//   recomputes subtotal/itbis/total/balance from the new lines.
+// - Source rows that disappear from the new lines are reverted from
+//   'invoiced' back to 'approved' so they appear again in the billable
+//   picker. New source rows in the new lines are marked 'invoiced'.
 export async function updateInvoiceDraft(
   firmId: string,
   userId: string,
@@ -295,12 +298,15 @@ export async function updateInvoiceDraft(
     dueOn?: Date;
     notes?: string | null;
     terms?: string | null;
+    isrWithholding?: boolean;
+    lines?: LineInput[];
   },
 ): Promise<Invoice | null> {
   return withFirm(firmId, userId, async (tx) => {
-    const [row] = await tx
-      .update(invoices)
-      .set({ ...patch, updatedAt: new Date() })
+    // Verify it's a draft we can edit.
+    const [existing] = await tx
+      .select()
+      .from(invoices)
       .where(
         and(
           eq(invoices.id, invoiceId),
@@ -308,6 +314,130 @@ export async function updateInvoiceDraft(
           isNull(invoices.deletedAt),
         ),
       )
+      .limit(1);
+    if (!existing) return null;
+
+    if (patch.lines !== undefined) {
+      // Re-snapshot the original source IDs so we can flip status correctly.
+      const originalItems = await tx
+        .select({ sourceType: invoiceItems.sourceType, sourceId: invoiceItems.sourceId })
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, invoiceId));
+
+      const origTimeIds = originalItems
+        .filter((i) => i.sourceType === "time_entry" && i.sourceId)
+        .map((i) => i.sourceId as string);
+      const origExpIds = originalItems
+        .filter((i) => i.sourceType === "expense" && i.sourceId)
+        .map((i) => i.sourceId as string);
+
+      const newTimeIds = patch.lines
+        .filter((l) => l.sourceType === "time_entry" && l.sourceId)
+        .map((l) => l.sourceId as string);
+      const newExpIds = patch.lines
+        .filter((l) => l.sourceType === "expense" && l.sourceId)
+        .map((l) => l.sourceId as string);
+
+      const removedTimeIds = origTimeIds.filter((id) => !newTimeIds.includes(id));
+      const removedExpIds = origExpIds.filter((id) => !newExpIds.includes(id));
+      const addedTimeIds = newTimeIds.filter((id) => !origTimeIds.includes(id));
+      const addedExpIds = newExpIds.filter((id) => !origExpIds.includes(id));
+
+      // Recompute totals from the edited lines.
+      const totals = computeTotals(patch.lines, {
+        isrWithholding: patch.isrWithholding ?? num(existing.isrWithholdingAmount) > 0,
+        itbisWithholding: false,
+      });
+
+      // Replace line items.
+      await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+      if (totals.lines.length > 0) {
+        await tx.insert(invoiceItems).values(
+          totals.lines.map((l, idx) => ({
+            invoiceId,
+            sourceType: l.sourceType,
+            sourceId: l.sourceId,
+            description: l.description,
+            quantity: l.quantity.toFixed(4),
+            unitPrice: l.unitPrice.toFixed(2),
+            taxRate: l.taxRate.toFixed(4),
+            taxAmount: l.taxAmount.toFixed(2),
+            amount: l.amount.toFixed(2),
+            position: idx,
+          })),
+        );
+      }
+
+      // Update header totals.
+      await tx
+        .update(invoices)
+        .set({
+          subtotal: totals.subtotal.toFixed(2),
+          itbisAmount: totals.itbisAmount.toFixed(2),
+          isrWithholdingAmount: totals.isrWithholdingAmount.toFixed(2),
+          itbisWithholdingAmount: totals.itbisWithholdingAmount.toFixed(2),
+          total: totals.total.toFixed(2),
+          balance: totals.total.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(eq(invoices.id, invoiceId));
+
+      // Flip statuses on source rows that came/went.
+      if (removedTimeIds.length > 0) {
+        await tx
+          .update(timeEntries)
+          .set({ status: "approved", invoiceId: null, updatedAt: new Date() })
+          .where(
+            sql`${timeEntries.id} = ANY(ARRAY[${sql.join(
+              removedTimeIds.map((i) => sql`${i}::uuid`),
+              sql`, `,
+            )}])`,
+          );
+      }
+      if (removedExpIds.length > 0) {
+        await tx
+          .update(expenses)
+          .set({ status: "approved", invoiceId: null, updatedAt: new Date() })
+          .where(
+            sql`${expenses.id} = ANY(ARRAY[${sql.join(
+              removedExpIds.map((i) => sql`${i}::uuid`),
+              sql`, `,
+            )}])`,
+          );
+      }
+      if (addedTimeIds.length > 0) {
+        await tx
+          .update(timeEntries)
+          .set({ status: "invoiced", invoiceId, updatedAt: new Date() })
+          .where(
+            sql`${timeEntries.id} = ANY(ARRAY[${sql.join(
+              addedTimeIds.map((i) => sql`${i}::uuid`),
+              sql`, `,
+            )}])`,
+          );
+      }
+      if (addedExpIds.length > 0) {
+        await tx
+          .update(expenses)
+          .set({ status: "invoiced", invoiceId, updatedAt: new Date() })
+          .where(
+            sql`${expenses.id} = ANY(ARRAY[${sql.join(
+              addedExpIds.map((i) => sql`${i}::uuid`),
+              sql`, `,
+            )}])`,
+          );
+      }
+    }
+
+    const [row] = await tx
+      .update(invoices)
+      .set({
+        ...(patch.dueOn !== undefined ? { dueOn: patch.dueOn } : {}),
+        ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
+        ...(patch.terms !== undefined ? { terms: patch.terms } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(invoices.id, invoiceId))
       .returning();
     return row ?? null;
   });
