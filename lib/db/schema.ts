@@ -600,7 +600,11 @@ export const events = pgTable(
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
     endAt: timestamp("end_at", { withTimezone: true }).notNull(),
     allDay: boolean("all_day").notNull().default(false),
-    attendees: uuid("attendees").array().notNull().default(sql`ARRAY[]::uuid[]`),
+    // Stored as text[] so the JS string[] of UUIDs round-trips cleanly through
+    // node-postgres / drizzle. With uuid[] drizzle serialised a single-element
+    // array as a bare uuid which Postgres rejected ("malformed array literal").
+    // Validation that values are real UUIDs lives in the Zod schema layer.
+    attendees: text("attendees").array().notNull().default(sql`ARRAY[]::text[]`),
     reminderMinutes: integer("reminder_minutes"),
     icalUid: text("ical_uid").notNull(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),

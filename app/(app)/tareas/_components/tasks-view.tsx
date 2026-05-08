@@ -2,10 +2,23 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import dynamic from "next/dynamic";
 import { Kanban, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TaskList } from "./task-list";
-import { TaskKanban } from "./task-kanban";
+
+// @dnd-kit's useDraggable assigns incrementing aria-describedby ids
+// (DndDescribedBy-N) which differ between server-render and client-render,
+// causing a React hydration mismatch on first paint. Loading the kanban
+// only on the client side avoids that — the kanban is interactive anyway.
+const TaskKanban = dynamic(
+  () => import("./task-kanban").then((m) => ({ default: m.TaskKanban })),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[400px] w-full" />,
+  },
+);
 
 export type TareaRow = {
   id: string;

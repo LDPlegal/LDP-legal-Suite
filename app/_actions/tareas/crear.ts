@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { createTask } from "@/lib/db/queries/tasks";
 import { TareaSchema } from "@/lib/schemas/fase1";
@@ -41,8 +40,11 @@ export async function crearTareaAction(
     priority: data.priority,
     status: data.status,
   });
-  const back = (formData.get("redirectTo") as string | null) || "/tareas";
+  // Returning ok:true (instead of redirect()) lets the client drawer close
+  // itself, toast, and call router.refresh() to update the visible list.
+  // Redirecting from here to the same URL was a no-op visually, leaving the
+  // drawer open and giving the impression that nothing happened.
   revalidatePath("/tareas");
   if (data.caseId) revalidatePath(`/casos/${data.caseId}`);
-  redirect(back);
+  return { ok: true };
 }

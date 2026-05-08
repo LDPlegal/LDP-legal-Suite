@@ -83,7 +83,7 @@ export function ManualTimeEntryDrawer({
             fd.set("billable", billable ? "true" : "false");
             return action(fd);
           }}
-          className="flex h-full flex-col"
+          className="flex flex-1 flex-col min-h-0"
         >
           <SheetBody className="space-y-4">
             <div className="space-y-1.5">

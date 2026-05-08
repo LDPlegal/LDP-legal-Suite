@@ -48,8 +48,14 @@ const SheetContent = React.forwardRef<
 >(({ side = "right", className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
-    <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-      <div className="flex h-full flex-col">{children}</div>
+    <SheetPrimitive.Content
+      ref={ref}
+      // flex flex-col on the root makes <SheetHeader> + <form>(<SheetBody/><SheetFooter/>)
+      // distribute height correctly: body grows + scrolls, footer stays visible at the bottom.
+      className={cn(sheetVariants({ side }), "flex flex-col", className)}
+      {...props}
+    >
+      {children}
       <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
         <X className="h-4 w-4" />
         <span className="sr-only">Cerrar</span>

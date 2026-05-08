@@ -70,7 +70,7 @@ export async function findConflictingEvents(
       isNull(events.deletedAt),
       sql`${events.endAt} > ${args.start}`,
       sql`${events.startAt} < ${args.end}`,
-      sql`${events.attendees} && ${args.userIds}::uuid[]`,
+      sql`${events.attendees} && ${args.userIds}::text[]`,
     ];
     if (args.excludeId) conds.push(sql`${events.id} <> ${args.excludeId}`);
     return tx

@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,8 +49,19 @@ export function EventoFormDrawer({
   const [allDay, setAllDay] = useState(false);
   const [skipConflict, setSkipConflict] = useState(false);
   const [attendees, setAttendees] = useState<string[]>([currentUserId]);
+  const router = useRouter();
   const [state, action, pending] = useActionState<EventoFormState, FormData>(
-    crearEventoAction,
+    async (prev, fd) => {
+      const result = await crearEventoAction(prev, fd);
+      if (result.ok) {
+        toast.success("Evento creado");
+        setOpen(false);
+        setSkipConflict(false);
+        if (redirectTo) router.push(redirectTo);
+        else router.refresh();
+      }
+      return result;
+    },
     initial,
   );
 
@@ -88,7 +101,7 @@ export function EventoFormDrawer({
             if (skipConflict) fd.set("skipConflict", "true");
             return action(fd);
           }}
-          className="flex h-full flex-col"
+          className="flex flex-1 flex-col min-h-0"
         >
           {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
           <SheetBody className="space-y-4">

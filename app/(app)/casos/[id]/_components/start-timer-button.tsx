@@ -23,6 +23,9 @@ export function StartTimerButton({
           try {
             await startTimerAction(fd);
             toast.success("Timer iniciado en este caso");
+            // Tell the header widget to refetch right now instead of
+            // waiting for its 60s poll. Same-tab broadcast.
+            window.dispatchEvent(new Event("timer:changed"));
           } catch (e) {
             toast.error(e instanceof Error ? e.message : "No se pudo iniciar el timer");
           }

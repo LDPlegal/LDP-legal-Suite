@@ -70,7 +70,7 @@ export function CasoFormDrawer({
             El código (ej. <span className="font-mono">2026-CIV-014</span>) se genera al guardar.
           </SheetDescription>
         </SheetHeader>
-        <form action={action} className="flex h-full flex-col">
+        <form action={action} className="flex flex-1 flex-col min-h-0">
           <SheetBody className="space-y-4">
             <Field label="Título *" error={errFor(state, "title")}>
               <Input name="title" required placeholder="Ej. Demanda en cobro de pesos" />

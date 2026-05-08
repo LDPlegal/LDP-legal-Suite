@@ -57,11 +57,20 @@ export function ActiveTimerWidget() {
     }
   }
 
-  // Initial load + polling so other tabs / actions reflect here too
+  // Initial load + polling so other tabs / actions reflect here too.
+  // We also listen for the in-tab "timer:changed" custom event so the
+  // header updates immediately after start/stop from any component
+  // (StartTimerButton, the widget itself, etc.) without waiting for the
+  // 60s poll cycle.
   useEffect(() => {
     refresh();
     const id = setInterval(refresh, POLL_MS);
-    return () => clearInterval(id);
+    const onChange = () => refresh();
+    window.addEventListener("timer:changed", onChange);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("timer:changed", onChange);
+    };
   }, []);
 
   // Heartbeat while a timer is active. Re-arm whenever the active case
@@ -101,11 +110,12 @@ export function ActiveTimerWidget() {
 
   return (
     <div
+      // High-contrast: solid color background + white text, readable in both
+      // light and dark modes. Avoids the previous bg-success/10 trick which
+      // disappeared on white backgrounds.
       className={
-        "hidden h-9 items-center gap-2 rounded-md border px-3 text-xs sm:flex " +
-        (active.stale
-          ? "border-warning bg-warning/10 text-warning-foreground"
-          : "border-success bg-success/10 text-success-foreground")
+        "hidden h-9 items-center gap-2 rounded-md px-3 text-xs text-white shadow-sm sm:flex " +
+        (active.stale ? "bg-warning" : "bg-success")
       }
       aria-live="polite"
     >

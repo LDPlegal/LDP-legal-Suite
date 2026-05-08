@@ -37,7 +37,7 @@ export function ClienteFormDrawer({ trigger }: { trigger: ReactNode }) {
             Registra un cliente nuevo. Los campos con * son obligatorios.
           </SheetDescription>
         </SheetHeader>
-        <form action={action} className="flex h-full flex-col">
+        <form action={action} className="flex flex-1 flex-col min-h-0">
           <SheetBody className="space-y-4">
             <Field label="Tipo *" error={errFor(state, "type")}>
               <select

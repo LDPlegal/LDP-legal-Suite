@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { createEvent, findConflictingEvents } from "@/lib/db/queries/events";
 import { EventoSchema } from "@/lib/schemas/fase1";
@@ -80,8 +79,9 @@ export async function crearEventoAction(
     reminderMinutes: data.reminderMinutes ?? null,
   });
 
-  const back = (formData.get("redirectTo") as string | null) || "/calendario";
+  // Returning ok:true (instead of redirect()) lets the client drawer close
+  // itself, toast, and call router.refresh() to update the visible list.
   revalidatePath("/calendario");
   if (data.caseId) revalidatePath(`/casos/${data.caseId}`);
-  redirect(back);
+  return { ok: true };
 }

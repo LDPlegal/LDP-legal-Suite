@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,8 +36,18 @@ export function TaskFormDrawer({
   redirectTo?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const [state, action, pending] = useActionState<TareaFormState, FormData>(
-    crearTareaAction,
+    async (prev, fd) => {
+      const result = await crearTareaAction(prev, fd);
+      if (result.ok) {
+        toast.success("Tarea creada");
+        setOpen(false);
+        if (redirectTo) router.push(redirectTo);
+        else router.refresh();
+      }
+      return result;
+    },
     initial,
   );
 
@@ -54,7 +66,18 @@ export function TaskFormDrawer({
             Asigna una tarea a un miembro del firm. Sin caso = tarea interna del firm.
           </SheetDescription>
         </SheetHeader>
-        <form action={action} className="flex h-full flex-col">
+        <form
+          action={(fd) => {
+            // <input type="datetime-local"> emits "YYYY-MM-DDTHH:mm" without
+            // a timezone. Zod's .datetime({ offset: true }) rejects that.
+            // Convert to ISO with offset before submitting.
+            const dueAt = fd.get("dueAt") as string | null;
+            if (dueAt) fd.set("dueAt", new Date(dueAt).toISOString());
+            else fd.delete("dueAt");
+            return action(fd);
+          }}
+          className="flex flex-1 flex-col min-h-0"
+        >
           {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
           <SheetBody className="space-y-4">
             <div className="space-y-1.5">
