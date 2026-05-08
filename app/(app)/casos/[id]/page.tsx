@@ -23,7 +23,9 @@ import { listEventsForCase } from "@/lib/db/queries/events";
 import { listDocumentsForCase } from "@/lib/db/queries/documents";
 import { listNotesForCase } from "@/lib/db/queries/notes";
 import { listBillableForCase, listInvoices } from "@/lib/db/queries/invoices";
+import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { listFirmUsers } from "@/lib/db/queries/users";
+import type { NcfType } from "@/lib/invoicing/ncf";
 import { requireUser } from "@/lib/auth/session";
 import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
 import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
@@ -79,7 +81,7 @@ export default async function CasoDetailPage({
 
   const { case: c, client, leadLawyer, assignments } = detail;
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -89,7 +91,16 @@ export default async function CasoDetailPage({
     listBillableForCase(user.firmId, user.userId, c.id),
     listInvoices(user.firmId, user.userId, { limit: 100 }),
     listFirmUsers(user.firmId, user.userId),
+    listNcfRanges(user.firmId, user.userId),
   ]);
+  const nowMs = Date.now();
+  const availableNcfTypes: NcfType[] = ncfRanges
+    .filter(
+      (r) =>
+        r.lastSeq < r.rangeEnd &&
+        (!r.expiresOn || r.expiresOn.getTime() > nowMs),
+    )
+    .map((r) => r.ncfType);
   const facturasCaso = casoInvoices.rows.filter((r) => r.caseId === c.id);
   const isCorporate = client?.type === "corporate";
 
@@ -654,6 +665,7 @@ export default async function CasoDetailPage({
                 clientId={client.id}
                 isCorporate={isCorporate}
                 billables={billables}
+                availableNcfTypes={availableNcfTypes}
                 trigger={
                   <Button variant="outline" size="sm">
                     <Plus className="h-3.5 w-3.5" />

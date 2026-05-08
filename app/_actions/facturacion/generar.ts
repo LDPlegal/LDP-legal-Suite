@@ -25,6 +25,8 @@ const Schema = z.object({
   dueOn: z.string().min(1),
   notes: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
   terms: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
+  fiscal: z.boolean().default(false),
+  ncfType: z.enum(["B01", "B02", "E31", "E32"]).optional(),
 });
 
 export type GenerarFacturaState =
@@ -54,6 +56,9 @@ export async function generarFacturaAction(
     return { ok: false, error: "Datos inválidos en el formulario." };
   }
 
+  const fiscalRaw = formData.get("fiscal");
+  const fiscal = fiscalRaw === "true" || fiscalRaw === "on";
+
   const parsed = Schema.safeParse({
     caseId: formData.get("caseId"),
     clientId: formData.get("clientId"),
@@ -66,10 +71,15 @@ export async function generarFacturaAction(
     dueOn: formData.get("dueOn"),
     notes: formData.get("notes"),
     terms: formData.get("terms"),
+    fiscal,
+    ncfType: formData.get("ncfType") || undefined,
   });
   if (!parsed.success) {
     const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
     return { ok: false, error: first ?? "Datos inválidos." };
+  }
+  if (parsed.data.fiscal && !parsed.data.ncfType) {
+    return { ok: false, error: "Modo fiscal requiere seleccionar el tipo de NCF." };
   }
 
   try {
@@ -83,6 +93,8 @@ export async function generarFacturaAction(
       dueOn: new Date(parsed.data.dueOn),
       notes: parsed.data.notes ?? null,
       terms: parsed.data.terms ?? null,
+      fiscal: parsed.data.fiscal,
+      ncfType: parsed.data.ncfType,
     });
     revalidatePath("/facturacion");
     revalidatePath(`/casos/${parsed.data.caseId}`);

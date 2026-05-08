@@ -23,6 +23,7 @@ import {
   type GenerarFacturaState,
 } from "@/app/_actions/facturacion/generar";
 import { computeTotals, formatMoney, num, type LineInput } from "@/lib/invoicing/calculate";
+import { NCF_TYPE_LABEL, type NcfType } from "@/lib/invoicing/ncf";
 
 const initial: GenerarFacturaState = { ok: true, invoiceId: "" };
 
@@ -89,16 +90,23 @@ export function GenerarFacturaDrawer({
   clientId,
   isCorporate,
   billables,
+  availableNcfTypes,
 }: {
   trigger: ReactNode;
   caseId: string;
   clientId: string;
   isCorporate: boolean;
   billables: { timeEntries: TimeBillable[]; expenses: ExpenseBillable[] };
+  /** NCF types with a configured (non-exhausted, non-expired) range. */
+  availableNcfTypes: NcfType[];
 }) {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<DraftLine[]>(() => buildInitialLines(billables));
   const [isr, setIsr] = useState(isCorporate);
+  const [fiscal, setFiscal] = useState(false);
+  const [ncfType, setNcfType] = useState<NcfType | "">(
+    availableNcfTypes[0] ?? "",
+  );
   const [previewing, setPreviewing] = useState(false);
   const [state, action, pending] = useActionState<GenerarFacturaState, FormData>(
     generarFacturaAction,
@@ -212,6 +220,8 @@ export function GenerarFacturaDrawer({
             fd.set("timeEntryIds", JSON.stringify(includedTimeIds));
             fd.set("expenseIds", JSON.stringify(includedExpIds));
             fd.set("isrWithholding", isr ? "true" : "false");
+            fd.set("fiscal", fiscal && ncfType ? "true" : "false");
+            if (fiscal && ncfType) fd.set("ncfType", ncfType);
             return action(fd);
           }}
           className="flex flex-1 flex-col min-h-0"
@@ -350,6 +360,59 @@ export function GenerarFacturaDrawer({
               </div>
             </div>
 
+            {/* Modo fiscal — asigna NCF de un rango configurado */}
+            <div className="rounded-lg border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Label className="text-sm">Modo fiscal (con NCF)</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Asigna un NCF del rango configurado y oculta el banner «Factura interna»
+                    en el PDF. Configura rangos en{" "}
+                    <a
+                      href="/configuracion"
+                      target="_blank"
+                      rel="noopener"
+                      className="underline underline-offset-2"
+                    >
+                      Configuración → Fiscal
+                    </a>
+                    .
+                  </p>
+                </div>
+                <Switch
+                  checked={fiscal}
+                  onCheckedChange={(v) => setFiscal(v && availableNcfTypes.length > 0)}
+                  disabled={availableNcfTypes.length === 0}
+                />
+              </div>
+              {fiscal && availableNcfTypes.length > 0 ? (
+                <div className="mt-3 space-y-1.5">
+                  <Label htmlFor="ncfType">Tipo de NCF *</Label>
+                  <select
+                    id="ncfType"
+                    name="ncfType"
+                    value={ncfType}
+                    onChange={(e) => setNcfType(e.target.value as NcfType)}
+                    required
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {availableNcfTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {NCF_TYPE_LABEL[t]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              {availableNcfTypes.length === 0 ? (
+                <p className="mt-3 rounded-sm border border-dashed bg-muted/30 p-2 text-[11px] text-muted-foreground">
+                  No hay rangos NCF configurados. La factura se emitirá en{" "}
+                  <strong>modo interno</strong> (proforma) hasta que cargues rangos en
+                  Configuración → Fiscal.
+                </p>
+              ) : null}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="notes">Notas (opcional)</Label>
@@ -367,22 +430,32 @@ export function GenerarFacturaDrawer({
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
-              <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
+              <Row label="Subtotal honorarios" value={formatMoney(totals.subtotal)} />
               <Row label="ITBIS" value={formatMoney(totals.itbisAmount)} />
+              <div className="mt-1 flex justify-between border-t pt-1 text-sm font-medium">
+                <span>Total honorarios brutos</span>
+                <span className="font-mono tabular-nums">
+                  {formatMoney(totals.subtotal + totals.itbisAmount)}
+                </span>
+              </div>
               {totals.isrWithholdingAmount > 0 ? (
                 <Row
-                  label="Retención ISR (10%)"
+                  label="− Retención ISR (10%) — paga el cliente a DGII por ti"
                   value={`− ${formatMoney(totals.isrWithholdingAmount)}`}
                 />
               ) : null}
               <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
-                <span>Total a cobrar</span>
+                <span>Recibirás del cliente</span>
                 <span className="font-mono tabular-nums">{formatMoney(totals.total)}</span>
               </div>
               {totals.isrWithholdingAmount > 0 ? (
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  El cliente retiene {formatMoney(totals.isrWithholdingAmount)} y lo paga
-                  directo a la DGII; tú recibes el «Total a cobrar».
+                <p className="mt-2 rounded-sm bg-success/10 p-2 text-[10px] leading-relaxed text-foreground">
+                  <strong>Tu honorario sigue siendo {formatMoney(totals.subtotal + totals.itbisAmount)}.</strong>{" "}
+                  El cliente te transfiere {formatMoney(totals.total)} y deposita los{" "}
+                  {formatMoney(totals.isrWithholdingAmount)} restantes a la DGII como anticipo de
+                  tu ISR (Anexo A del 606). Esos {formatMoney(totals.isrWithholdingAmount)} son un
+                  crédito que descuentas al pagar tu IR-2 anual — no son una rebaja a tu
+                  honorario.
                 </p>
               ) : null}
             </div>

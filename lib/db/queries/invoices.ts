@@ -14,6 +14,7 @@ import {
   type NewInvoiceItem,
 } from "../schema";
 import { computeTotals, num, type LineInput } from "@/lib/invoicing/calculate";
+import { assignNcf, type NcfType } from "@/lib/invoicing/ncf";
 
 // =============================================================================
 // Invoice number generator (race-safe per § Trampa #7 from Fase 0)
@@ -139,6 +140,11 @@ export type GenerateInvoiceInput = {
   dueOn: Date;
   notes?: string | null;
   terms?: string | null;
+  // F2.5 Modo fiscal: if `fiscal: true` the invoice gets a real NCF assigned
+  // atomically from the configured range for `ncfType`. Throws if no range
+  // is configured or it's exhausted/expired.
+  fiscal?: boolean;
+  ncfType?: NcfType;
 };
 
 // Legacy alias — kept so we don't churn imports.
@@ -163,6 +169,18 @@ export async function generateInvoiceFromCase(
     const year = issuedOn.getUTCFullYear();
     const number = await nextInvoiceNumber(tx, firmId, year);
 
+    // 2b. If fiscal mode, atomically assign the next NCF from the configured
+    //     range. Throws NcfAssignmentError if range missing/exhausted/expired.
+    let ncf: string | null = null;
+    let ncfType: NcfType | null = null;
+    if (input.fiscal) {
+      if (!input.ncfType) {
+        throw new Error("Modo fiscal requiere ncfType.");
+      }
+      ncf = await assignNcf(tx, firmId, input.ncfType);
+      ncfType = input.ncfType;
+    }
+
     // 3. Insert invoice header.
     const [head] = await tx
       .insert(invoices)
@@ -171,8 +189,8 @@ export async function generateInvoiceFromCase(
         clientId: input.clientId,
         caseId: input.caseId,
         number,
-        ncf: null,
-        ncfType: null,
+        ncf,
+        ncfType,
         issuedOn,
         dueOn: input.dueOn,
         status: "draft",

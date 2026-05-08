@@ -240,6 +240,17 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
             <Text>{data.invoice.terms}</Text>
           </View>
         ) : null}
+
+        {/* DGII fiscal disclaimer when this is a fiscal invoice (has NCF). */}
+        {!isInternal ? (
+          <View style={[styles.footer, { marginTop: 18 }]}>
+            <Text style={{ fontSize: 8, color: "#64748B" }}>
+              Este documento es un Comprobante Fiscal emitido al amparo del Código
+              Tributario y la Ley 32-23 de Facturación Electrónica. NCF{" "}
+              {data.invoice.ncf} · RNC emisor {data.firm.rnc ?? "—"}.
+            </Text>
+          </View>
+        ) : null}
       </Page>
     </PdfDocument>
   );

@@ -639,3 +639,94 @@ diferenciar tipos de nodo en el futuro (anotaciones, mentions, etc.).
 - **/documentos sidebar**: queda como "Pronto" en Fase 2 (sólo accesible
   desde la pestaña Documentos del caso). Vista global en Fase 2.5 o cuando
   haya search full-text.
+
+---
+
+# Fase 2.5 — Facturas con NCF/e-CF (modo fiscal)
+
+Implementa la **numeración** de NCF/e-CF que el maestro § 9.3 mandata.
+La emisión electrónica real (envío del XML del e-CF a la DGII y manejo del
+TrackId) se delega a un proveedor o a Fase 4.
+
+## F2.5.1 — Cuatro tipos NCF soportados
+
+**Decisión:** El sistema maneja los cuatro tipos vigentes de la DGII:
+
+| Tipo | Uso |
+|---|---|
+| **B01** | Crédito fiscal en papel — clientes corporativos que toman ITBIS |
+| **B02** | Consumidor final en papel — personas físicas |
+| **E31** | e-CF crédito fiscal — versión electrónica de B01 |
+| **E32** | e-CF consumidor final — versión electrónica de B02 |
+
+Formato 11 caracteres: `${tipo}${seq:08}` → `B0100000001`, `E3100000001`.
+
+**Implementación:**
+[`lib/invoicing/ncf.ts`](./lib/invoicing/ncf.ts) — formato + validación regex
++ asignación atómica vía `UPDATE ... WHERE last_seq < range_end` con guardas
+de expiración. Errores tipados (`NO_RANGE`, `EXHAUSTED`, `EXPIRED`) para que
+la UI muestre mensaje preciso.
+
+## F2.5.2 — Una sola fila por (firm, tipo) en `ncf_counters`
+
+**Decisión:** El esquema mantiene UN rango activo por tipo. Cuando la DGII
+asigna un nuevo rango al firm, el usuario actualiza la fila existente en
+Configuración → Fiscal (start, end, expires). Los NCFs ya emitidos en
+`invoices.ncf` no cambian — son históricos permanentes.
+
+**Por qué no múltiples rangos por tipo:** Simplifica la asignación atómica.
+Si en el futuro se necesita stack de rangos, agregar columna `range_id` y
+seleccionar el rango activo más antiguo no agotado. Documentado para futura
+revisión.
+
+## F2.5.3 — Emisión sin DGII (impresa o PDF) en F2.5; integración real en F4
+
+**Decisión:** En F2.5 el sistema asigna NCF y los imprime en el PDF con texto
+legal DGII al pie. NO envía nada a la DGII. El cliente recibe el PDF y lo
+usa como soporte de crédito fiscal — el firm reporta el NCF en su 606
+manualmente o vía proveedor.
+
+**Por qué:** La integración directa con la DGII (envío del XML del e-CF y
+manejo del TrackId) es trabajo de varias semanas, requiere certificado
+digital, y la mayoría de firmas RD ya delegan a un proveedor de e-CF
+existente (Mercury, eFacturador, etc.). En F4 se evaluará si construir
+integración propia o solo agregar un hook al proveedor.
+
+**Implementación:**
+- Toggle "Modo fiscal" en el drawer de Generar Factura → switch + selector de tipo
+- Si está prendido, la action llama `assignNcf()` dentro de la misma transacción
+- Si el rango no está configurado, agotado, o vencido → mensaje preciso
+- PDF: oculta el banner "FACTURA INTERNA"; pone NCF en header; agrega párrafo
+  "Este documento es un Comprobante Fiscal..." al pie con NCF + RNC del emisor
+
+## F2.5.4 — `/configuracion` activado con tab Fiscal
+
+**Decisión:** La página `/configuracion` deja de ser placeholder. Tabs:
+**Fiscal (NCF)** funcional + tres pendientes (Datos del firm, Plantillas,
+Tarifas) que serán Fase 3.
+
+**Implementación:**
+[`app/(app)/configuracion/page.tsx`](./app/(app)/configuracion/page.tsx) +
+[`app/(app)/configuracion/_components/ncf-ranges-panel.tsx`](./app/(app)/configuracion/_components/ncf-ranges-panel.tsx).
+Tabla por tipo NCF con estado (Activo / Vence pronto / Vencido / Agotado) +
+diálogo de edición con `Dialog` (Radix). Solo admins/socios pueden editar.
+
+## F2.5.5 — Fix de copy del ISR (claridad sobre crédito fiscal)
+
+**Decisión:** El cuadro de totales del drawer Generar Factura ahora separa
+explícitamente:
+- **Total honorarios brutos** (subtotal + ITBIS — lo que ganas)
+- **Retención ISR (10%)** mostrada con leyenda "paga el cliente a DGII por ti"
+- **Recibirás del cliente** (lo que efectivamente te transfiere)
+
+Más una nota verde explicando que el ISR retenido es un crédito al pagar el
+IR-2 anual, NO una rebaja al honorario. Esto disuelve la confusión común
+sobre qué representa el `−` en la línea de retención.
+
+## F2.5.6 — Diferidos a Fase 3+ y Fase 4
+
+- **Múltiples rangos por tipo NCF** (stack histórico) — F3 si emerge necesidad.
+- **Integración real con DGII** para emisión de e-CF — F4 o vía proveedor.
+- **Recordatorios automáticos por email** cuando un rango se agota o está por
+  vencer — Fase 3 con email sender.
+- **Soporte para más tipos NCF** (B14 régimen especial, B15 zona franca, etc.) — bajo demanda.

@@ -37,7 +37,7 @@ const NAV: NavItem[] = [
   { href: "/documentos", label: "Documentos", icon: FileText, enabled: false },
   { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: true },
   { href: "/reportes", label: "Reportes", icon: BarChart3, enabled: false },
-  { href: "/configuracion", label: "Configuración", icon: Settings, enabled: false },
+  { href: "/configuracion", label: "Configuración", icon: Settings, enabled: true },
 ];
 
 export function Sidebar({ firmName }: { firmName: string }) {
