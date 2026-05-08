@@ -20,11 +20,20 @@ import { listTimeEntriesForCase } from "@/lib/db/queries/time-entries";
 import { listExpensesForCase, totalAmount } from "@/lib/db/queries/expenses";
 import { listTasksForCase } from "@/lib/db/queries/tasks";
 import { listEventsForCase } from "@/lib/db/queries/events";
+import { listDocumentsForCase } from "@/lib/db/queries/documents";
+import { listNotesForCase } from "@/lib/db/queries/notes";
+import { listBillableForCase, listInvoices } from "@/lib/db/queries/invoices";
 import { listFirmUsers } from "@/lib/db/queries/users";
 import { requireUser } from "@/lib/auth/session";
 import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
 import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
 import { aprobarGastoAction } from "@/app/_actions/gastos/aprobar";
+import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
+import { DocumentRow } from "./_components/document-row";
+import { NoteFormDrawer } from "./_components/note-form-drawer";
+import { NoteCard } from "./_components/note-card";
+import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
+import { num, formatMoney } from "@/lib/invoicing/calculate";
 import {
   BILLING_MODE_LABEL,
   CASE_STATUS_LABEL,
@@ -70,13 +79,19 @@ export default async function CasoDetailPage({
 
   const { case: c, client, leadLawyer, assignments } = detail;
 
-  const [tiempos, gastos, tareas, eventos, usuarios] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
     listEventsForCase(user.firmId, user.userId, c.id),
+    listDocumentsForCase(user.firmId, user.userId, c.id),
+    listNotesForCase(user.firmId, user.userId, c.id),
+    listBillableForCase(user.firmId, user.userId, c.id),
+    listInvoices(user.firmId, user.userId, { limit: 100 }),
     listFirmUsers(user.firmId, user.userId),
   ]);
+  const facturasCaso = casoInvoices.rows.filter((r) => r.caseId === c.id);
+  const isCorporate = client?.type === "corporate";
 
   const totalTimeSec = tiempos.reduce((s, t) => s + t.durationSeconds, 0);
   const billableTimeSec = tiempos
@@ -135,9 +150,9 @@ export default async function CasoDetailPage({
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
           <TabsTrigger value="tareas">Tareas ({tareas.length})</TabsTrigger>
           <TabsTrigger value="eventos">Eventos ({eventos.length})</TabsTrigger>
-          <TabsTrigger value="documentos">Documentos</TabsTrigger>
-          <TabsTrigger value="notas">Notas</TabsTrigger>
-          <TabsTrigger value="facturacion">Facturación</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos ({documentos.length})</TabsTrigger>
+          <TabsTrigger value="notas">Notas ({notas.length})</TabsTrigger>
+          <TabsTrigger value="facturacion">Facturación ({facturasCaso.length})</TabsTrigger>
           <TabsTrigger value="bitacora">Bitácora</TabsTrigger>
         </TabsList>
 
@@ -559,14 +574,143 @@ export default async function CasoDetailPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="documentos">
-          <ComingSoon module="Documentos" phase="Fase 2" description="Upload, OCR, versiones." />
+        <TabsContent value="documentos" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {documentos.length} {documentos.length === 1 ? "archivo" : "archivos"}
+            </p>
+            <DocumentUploadDrawer
+              caseId={c.id}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Plus className="h-3.5 w-3.5" />
+                  Subir documento
+                </Button>
+              }
+            />
+          </div>
+          <Card className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Subido por</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tamaño</TableHead>
+                  <TableHead>OCR</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documentos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      Sin documentos. Sube el primero arriba.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  documentos.map((doc) => <DocumentRow key={doc.id} doc={doc} caseId={c.id} />)
+                )}
+              </TableBody>
+            </Table>
+          </Card>
         </TabsContent>
-        <TabsContent value="notas">
-          <ComingSoon module="Notas" phase="Fase 2" description="Tiptap richtext, privadas y compartidas." />
+        <TabsContent value="notas" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {notas.length} {notas.length === 1 ? "nota" : "notas"}
+            </p>
+            <NoteFormDrawer
+              caseId={c.id}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Plus className="h-3.5 w-3.5" />
+                  Nueva nota
+                </Button>
+              }
+            />
+          </div>
+          {notas.length === 0 ? (
+            <Card className="py-10 text-center text-sm text-muted-foreground">
+              Sin notas. Crea la primera arriba.
+            </Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {notas.map((n) => (
+                <NoteCard key={n.id} note={n} caseId={c.id} />
+              ))}
+            </div>
+          )}
         </TabsContent>
-        <TabsContent value="facturacion">
-          <ComingSoon module="Facturación" phase="Fase 2" description="Generar factura desde tiempos + gastos aprobados." />
+        <TabsContent value="facturacion" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {facturasCaso.length} {facturasCaso.length === 1 ? "factura" : "facturas"} ·{" "}
+              {billables.timeEntries.length + billables.expenses.length} concepto(s) por facturar
+            </p>
+            {isApprover && client ? (
+              <GenerarFacturaDrawer
+                caseId={c.id}
+                clientId={client.id}
+                isCorporate={isCorporate}
+                billables={billables}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-3.5 w-3.5" />
+                    Generar factura
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
+          <Card className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-32">Número</TableHead>
+                  <TableHead>Emitida</TableHead>
+                  <TableHead>Vence</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {facturasCaso.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      Sin facturas aún. Genera una desde el botón de arriba.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  facturasCaso.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-mono text-xs">
+                        <Link href={`/facturacion/${f.id}`} className="hover:underline">
+                          {f.number}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatInFirmTz(f.issuedOn, undefined, "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatInFirmTz(f.dueOn, undefined, "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{f.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {formatMoney(num(f.total), f.currency)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {formatMoney(num(f.balance), f.currency)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
         </TabsContent>
         <TabsContent value="bitacora">
           <ComingSoon module="Bitácora" phase="Fase 3" description="Audit log completo de cambios sobre el caso." />

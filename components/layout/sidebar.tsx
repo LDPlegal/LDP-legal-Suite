@@ -35,7 +35,7 @@ const NAV: NavItem[] = [
   { href: "/tareas", label: "Tareas", icon: ListChecks, enabled: true },
   { href: "/calendario", label: "Calendario", icon: Calendar, enabled: true },
   { href: "/documentos", label: "Documentos", icon: FileText, enabled: false },
-  { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: false },
+  { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: true },
   { href: "/reportes", label: "Reportes", icon: BarChart3, enabled: false },
   { href: "/configuracion", label: "Configuración", icon: Settings, enabled: false },
 ];

@@ -735,3 +735,328 @@ export type NewEvent = typeof events.$inferInsert;
 
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
+
+// =============================================================================
+// FASE 2 — Documentos · Notas · Facturación · OCR
+// =============================================================================
+
+// ----- Enums F2 -------------------------------------------------------------
+
+export const documentOcrStatusEnum = pgEnum("document_ocr_status", [
+  "pending", // queued, not processed yet
+  "processing", // worker is running OCR
+  "done", // ocr_text is populated
+  "failed", // OCR failed (network, parsing, etc.)
+  "skipped", // file too large or non-OCRable mime type — see DECISIONS.md F2
+]);
+
+export const invoiceStatusEnum = pgEnum("invoice_status", [
+  "draft",
+  "sent",
+  "partial",
+  "paid",
+  "overdue",
+  "void",
+]);
+
+// NCF / e-CF types per DGII (RD). § 9.3 of the maestro.
+//   B01 — comprobante de crédito fiscal (paper)
+//   B02 — comprobante de consumidor final (paper)
+//   E31 — e-CF crédito fiscal (electrónico)
+//   E32 — e-CF consumidor final (electrónico)
+export const ncfTypeEnum = pgEnum("ncf_type", ["B01", "B02", "E31", "E32"]);
+
+export const invoiceItemSourceEnum = pgEnum("invoice_item_source", [
+  "time_entry",
+  "expense",
+  "manual",
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "cash",
+  "transfer",
+  "check",
+  "card",
+  "other",
+]);
+
+// =============================================================================
+// documents — files attached to a case (or client, or firm-wide)
+// =============================================================================
+// version + parent_document_id form a simple version chain: uploading a new
+// version of a file points to its parent. v1 has parent NULL. There is no
+// diff yet — that's a Fase 3 enhancement.
+// ocr_text is filled by the OCR worker; until then it's NULL and ocr_status
+// reflects the state. Search joins `documents.ocr_text` once it's populated.
+// =============================================================================
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+    tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
+    ocrText: text("ocr_text"),
+    ocrStatus: documentOcrStatusEnum("ocr_status").notNull().default("pending"),
+    version: integer("version").notNull().default(1),
+    parentDocumentId: uuid("parent_document_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("documents_firm_idx").on(t.firmId),
+    index("documents_firm_case_idx").on(t.firmId, t.caseId),
+    index("documents_firm_client_idx").on(t.firmId, t.clientId),
+    index("documents_parent_idx").on(t.parentDocumentId),
+  ],
+);
+
+// =============================================================================
+// notes — Tiptap richtext per case (jsonb document model)
+// =============================================================================
+
+export const notes = pgTable(
+  "notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    title: text("title"),
+    content: jsonb("content").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("notes_firm_idx").on(t.firmId),
+    index("notes_firm_case_idx").on(t.firmId, t.caseId),
+    index("notes_firm_updated_idx").on(t.firmId, t.updatedAt),
+  ],
+);
+
+// =============================================================================
+// invoices + invoice_items + payments + invoice_counters
+// =============================================================================
+// Invoice number is INV-YYYY-NNN auto-generated per firm + year via
+// invoice_counters (atomic UPSERT pattern, same race-safe approach as
+// case_counters from Fase 0). NCF is optional (modo interno) and a separate
+// counter per (firm, ncf_type) handles fiscal mode in DECISIONS.md F2.
+// =============================================================================
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "restrict" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "set null" }),
+    number: text("number").notNull(), // e.g. "INV-2026-001"
+    ncf: text("ncf"), // null in modo interno; populated in modo fiscal
+    ncfType: ncfTypeEnum("ncf_type"),
+    issuedOn: timestamp("issued_on", { withTimezone: true }).notNull(),
+    dueOn: timestamp("due_on", { withTimezone: true }).notNull(),
+    status: invoiceStatusEnum("status").notNull().default("draft"),
+    subtotal: decimal("subtotal", { precision: 14, scale: 2 }).notNull().default("0"),
+    itbisAmount: decimal("itbis_amount", { precision: 14, scale: 2 }).notNull().default("0"),
+    isrWithholdingAmount: decimal("isr_withholding_amount", { precision: 14, scale: 2 })
+      .notNull()
+      .default("0"),
+    itbisWithholdingAmount: decimal("itbis_withholding_amount", { precision: 14, scale: 2 })
+      .notNull()
+      .default("0"),
+    total: decimal("total", { precision: 14, scale: 2 }).notNull().default("0"),
+    balance: decimal("balance", { precision: 14, scale: 2 }).notNull().default("0"),
+    currency: text("currency").notNull().default("DOP"),
+    notes: text("notes"),
+    terms: text("terms"),
+    pdfStorageKey: text("pdf_storage_key"), // points to a generated PDF in storage
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("invoices_firm_idx").on(t.firmId),
+    uniqueIndex("invoices_firm_number_unique")
+      .on(t.firmId, t.number)
+      .where(sql`${t.deletedAt} IS NULL`),
+    uniqueIndex("invoices_firm_ncf_unique")
+      .on(t.firmId, t.ncf)
+      .where(sql`${t.ncf} IS NOT NULL AND ${t.deletedAt} IS NULL`),
+    index("invoices_firm_client_idx").on(t.firmId, t.clientId),
+    index("invoices_firm_status_idx").on(t.firmId, t.status),
+    index("invoices_firm_issued_idx").on(t.firmId, t.issuedOn),
+    index("invoices_firm_due_idx").on(t.firmId, t.dueOn),
+  ],
+);
+
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "cascade" }),
+    sourceType: invoiceItemSourceEnum("source_type").notNull(),
+    sourceId: uuid("source_id"), // optional FK to time_entries.id or expenses.id (no DB FK; depends on source_type)
+    description: text("description").notNull(),
+    quantity: decimal("quantity", { precision: 12, scale: 4 }).notNull().default("1"),
+    unitPrice: decimal("unit_price", { precision: 14, scale: 2 }).notNull(),
+    taxRate: decimal("tax_rate", { precision: 5, scale: 4 }).notNull().default("0.18"), // 18% ITBIS by default
+    taxAmount: decimal("tax_amount", { precision: 14, scale: 2 }).notNull().default("0"),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    index("invoice_items_invoice_idx").on(t.invoiceId),
+    index("invoice_items_source_idx").on(t.sourceType, t.sourceId),
+  ],
+);
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "cascade" }),
+    paidOn: timestamp("paid_on", { withTimezone: true }).notNull(),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    method: paymentMethodEnum("method").notNull(),
+    reference: text("reference"),
+    notes: text("notes"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("payments_invoice_idx").on(t.invoiceId),
+    index("payments_paid_on_idx").on(t.paidOn),
+  ],
+);
+
+// invoice_counters — atomic per (firm_id, year) for INV-YYYY-NNN. Same race-safe
+// pattern as case_counters from Fase 0.
+export const invoiceCounters = pgTable(
+  "invoice_counters",
+  {
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("invoice_counters_pk").on(t.firmId, t.year)],
+);
+
+// ncf_counters — separate counter per (firm_id, ncf_type) for fiscal mode.
+// In modo interno this stays empty. Documented in DECISIONS.md F2.3.
+export const ncfCounters = pgTable(
+  "ncf_counters",
+  {
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    ncfType: ncfTypeEnum("ncf_type").notNull(),
+    rangeStart: integer("range_start").notNull(),
+    rangeEnd: integer("range_end").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+    expiresOn: timestamp("expires_on", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("ncf_counters_pk").on(t.firmId, t.ncfType)],
+);
+
+// ----- Relations F2 ---------------------------------------------------------
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  firm: one(firms, { fields: [documents.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [documents.caseId], references: [cases.id] }),
+  client: one(clients, { fields: [documents.clientId], references: [clients.id] }),
+  uploadedBy: one(users, {
+    fields: [documents.uploadedBy],
+    references: [users.id],
+    relationName: "document_uploader",
+  }),
+  parent: one(documents, {
+    fields: [documents.parentDocumentId],
+    references: [documents.id],
+    relationName: "document_versions",
+  }),
+}));
+
+export const notesRelations = relations(notes, ({ one }) => ({
+  firm: one(firms, { fields: [notes.firmId], references: [firms.id] }),
+  case: one(cases, { fields: [notes.caseId], references: [cases.id] }),
+  author: one(users, {
+    fields: [notes.authorId],
+    references: [users.id],
+    relationName: "note_author",
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  firm: one(firms, { fields: [invoices.firmId], references: [firms.id] }),
+  client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
+  case: one(cases, { fields: [invoices.caseId], references: [cases.id] }),
+  createdBy: one(users, {
+    fields: [invoices.createdBy],
+    references: [users.id],
+    relationName: "invoice_creator",
+  }),
+  items: many(invoiceItems),
+  payments: many(payments),
+}));
+
+export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
+  invoice: one(invoices, { fields: [invoiceItems.invoiceId], references: [invoices.id] }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
+  createdBy: one(users, {
+    fields: [payments.createdBy],
+    references: [users.id],
+    relationName: "payment_creator",
+  }),
+}));
+
+// ----- Inferred types F2 ----------------------------------------------------
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+
+export type Note = typeof notes.$inferSelect;
+export type NewNote = typeof notes.$inferInsert;
+
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
+
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;

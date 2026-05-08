@@ -503,3 +503,139 @@ Documentar qué se posterga conscientemente para no reabrir la conversación:
   en el server component sumando JS — no hay aggregate SQL. Para Fase 0/1
   con seeds chicos es trivial; cuando los volúmenes crezcan, mover los
   resúmenes a queries con `SUM()`.
+
+---
+
+# Fase 2 — Documentos · Notas · Facturación · OCR
+
+Decisiones específicas tomadas durante la Fase 2 (commit en `claude/awesome-montalcini-809449`).
+Tests de visibilidad en `tests/integration/fase2-rls.test.ts` (8/8).
+
+## F2.1 — Cascada de visibilidad para tablas hijas de cases (igual que Fase 1)
+
+**Decisión:** `documents`, `notes`, `invoices` heredan visibilidad del caso vía
+`app_user_can_see_case`. `invoice_items` y `payments` cascadean a través de
+una nueva función `app_user_can_see_invoice` (también `SECURITY DEFINER`)
+que delega al helper de caso.
+
+**Implementación:** [`drizzle/migrations/0004_phase2_with_rls.sql`](./drizzle/migrations/0004_phase2_with_rls.sql).
+Tests verifican que un lawyer no asignado al caso restringido NO ve los
+documentos/notas/facturas/pagos del caso.
+
+## F2.2 — Storage abstraction con driver local en dev
+
+**Decisión:** Interfaz `StorageProvider` con un único driver `LocalStorage`
+en Fase 2. Layout: `<STORAGE_ROOT>/<firmId>/<scope>/<entityId>/<filename>`.
+Producción puede swapear a S3/R2 implementando la misma interfaz sin tocar
+los call sites.
+
+**Implementación:** [`lib/storage/index.ts`](./lib/storage/index.ts) y
+[`lib/storage/local.ts`](./lib/storage/local.ts). `STORAGE_DRIVER=local` y
+`STORAGE_ROOT=./storage` en `.env`. El directorio `storage/` está en
+`.gitignore` — no se commitea contenido de usuarios.
+
+**Pendientes Fase 2.5:** driver S3 con `@aws-sdk/client-s3` o `aws4fetch`,
+firmas pre-signed para descargas grandes.
+
+## F2.3 — NCF/e-CF: schema soporta, emisión queda en modo interno
+
+**Decisión:** Las tablas `invoices`, `ncf_counters` ya soportan los cuatro
+tipos NCF (B01, B02, E31, E32) y rangos asignados al firm. **Pero la Fase 2
+sólo emite en modo interno**: las facturas llevan número `INV-YYYY-NNN`,
+`ncf=NULL`, y el PDF muestra el banner "FACTURA INTERNA — NO VÁLIDA PARA
+FINES FISCALES" como manda el maestro § 3.9.
+
+**Por qué:** La integración real con la DGII (envío de e-CF, validación de
+TrackId, manejo de respuesta) es un proyecto de varias semanas y suele
+delegarse a proveedores. Modelar los campos sin emitirlos permite que un
+firm con DGII configurada use el sistema mientras mantiene su flujo fiscal
+real por otra vía.
+
+**Implementación:** [`lib/invoicing/pdf.tsx`](./lib/invoicing/pdf.tsx)
+muestra el banner condicionalmente según `invoice.ncf`. Cuando llegue la
+integración (Fase 2.5+ o vía proveedor), poblar `ncf` desde
+`ncf_counters` quita el banner automáticamente.
+
+## F2.4 — OCR sincrónico con `tesseract.js`, sin queue
+
+**Decisión:** OCR ocurre **dentro** del server action de upload (sync).
+Soporta MIME tipos imagen (JPEG / PNG / WEBP / BMP). Archivos > 5 MB y
+todos los PDFs se marcan `ocr_status = 'skipped'` con razón legible —
+"PDF OCR (rendering por página) llega en Fase 2.5".
+
+**Por qué:** El maestro § 9.7 mandata OCR real, sin placeholder. Pero
+agregar una queue (`pg-boss` o equivalente) es trabajo no-trivial que se
+puede diferir sin sacrificar la promesa: las imágenes (que son la
+mayoría de las uploads en una firma legal — fotos de recibos) sí tienen
+OCR completo y aparecen en búsqueda. PDFs se almacenan honestamente
+marcados como pendientes; el usuario sabe que no son indexados aún.
+
+**Implementación:** [`lib/ocr/index.ts`](./lib/ocr/index.ts) +
+[`lib/ocr/tesseract.ts`](./lib/ocr/tesseract.ts). Worker `tesseract.js`
+con español + inglés se mantiene caliente para la vida del proceso. La
+primera invocación descarga ~30 MB de language data a `node_modules/
+tesseract.js/.cache`.
+
+**Pendientes Fase 2.5:**
+- PDF→image rendering por página con `pdfjs-dist` (puro JS, sin
+  ImageMagick), luego OCR de cada página.
+- Queue async con `pg-boss` para descargar el camino caliente.
+
+## F2.5 — Calculations: ITBIS por línea + retención ISR a nivel de factura
+
+**Decisión:**
+- ITBIS 18% por línea, configurable por línea (`tax_rate` decimal). Default
+  0.18 para tiempos (servicios), 0 para gastos (passthrough).
+- Retención ISR 10% como toggle por factura (default `true` cuando el
+  cliente es `corporate` en la UI; el usuario lo confirma).
+- Retención ITBIS 30% **NO se calcula** en Fase 2 — requiere distinguir
+  servicios vs bienes a nivel de línea, lo difiero a Fase 2.5.
+
+**Implementación:** [`lib/invoicing/calculate.ts`](./lib/invoicing/calculate.ts).
+Funciones puras (`computeLines`, `computeTotals`) que el server action llama
+para producir los totales que se persisten en la cabecera de la factura.
+
+## F2.6 — Tiptap richtext: store as JSONB, render con editor en read-only
+
+**Decisión:** `notes.content` es `jsonb` con el documento de Tiptap tal cual.
+Rendering en lista usa `extractTiptapText` (helper puro JS que walks el
+árbol) para preview de 280 chars. Edición / vista completa usa el mismo
+componente `RichTextEditor` con `editable=false`.
+
+**Implementación:** [`components/editor/rich-text-editor.tsx`](./components/editor/rich-text-editor.tsx)
+con `@tiptap/react` + `@tiptap/starter-kit`.
+[`lib/tiptap/extract-text.ts`](./lib/tiptap/extract-text.ts) hace el text
+extraction sin necesitar el editor.
+
+**Por qué JSONB y no HTML:** El maestro lo pide — formato editable
+estructurado, no HTML que sea costoso de mutar / sanitizar. Permite
+diferenciar tipos de nodo en el futuro (anotaciones, mentions, etc.).
+
+## F2.7 — Diferidos a Fase 2.5+
+
+- **Email sender** para recordatorios de cobro y de eventos: pendiente de
+  Fase 2.5 con Resend / Postmark.
+- **PDF OCR** vía pdfjs-dist + tesseract.
+- **Queue async** con `pg-boss` (OCR + email + futuras tareas).
+- **Retención ITBIS 30%** servicios profesionales.
+- **Modo fiscal con NCF/e-CF**: UI para configurar rangos en
+  Configuración + integración real con DGII (probablemente vía proveedor
+  externo en Fase 4).
+- **Multi-versión avanzada**: comparar versiones, anotar cambios. Schema
+  ya soporta `parent_document_id` chain.
+- **Búsqueda full-text** que use `documents.ocr_text`. El campo ya se
+  llena; falta el endpoint de search global.
+
+## F2.8 — Decisiones menores Fase 2
+
+- **`text("attendees").array()` y patrón ARRAY explícito**: heredado de
+  Fase 1; se aplica por defecto a todo array bound nuevo.
+- **PDF generation con `@react-pdf/renderer`**: la ruta es `.tsx` (no
+  `.ts`) porque el componente del PDF usa JSX. `renderToBuffer` corre en
+  Node runtime de Next.js (no edge).
+- **Descarga de archivos**: route handler `/api/documentos/[id]/download`
+  con `Content-Disposition: inline` para que el browser previsualice si
+  puede. RLS-scoped.
+- **/documentos sidebar**: queda como "Pronto" en Fase 2 (sólo accesible
+  desde la pestaña Documentos del caso). Vista global en Fase 2.5 o cuando
+  haya search full-text.

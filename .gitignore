@@ -43,3 +43,6 @@ drizzle/meta
 
 # misc
 *.pem
+
+# local file storage (dev — production uses S3-compatible driver)
+storage/
