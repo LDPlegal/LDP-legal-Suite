@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { generateInvoiceFromCase } from "@/lib/db/queries/invoices";
+import { getClientById } from "@/lib/db/queries/clients";
 
 const LineSchema = z.object({
   description: z.string().trim().min(1).max(400),
@@ -80,6 +81,21 @@ export async function generarFacturaAction(
   }
   if (parsed.data.fiscal && !parsed.data.ncfType) {
     return { ok: false, error: "Modo fiscal requiere seleccionar el tipo de NCF." };
+  }
+
+  // DGII: B01 y E31 (crédito fiscal) sólo se emiten a personas jurídicas con RNC.
+  // Validamos antes de tomar el siguiente NCF del rango (evita gastar uno y luego rollback).
+  if (
+    parsed.data.fiscal &&
+    (parsed.data.ncfType === "B01" || parsed.data.ncfType === "E31")
+  ) {
+    const client = await getClientById(user.firmId, user.userId, parsed.data.clientId);
+    if (!client?.taxId || client.taxIdType !== "rnc") {
+      return {
+        ok: false,
+        error: `El tipo ${parsed.data.ncfType} (crédito fiscal) requiere que el cliente tenga RNC. Edita el cliente y vuelve a intentar.`,
+      };
+    }
   }
 
   try {

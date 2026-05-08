@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Send, XCircle } from "lucide-react";
+import { ArrowLeft, Download, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,9 @@ import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { marcarFacturaEnviadaAction } from "@/app/_actions/facturacion/enviar";
 import { anularFacturaAction } from "@/app/_actions/facturacion/anular";
+import { eliminarFacturaAction } from "@/app/_actions/facturacion/eliminar";
 import { PaymentFormDrawer } from "./_components/payment-form-drawer";
+import { EditarFacturaDrawer } from "./_components/editar-factura-drawer";
 
 export const metadata = { title: "Factura · LDP Legal Suite" };
 
@@ -62,8 +64,10 @@ export default async function InvoiceDetailPage({
   const { invoice, client, case: kase, items, payments } = detail;
   const isApprover = user.role === "admin" || user.role === "partner";
   const canSend = isApprover && invoice.status === "draft";
+  const canEdit = isApprover && invoice.status === "draft";
+  const canDelete = isApprover && invoice.status === "draft";
   const canVoid =
-    isApprover && invoice.status !== "void" && invoice.status !== "paid";
+    isApprover && invoice.status !== "void" && invoice.status !== "paid" && invoice.status !== "draft";
   const canRecordPayment =
     invoice.status !== "void" && invoice.status !== "paid" && invoice.status !== "draft";
 
@@ -97,12 +101,35 @@ export default async function InvoiceDetailPage({
                 Descargar PDF
               </Link>
             </Button>
+            {canEdit ? (
+              <EditarFacturaDrawer
+                invoiceId={invoice.id}
+                initialDueOn={invoice.dueOn}
+                initialNotes={invoice.notes}
+                initialTerms={invoice.terms}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                }
+              />
+            ) : null}
             {canSend ? (
               <form action={marcarFacturaEnviadaAction}>
                 <input type="hidden" name="invoiceId" value={invoice.id} />
                 <Button type="submit" size="sm">
                   <Send className="h-3.5 w-3.5" />
                   Marcar enviada
+                </Button>
+              </form>
+            ) : null}
+            {canDelete ? (
+              <form action={eliminarFacturaAction}>
+                <input type="hidden" name="invoiceId" value={invoice.id} />
+                <Button type="submit" variant="ghost" size="sm" className="text-destructive">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar
                 </Button>
               </form>
             ) : null}

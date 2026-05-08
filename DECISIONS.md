@@ -730,3 +730,69 @@ sobre qué representa el `−` en la línea de retención.
 - **Recordatorios automáticos por email** cuando un rango se agota o está por
   vencer — Fase 3 con email sender.
 - **Soporte para más tipos NCF** (B14 régimen especial, B15 zona franca, etc.) — bajo demanda.
+
+## F2.6 — Edición y eliminación de clientes y facturas (CRUD completo)
+
+**Decisión:**
+- **Clientes**: el drawer existente acepta opcionalmente un objeto `cliente`
+  inicial; si se provee, opera en modo edit y llama a `editarClienteAction`.
+  Botón "Editar" en `/clientes/[id]`.
+- **Facturas (drafts)**: nuevo `editarFacturaAction` para encabezado
+  (dueOn / notes / terms). Líneas y source items NO se editan post-creación
+  para mantener auditoría — para cambiar líneas se elimina el borrador y
+  se regenera. `eliminarFacturaAction` hace soft-delete pero solo en
+  status `draft`.
+- **Facturas sent/paid/partial**: solo se pueden anular (`anularFacturaAction`),
+  nunca editar ni eliminar. El cliente ya recibió el comprobante; el rastro
+  histórico debe preservarse para DGII / auditoría.
+
+## F2.7 — Validación: NCF B01/E31 requieren RNC del cliente
+
+**Decisión:** Antes de tomar el siguiente NCF de un rango, el server action
+valida que el cliente tenga `tax_id_type='rnc'` y `tax_id` no nulo cuando
+el tipo es **B01** o **E31** (crédito fiscal). Si no, retorna error con
+mensaje específico apuntando a editar el cliente.
+
+**Por qué:** DGII rechaza un comprobante de crédito fiscal sin RNC del
+receptor. Validar ANTES de gastar un número del rango evita NCFs huérfanos
+en `ncf_counters`. B02 / E32 (consumidor final) NO requieren RNC.
+
+## F2.8 — e-CF (DGII): roadmap a Fase 4 vía proveedor externo
+
+**Decisión:** En Fase 4, integrar la emisión real de e-CF a la DGII
+**vía un proveedor externo** (Mercury, eFacturador, Tecnoflex, Hexágono,
+etc.). NO integración directa.
+
+**Por qué:**
+- Integración directa con DGII requiere certificado digital de empresa
+  (Trusted Third Party), implementación SOAP/REST con XML firmado, y
+  mantenimiento perpetuo cuando la DGII cambia su API.
+- Proveedores existentes ya manejan certificado, comunicación, y compliance.
+  Cobran cuota mensual pero ahorran 2-4 semanas de implementación inicial
+  + mantenimiento perpetuo.
+- La mayoría de firmas RD (incluyendo estudios legales) ya delegan a un
+  proveedor — es práctica estándar.
+
+**Plan de implementación (Fase 4):**
+
+1. Definir interfaz `EInvoiceProvider` en `lib/invoicing/providers/`:
+   ```ts
+   interface EInvoiceProvider {
+     emit(invoice, items, firm, client): Promise<{ trackId, status }>;
+     getStatus(trackId): Promise<EInvoiceStatus>;
+   }
+   ```
+2. Columnas nuevas en `invoices`: `dgii_track_id`, `dgii_status`,
+   `dgii_signed_xml_url`, `dgii_response_at`.
+3. UI en `/configuracion/fiscal`: tab "Proveedor e-CF" para configurar
+   credenciales API del proveedor seleccionado.
+4. Cuando se emita E31 / E32 con proveedor configurado, llamar
+   `provider.emit()` después del INSERT y guardar el `trackId`.
+5. Worker de polling (con `pg-boss`) que verifica estados pendientes
+   cada 5 min hasta que la DGII responda Aceptado/Rechazado.
+6. UI muestra estado DGII en el detalle de la factura.
+
+**También diferido a F4:**
+- Anulación de e-CF en DGII (formulario específico).
+- Recibos de pago electrónicos (otro tipo de e-CF distinto).
+- Reporte 606 / 607 generado automáticamente del histórico de invoices.

@@ -283,6 +283,36 @@ export async function voidInvoice(firmId: string, userId: string, invoiceId: str
   });
 }
 
+// Edit allowed only on drafts: header-level fields (dueOn, notes, terms) +
+// optionally the lines' descriptions / qty / price / tax. Source IDs stay
+// frozen — if the user wants to change which time entries / expenses are
+// included they should delete the draft and regenerate.
+export async function updateInvoiceDraft(
+  firmId: string,
+  userId: string,
+  invoiceId: string,
+  patch: {
+    dueOn?: Date;
+    notes?: string | null;
+    terms?: string | null;
+  },
+): Promise<Invoice | null> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(invoices)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(
+        and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.status, "draft"),
+          isNull(invoices.deletedAt),
+        ),
+      )
+      .returning();
+    return row ?? null;
+  });
+}
+
 export async function recordPayment(
   firmId: string,
   userId: string,

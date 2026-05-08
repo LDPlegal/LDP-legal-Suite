@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import { listCasesForClient } from "@/lib/db/queries/cases";
 import { requireUser } from "@/lib/auth/session";
 import { eliminarClienteAction } from "@/app/_actions/clientes/eliminar";
 import { CASE_STATUS_LABEL, MATTER_LABEL } from "@/lib/schemas/caso";
+import { ClienteFormDrawer } from "../_components/cliente-form-drawer";
 
 export const metadata = { title: "Cliente · LDP Legal Suite" };
 
@@ -58,6 +59,28 @@ export default async function ClienteDetailPage({
           <div className="flex items-center gap-2">
             <Badge variant="outline">{TYPE_LABEL[cliente.type]}</Badge>
             <Badge>{cliente.status}</Badge>
+            <ClienteFormDrawer
+              cliente={{
+                id: cliente.id,
+                type: cliente.type,
+                displayName: cliente.displayName,
+                legalName: cliente.legalName,
+                taxIdType: cliente.taxIdType,
+                taxId: cliente.taxId,
+                primaryContactName: cliente.primaryContactName,
+                email: cliente.email,
+                phone: cliente.phone,
+                address: cliente.address,
+                billingAddress: cliente.billingAddress,
+                status: cliente.status,
+              }}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+              }
+            />
             <form action={eliminarClienteAction}>
               <input type="hidden" name="clientId" value={cliente.id} />
               <Button type="submit" variant="ghost" size="sm" className="text-destructive">
