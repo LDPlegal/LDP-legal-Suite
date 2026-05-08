@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { createDocument, updateDocumentOcr } from "@/lib/db/queries/documents";
@@ -74,34 +75,35 @@ export async function uploadDocumentAction(
     ocrText: null,
   });
 
-  // Synchronous OCR for Fase 2 (DECISIONS.md F2.4). Fire-and-await — we want
-  // the user to land on the page with OCR already done for small images.
-  try {
-    const ocr = await getOcr();
-    const result = await ocr.recognize({
-      mimeType: doc.mimeType,
-      bytes,
-      sizeBytes: doc.sizeBytes,
-    });
-    if (result.status === "done") {
-      await updateDocumentOcr(user.firmId, user.userId, doc.id, {
-        ocrStatus: "done",
-        ocrText: result.text,
+  // Fire-and-forget OCR via `after()`. The response goes back to the browser
+  // as soon as the upload + insert finish. tesseract.js downloads ~30 MB of
+  // language data on first run (5-60s) — blocking the action on it made the
+  // UI hang. Now the doc appears with ocrStatus="processing" and updates to
+  // "done" / "skipped" / "failed" once the worker finishes (refresh to see).
+  const userId = user.userId;
+  const firmId = user.firmId;
+  after(async () => {
+    try {
+      const ocr = await getOcr();
+      const result = await ocr.recognize({
+        mimeType: doc.mimeType,
+        bytes,
+        sizeBytes: doc.sizeBytes,
       });
-    } else if (result.status === "skipped") {
-      await updateDocumentOcr(user.firmId, user.userId, doc.id, {
-        ocrStatus: "skipped",
-      });
-    } else {
-      await updateDocumentOcr(user.firmId, user.userId, doc.id, {
-        ocrStatus: "failed",
-      });
+      if (result.status === "done") {
+        await updateDocumentOcr(firmId, userId, doc.id, {
+          ocrStatus: "done",
+          ocrText: result.text,
+        });
+      } else if (result.status === "skipped") {
+        await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "skipped" });
+      } else {
+        await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
+      }
+    } catch {
+      await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
     }
-  } catch {
-    await updateDocumentOcr(user.firmId, user.userId, doc.id, {
-      ocrStatus: "failed",
-    });
-  }
+  });
 
   revalidatePath(`/casos/${parsed.data.caseId}`);
   return { ok: true, documentId: doc.id };

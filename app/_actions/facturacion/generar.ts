@@ -6,9 +6,19 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { generateInvoiceFromCase } from "@/lib/db/queries/invoices";
 
+const LineSchema = z.object({
+  description: z.string().trim().min(1).max(400),
+  quantity: z.number().positive().finite(),
+  unitPrice: z.number().finite().min(0),
+  taxRate: z.number().finite().min(0).max(1),
+  sourceType: z.enum(["time_entry", "expense", "manual"]),
+  sourceId: z.string().uuid().nullable(),
+});
+
 const Schema = z.object({
   caseId: z.string().uuid(),
   clientId: z.string().uuid(),
+  lines: z.array(LineSchema).min(1, "Selecciona al menos una línea"),
   timeEntryIds: z.array(z.string().uuid()).default([]),
   expenseIds: z.array(z.string().uuid()).default([]),
   isrWithholding: z.boolean().default(false),
@@ -30,20 +40,24 @@ export async function generarFacturaAction(
     return { ok: false, error: "Solo admins y socios pueden generar facturas." };
   }
 
+  const linesJson = formData.get("lines");
   const timeJson = formData.get("timeEntryIds");
   const expJson = formData.get("expenseIds");
+  let lines: unknown[] = [];
   let timeEntryIds: string[] = [];
   let expenseIds: string[] = [];
   try {
+    if (typeof linesJson === "string" && linesJson) lines = JSON.parse(linesJson);
     if (typeof timeJson === "string" && timeJson) timeEntryIds = JSON.parse(timeJson);
     if (typeof expJson === "string" && expJson) expenseIds = JSON.parse(expJson);
   } catch {
-    return { ok: false, error: "Selección inválida." };
+    return { ok: false, error: "Datos inválidos en el formulario." };
   }
 
   const parsed = Schema.safeParse({
     caseId: formData.get("caseId"),
     clientId: formData.get("clientId"),
+    lines,
     timeEntryIds,
     expenseIds,
     isrWithholding:
@@ -57,14 +71,12 @@ export async function generarFacturaAction(
     const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
     return { ok: false, error: first ?? "Datos inválidos." };
   }
-  if (parsed.data.timeEntryIds.length + parsed.data.expenseIds.length === 0) {
-    return { ok: false, error: "Selecciona al menos un tiempo o gasto para facturar." };
-  }
 
   try {
     const inv = await generateInvoiceFromCase(user.firmId, user.userId, {
       caseId: parsed.data.caseId,
       clientId: parsed.data.clientId,
+      lines: parsed.data.lines,
       timeEntryIds: parsed.data.timeEntryIds,
       expenseIds: parsed.data.expenseIds,
       isrWithholding: parsed.data.isrWithholding,

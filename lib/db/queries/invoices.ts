@@ -121,96 +121,39 @@ export async function getInvoiceById(firmId: string, userId: string, invoiceId: 
 // Generate from approved time_entries + expenses on a case
 // =============================================================================
 
-export type GenerateFromCaseInput = {
+export type GenerateInvoiceInput = {
   caseId: string;
   clientId: string;
+  // The drawer pre-builds the line items (with user edits to description /
+  // qty / unit_price / tax_rate). This action no longer reads the source
+  // rows to build defaults — it just inserts the lines as given and marks
+  // the source IDs as `invoiced`.
+  lines: LineInput[];
+  // Source IDs to mark as `invoiced` (so they don't reappear in the next
+  // billable picker). Independent from `lines` because a manual line has no
+  // source, and a single source COULD be split across multiple invoice lines
+  // in a future iteration.
   timeEntryIds: string[];
   expenseIds: string[];
-  manualLines?: LineInput[];
   isrWithholding: boolean;
   dueOn: Date;
   notes?: string | null;
   terms?: string | null;
 };
 
+// Legacy alias — kept so we don't churn imports.
+export type GenerateFromCaseInput = GenerateInvoiceInput;
+
 export async function generateInvoiceFromCase(
   firmId: string,
   userId: string,
-  input: GenerateFromCaseInput,
+  input: GenerateInvoiceInput,
 ): Promise<Invoice> {
   return withFirm(firmId, userId, async (tx) => {
-    // 1. Build lines from approved time entries (rate-snapshot * hours).
-    const tEntries =
-      input.timeEntryIds.length > 0
-        ? await tx
-            .select()
-            .from(timeEntries)
-            .where(
-              and(
-                eq(timeEntries.caseId, input.caseId),
-                eq(timeEntries.status, "approved"),
-                isNull(timeEntries.deletedAt),
-                sql`${timeEntries.id} = ANY(ARRAY[${sql.join(
-                  input.timeEntryIds.map((i) => sql`${i}::uuid`),
-                  sql`, `,
-                )}])`,
-              ),
-            )
-        : [];
-
-    const eEntries =
-      input.expenseIds.length > 0
-        ? await tx
-            .select()
-            .from(expenses)
-            .where(
-              and(
-                eq(expenses.caseId, input.caseId),
-                eq(expenses.status, "approved"),
-                isNull(expenses.deletedAt),
-                sql`${expenses.id} = ANY(ARRAY[${sql.join(
-                  input.expenseIds.map((i) => sql`${i}::uuid`),
-                  sql`, `,
-                )}])`,
-              ),
-            )
-        : [];
-
-    const timeLines: LineInput[] = tEntries.map((t) => {
-      const hours = num(t.durationSeconds) / 3600;
-      const rate = num(t.hourlyRateSnapshot);
-      return {
-        description:
-          t.description ??
-          `Honorarios por hora (${(num(t.durationSeconds) / 3600).toFixed(2)}h)`,
-        quantity: Math.round(hours * 100) / 100,
-        unitPrice: rate,
-        taxRate: 0.18,
-        sourceType: "time_entry",
-        sourceId: t.id,
-      };
-    });
-
-    const expenseLines: LineInput[] = eEntries.map((e) => ({
-      description: `Gasto: ${e.description}`,
-      quantity: 1,
-      unitPrice: num(e.amount),
-      taxRate: 0, // expense reimbursements typically pass-through (no extra ITBIS)
-      sourceType: "expense",
-      sourceId: e.id,
-    }));
-
-    const allLines: LineInput[] = [
-      ...timeLines,
-      ...expenseLines,
-      ...(input.manualLines ?? []),
-    ];
-
-    if (allLines.length === 0) {
-      throw new Error("generateInvoiceFromCase: no hay líneas para facturar");
+    if (input.lines.length === 0) {
+      throw new Error("generateInvoice: no hay líneas para facturar");
     }
-
-    const totals = computeTotals(allLines, {
+    const totals = computeTotals(input.lines, {
       isrWithholding: input.isrWithholding,
       itbisWithholding: false,
     });

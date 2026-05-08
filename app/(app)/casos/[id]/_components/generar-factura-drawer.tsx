@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useMemo, useState, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { Eye, Loader2, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -22,7 +22,7 @@ import {
   generarFacturaAction,
   type GenerarFacturaState,
 } from "@/app/_actions/facturacion/generar";
-import { formatMoney, num } from "@/lib/invoicing/calculate";
+import { computeTotals, formatMoney, num, type LineInput } from "@/lib/invoicing/calculate";
 
 const initial: GenerarFacturaState = { ok: true, invoiceId: "" };
 
@@ -44,6 +44,45 @@ type ExpenseBillable = {
   userName: string | null;
 };
 
+type DraftLine = LineInput & {
+  uiKey: string;
+  included: boolean;
+  hint: string | null;
+};
+
+function buildInitialLines(b: { timeEntries: TimeBillable[]; expenses: ExpenseBillable[] }): DraftLine[] {
+  const out: DraftLine[] = [];
+  for (const t of b.timeEntries) {
+    const hours = Math.round((t.durationSeconds / 3600) * 100) / 100;
+    const rate = num(t.hourlyRateSnapshot);
+    out.push({
+      uiKey: `t:${t.id}`,
+      sourceType: "time_entry",
+      sourceId: t.id,
+      description: t.description ?? `Honorarios profesionales (${hours.toFixed(2)}h)`,
+      quantity: hours,
+      unitPrice: rate,
+      taxRate: 0.18,
+      included: true,
+      hint: t.userName ? `${t.userName} · ${hours.toFixed(2)}h` : `${hours.toFixed(2)}h`,
+    });
+  }
+  for (const e of b.expenses) {
+    out.push({
+      uiKey: `e:${e.id}`,
+      sourceType: "expense",
+      sourceId: e.id,
+      description: `Gasto: ${e.description}`,
+      quantity: 1,
+      unitPrice: num(e.amount),
+      taxRate: 0,
+      included: true,
+      hint: e.userName,
+    });
+  }
+  return out;
+}
+
 export function GenerarFacturaDrawer({
   trigger,
   caseId,
@@ -58,154 +97,242 @@ export function GenerarFacturaDrawer({
   billables: { timeEntries: TimeBillable[]; expenses: ExpenseBillable[] };
 }) {
   const [open, setOpen] = useState(false);
-  const [selectedTime, setSelectedTime] = useState<Set<string>>(
-    new Set(billables.timeEntries.map((t) => t.id)),
-  );
-  const [selectedExp, setSelectedExp] = useState<Set<string>>(
-    new Set(billables.expenses.map((e) => e.id)),
-  );
+  const [lines, setLines] = useState<DraftLine[]>(() => buildInitialLines(billables));
   const [isr, setIsr] = useState(isCorporate);
+  const [previewing, setPreviewing] = useState(false);
   const [state, action, pending] = useActionState<GenerarFacturaState, FormData>(
     generarFacturaAction,
     initial,
   );
 
-  const subtotal = useMemo(() => {
-    let s = 0;
-    for (const t of billables.timeEntries) {
-      if (!selectedTime.has(t.id)) continue;
-      const hours = t.durationSeconds / 3600;
-      s += hours * num(t.hourlyRateSnapshot);
-    }
-    for (const e of billables.expenses) {
-      if (!selectedExp.has(e.id)) continue;
-      s += num(e.amount);
-    }
-    return Math.round(s * 100) / 100;
-  }, [billables, selectedTime, selectedExp]);
-
-  const itbis = useMemo(() => {
-    // Approximate: ITBIS only on time entries (services); expenses pass-through.
-    let s = 0;
-    for (const t of billables.timeEntries) {
-      if (!selectedTime.has(t.id)) continue;
-      const hours = t.durationSeconds / 3600;
-      s += hours * num(t.hourlyRateSnapshot) * 0.18;
-    }
-    return Math.round(s * 100) / 100;
-  }, [billables, selectedTime]);
-
-  const isrAmount = isr ? Math.round(subtotal * 0.1 * 100) / 100 : 0;
-  const total = Math.round((subtotal + itbis - isrAmount) * 100) / 100;
-
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
   const dueIso = dueDate.toISOString().slice(0, 10);
 
-  function toggleTime(id: string) {
-    setSelectedTime((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-  function toggleExp(id: string) {
-    setSelectedExp((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const includedLines = useMemo<LineInput[]>(
+    () =>
+      lines
+        .filter((l) => l.included && l.quantity > 0 && l.description.trim().length > 0)
+        .map((l) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unitPrice: l.unitPrice,
+          taxRate: l.taxRate,
+          sourceType: l.sourceType,
+          sourceId: l.sourceId,
+        })),
+    [lines],
+  );
+
+  const totals = useMemo(
+    () => computeTotals(includedLines, { isrWithholding: isr }),
+    [includedLines, isr],
+  );
+
+  function patchLine(uiKey: string, patch: Partial<DraftLine>) {
+    setLines((prev) => prev.map((l) => (l.uiKey === uiKey ? { ...l, ...patch } : l)));
   }
 
-  const nothing = billables.timeEntries.length === 0 && billables.expenses.length === 0;
+  function addManualLine() {
+    setLines((prev) => [
+      ...prev,
+      {
+        uiKey: `m:${crypto.randomUUID()}`,
+        sourceType: "manual",
+        sourceId: null,
+        description: "",
+        quantity: 1,
+        unitPrice: 0,
+        taxRate: 0.18,
+        included: true,
+        hint: "Línea manual",
+      },
+    ]);
+  }
+
+  function removeLine(uiKey: string) {
+    setLines((prev) => prev.filter((l) => l.uiKey !== uiKey));
+  }
+
+  async function previewPdf(form: HTMLFormElement) {
+    setPreviewing(true);
+    try {
+      const dueOn = (form.elements.namedItem("dueOn") as HTMLInputElement)?.value || dueIso;
+      const notes = (form.elements.namedItem("notes") as HTMLTextAreaElement)?.value || null;
+      const terms = (form.elements.namedItem("terms") as HTMLTextAreaElement)?.value || null;
+      const res = await fetch("/api/facturacion/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          clientId,
+          lines: includedLines,
+          isrWithholding: isr,
+          dueOn,
+          notes,
+          terms,
+        }),
+      });
+      if (!res.ok) {
+        toast.error("No se pudo generar la vista previa.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  const includedTimeIds = lines
+    .filter((l) => l.included && l.sourceType === "time_entry" && l.sourceId)
+    .map((l) => l.sourceId as string);
+  const includedExpIds = lines
+    .filter((l) => l.included && l.sourceType === "expense" && l.sourceId)
+    .map((l) => l.sourceId as string);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent className="sm:max-w-3xl">
+      <SheetContent className="sm:max-w-4xl">
         <SheetHeader>
           <SheetTitle>Generar factura</SheetTitle>
           <SheetDescription>
-            Selecciona los tiempos y gastos aprobados a incluir. Sólo aparecen los que aún no están
-            facturados.
+            Edita descripciones, cantidades, precios e ITBIS por línea. Los tiempos y gastos
+            que marques se cierran como facturados al confirmar.
           </SheetDescription>
         </SheetHeader>
         <form
           action={(fd) => {
             fd.set("caseId", caseId);
             fd.set("clientId", clientId);
-            fd.set("timeEntryIds", JSON.stringify(Array.from(selectedTime)));
-            fd.set("expenseIds", JSON.stringify(Array.from(selectedExp)));
+            fd.set("lines", JSON.stringify(includedLines));
+            fd.set("timeEntryIds", JSON.stringify(includedTimeIds));
+            fd.set("expenseIds", JSON.stringify(includedExpIds));
             fd.set("isrWithholding", isr ? "true" : "false");
             return action(fd);
           }}
           className="flex flex-1 flex-col min-h-0"
         >
           <SheetBody className="space-y-5">
-            {nothing ? (
-              <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                No hay tiempos ni gastos aprobados pendientes de facturar en este caso.
-                Aprueba primero las entradas relevantes desde la pestaña Tiempos / Gastos.
-              </p>
-            ) : null}
-
-            {billables.timeEntries.length > 0 ? (
-              <div className="space-y-1">
-                <Label>Tiempos aprobados ({billables.timeEntries.length})</Label>
-                <div className="rounded-md border">
-                  {billables.timeEntries.map((t) => {
-                    const hours = t.durationSeconds / 3600;
-                    const amt = hours * num(t.hourlyRateSnapshot);
-                    return (
-                      <label
-                        key={t.id}
-                        className="flex cursor-pointer items-center gap-3 border-b p-2 last:border-b-0 hover:bg-muted/30"
-                      >
-                        <Checkbox
-                          checked={selectedTime.has(t.id)}
-                          onCheckedChange={() => toggleTime(t.id)}
-                        />
-                        <div className="flex-1 text-sm">
-                          <p className="font-medium">{t.description ?? "(Sin descripción)"}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {t.userName ?? "—"} · {hours.toFixed(2)}h × {formatMoney(num(t.hourlyRateSnapshot))}
-                          </p>
-                        </div>
-                        <span className="font-mono text-sm tabular-nums">{formatMoney(amt)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Líneas de la factura</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addManualLine}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Línea manual
+                </Button>
               </div>
-            ) : null}
-
-            {billables.expenses.length > 0 ? (
-              <div className="space-y-1">
-                <Label>Gastos aprobados ({billables.expenses.length})</Label>
-                <div className="rounded-md border">
-                  {billables.expenses.map((e) => (
-                    <label
-                      key={e.id}
-                      className="flex cursor-pointer items-center gap-3 border-b p-2 last:border-b-0 hover:bg-muted/30"
-                    >
-                      <Checkbox
-                        checked={selectedExp.has(e.id)}
-                        onCheckedChange={() => toggleExp(e.id)}
-                      />
-                      <div className="flex-1 text-sm">
-                        <p className="font-medium">{e.description}</p>
-                        <p className="text-[11px] text-muted-foreground">{e.userName ?? "—"}</p>
-                      </div>
-                      <span className="font-mono text-sm tabular-nums">
-                        {formatMoney(num(e.amount), e.currency)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="w-8 p-2"></th>
+                      <th className="p-2 text-left">Concepto</th>
+                      <th className="w-20 p-2 text-right">Cant.</th>
+                      <th className="w-32 p-2 text-right">P. unit.</th>
+                      <th className="w-24 p-2 text-right">ITBIS</th>
+                      <th className="w-28 p-2 text-right">Total</th>
+                      <th className="w-8 p-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                          Sin líneas. Aprueba tiempos / gastos del caso o agrega una línea manual.
+                        </td>
+                      </tr>
+                    ) : null}
+                    {lines.map((l) => {
+                      const lineAmount = Math.round(l.quantity * l.unitPrice * 100) / 100;
+                      return (
+                        <tr key={l.uiKey} className={l.included ? "" : "opacity-50"}>
+                          <td className="p-2 align-top">
+                            <input
+                              type="checkbox"
+                              checked={l.included}
+                              onChange={(e) =>
+                                patchLine(l.uiKey, { included: e.target.checked })
+                              }
+                              aria-label="Incluir en la factura"
+                              className="mt-1"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={l.description}
+                              onChange={(e) =>
+                                patchLine(l.uiKey, { description: e.target.value })
+                              }
+                              className="h-8"
+                            />
+                            {l.hint ? (
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                                {l.hint}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="p-2 align-top">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={l.quantity}
+                              onChange={(e) =>
+                                patchLine(l.uiKey, { quantity: Number(e.target.value) || 0 })
+                              }
+                              className="h-8 text-right"
+                            />
+                          </td>
+                          <td className="p-2 align-top">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={l.unitPrice}
+                              onChange={(e) =>
+                                patchLine(l.uiKey, { unitPrice: Number(e.target.value) || 0 })
+                              }
+                              className="h-8 text-right"
+                            />
+                          </td>
+                          <td className="p-2 align-top">
+                            <select
+                              value={l.taxRate}
+                              onChange={(e) =>
+                                patchLine(l.uiKey, { taxRate: Number(e.target.value) })
+                              }
+                              className="h-8 w-full rounded-md border border-input bg-background px-1 text-sm"
+                            >
+                              <option value={0}>0%</option>
+                              <option value={0.18}>18%</option>
+                            </select>
+                          </td>
+                          <td className="p-2 text-right align-top font-mono tabular-nums">
+                            {formatMoney(lineAmount)}
+                          </td>
+                          <td className="p-2 align-top">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => removeLine(l.uiKey)}
+                              aria-label="Quitar línea"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : null}
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -223,31 +350,41 @@ export function GenerarFacturaDrawer({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notas (opcional)</Label>
-              <Textarea id="notes" name="notes" rows={2} />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="terms">Términos (opcional)</Label>
-              <Textarea
-                id="terms"
-                name="terms"
-                rows={2}
-                placeholder="Ej. Pago a 30 días vía transferencia."
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="notes">Notas (opcional)</Label>
+                <Textarea id="notes" name="notes" rows={2} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="terms">Términos (opcional)</Label>
+                <Textarea
+                  id="terms"
+                  name="terms"
+                  rows={2}
+                  placeholder="Ej. Pago a 30 días vía transferencia."
+                />
+              </div>
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
-              <Row label="Subtotal" value={formatMoney(subtotal)} />
-              <Row label="ITBIS (18% sobre tiempos)" value={formatMoney(itbis)} />
-              {isr ? (
-                <Row label="Retención ISR (10%)" value={`− ${formatMoney(isrAmount)}`} />
+              <Row label="Subtotal" value={formatMoney(totals.subtotal)} />
+              <Row label="ITBIS" value={formatMoney(totals.itbisAmount)} />
+              {totals.isrWithholdingAmount > 0 ? (
+                <Row
+                  label="Retención ISR (10%)"
+                  value={`− ${formatMoney(totals.isrWithholdingAmount)}`}
+                />
               ) : null}
               <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
-                <span>Total</span>
-                <span className="font-mono tabular-nums">{formatMoney(total)}</span>
+                <span>Total a cobrar</span>
+                <span className="font-mono tabular-nums">{formatMoney(totals.total)}</span>
               </div>
+              {totals.isrWithholdingAmount > 0 ? (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  El cliente retiene {formatMoney(totals.isrWithholdingAmount)} y lo paga
+                  directo a la DGII; tú recibes el «Total a cobrar».
+                </p>
+              ) : null}
             </div>
 
             {!state.ok && state.error ? (
@@ -259,9 +396,18 @@ export function GenerarFacturaDrawer({
               Cancelar
             </Button>
             <Button
-              type="submit"
-              disabled={pending || nothing || (selectedTime.size + selectedExp.size === 0)}
+              type="button"
+              variant="outline"
+              disabled={previewing || includedLines.length === 0}
+              onClick={(e) => {
+                const form = (e.currentTarget as HTMLButtonElement).form;
+                if (form) void previewPdf(form);
+              }}
             >
+              {previewing ? <Loader2 className="animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+              Vista previa PDF
+            </Button>
+            <Button type="submit" disabled={pending || includedLines.length === 0}>
               {pending ? <Loader2 className="animate-spin" /> : null}
               Generar factura
             </Button>
