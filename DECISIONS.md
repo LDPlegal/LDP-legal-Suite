@@ -796,3 +796,105 @@ etc.). NO integración directa.
 - Anulación de e-CF en DGII (formulario específico).
 - Recibos de pago electrónicos (otro tipo de e-CF distinto).
 - Reporte 606 / 607 generado automáticamente del histórico de invoices.
+
+## F4.1 — Conflict check de interés (§ 9.6 ejecutado)
+
+**Decisión:** El conflict check se ejecuta en runtime contra dos índices ya
+existentes desde Fase 0: `clients_firm_tax_id_idx` y
+`cases_firm_counterparty_tax_idx`. Al editar un cliente o crear un caso, un
+debounce de 350ms invoca `checkConflictsAction(taxId, name, excludeId)` y
+muestra un banner no bloqueante en el form. Una página `/conflictos` lista
+agregadamente todos los pares (cliente del firm que también es contraparte
+en algún caso).
+
+**Diseño clave:**
+- **Match por tax_id es la señal fuerte.** Normalizamos a sólo dígitos antes
+  de comparar (`regexp_replace(tax_id, '\D', '', 'g')`) para que
+  "130-12345-6", "13012345-6" y "13012345 6" cuadren. Match por nombre via
+  `ILIKE` sólo se reporta cuando no hay match por tax_id, como advertencia
+  débil.
+- **Nunca bloquea.** El partner ve la advertencia con links a los registros
+  involucrados (y, en caso de contraparte, los abogados que trabajaron ese
+  caso) y decide. La firma sigue creando el cliente o caso si confirma.
+- **No agrega columnas.** Toda la información ya estaba modelada desde Fase 0
+  por la decisión 9.6 — sólo faltaba la consulta + UI.
+
+**Razón de no bloquear:** un sistema legal multi-tenant no debe tomar
+decisiones éticas por el partner. Mostrar la información, dejar la decisión.
+
+## F4.2 — Portal Cliente: rol `client` + área `/portal/*` aislada
+
+**Decisión:** El cliente final inicia sesión via `/login` (better-auth
+unificado) pero usa un grupo de rutas separado `app/(portal)/portal/*` con
+layout, sidebar y header propios. `requirePortalUser()` exige
+`role='client'` y `clientId` no nulo; cualquier user con `role='client'`
+que aterrice en `/(app)/` es reenviado a `/portal/dashboard`.
+
+**Modelo de datos:**
+- `users.client_id uuid` (nullable, FK → clients ON DELETE CASCADE en SQL).
+  Siempre nulo para roles staff.
+- `documents.shared_with_client boolean DEFAULT false`. Toggle por documento;
+  por default oculto para mantener "internal-first".
+- La FK `users.client_id → clients.id` se declara **sólo en SQL**
+  (migración 0007). Drizzle no la modela en TypeScript porque crea
+  circularidad con `clients.created_by → users.id` que rompe inferencia
+  de tipos. Comportamiento DB es idéntico.
+
+**Visibilidad:**
+- Casos: portal user ve sólo `cases.client_id = user.clientId`.
+- Eventos: sólo eventos de los casos del cliente.
+- Facturas: sólo `invoices.client_id = user.clientId`. Endpoint
+  `/api/facturacion/[id]/pdf` chequea adicionalmente que `inv.clientId =
+  user.clientId` cuando `user.role='client'`.
+- Documentos: sólo cuando `shared_with_client=true` y el caso pertenece al
+  cliente. Endpoint dedicado `/api/portal/documentos/[id]/download` aplica
+  ambos filtros.
+- **Nunca:** tiempos, gastos, notas, audit log, otros clientes, otros
+  usuarios.
+
+**Auth flow:** Admin/partner crea acceso via `invitarPortalAction` desde
+`/clientes/[id]` → llama `auth.api.signUpEmail` con
+`{ role: 'client', clientId, ... }`. El cliente recibe email + password
+temporal fuera de banda y entra en `/login`. better-auth está configurado
+con `additionalFields.clientId` opcional para que el campo persista.
+
+**No usamos RLS adicional para client_id**, sólo filtros aplicativos. El
+layout exige rol y clientId, las queries del portal siempre filtran
+explícitamente. Si más adelante queremos defensa en profundidad, agregamos
+una RESTRICTIVE policy en cases/invoices/documents en una migración futura.
+
+## F4.3 — iCal bidireccional (export con token + import desde URL)
+
+**Decisión:** "Bidireccional" en F4 significa **dos direcciones via URL
+ICS**, no CalDAV ni Google API. Outlook/Google se suscriben a una URL
+pública con token (lectura); el usuario registra URLs ICS externas para
+que las parseemos y peguemos eventos en `events` (escritura).
+
+**Out (mi feed):**
+- `users.ical_token text` (unique partial idx ignorando NULL). Generado por
+  `regenerarIcalTokenAction` (32 bytes hex random).
+- `GET /api/calendario/feed/[token].ics` es **público** (no requiere
+  sesión). Resuelve el user por token usando la conexión admin, luego
+  llama `withFirm` con esa identidad para que RLS aplique al read de
+  events. Cache-Control: 5 min para reducir polling de clientes
+  calendario.
+- Acepta `[token]` y `[token].ics` (Outlook tipicamente añade el sufijo).
+
+**In (calendarios externos):**
+- `external_calendar_subscriptions` tabla nueva con RLS. Owner por
+  `(firm_id, user_id)`.
+- `events.external_subscription_id + external_uid` con unique partial idx
+  para idempotencia. Re-sync no duplica.
+- `syncSubscriptionAction`: fetch (timeout 8s) + parser ICS hand-rolled
+  en `lib/ical/parse.ts` (no añadimos `ical.js` por ~400KB de bundle).
+  Soporta SUMMARY/DESCRIPTION/LOCATION/DTSTART/DTEND con DATE y DATETIME
+  (UTC + floating tratado como UTC). Ignora RRULE, VTIMEZONE, alarmas.
+
+**Diferido a fases siguientes:**
+- Push real bidireccional (CalDAV / Google API / Microsoft Graph): cada
+  uno con su autenticación, modelo de cambios, y manejo de conflictos.
+  Es proyecto propio.
+- RRULE: requiere expansión de recurrencia en la base. Posible en F5+.
+- Sync periódico automático: por ahora es manual con botón "Sincronizar".
+  Vercel Cron o pg-boss cuando emerja la necesidad.
+

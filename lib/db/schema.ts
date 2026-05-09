@@ -126,6 +126,10 @@ export const users = pgTable(
     role: userRoleEnum("role").notNull().default("lawyer"),
     hourlyRate: decimal("hourly_rate", { precision: 12, scale: 2 }),
     image: text("image"), // avatar (better-auth uses `image` by convention)
+    // iCal subscription token (Fase 4.3) — opaque random string used by
+    // Outlook/Google to subscribe to /api/calendario/feed/<token>.ics. Null
+    // until the user opts in; can be rotated with regenerate.
+    icalToken: text("ical_token"),
     // For role='client' (Portal Cliente, Fase 4): the client this user can
     // see. NULL for staff roles. Server-side helpers enforce that
     // role='client' rows have a non-null client_id, and the portal layout
@@ -155,6 +159,9 @@ export const users = pgTable(
     // assumes globally-unique email; seed data is curated to not conflict).
     index("users_email_idx").on(t.email),
     index("users_firm_client_idx").on(t.firmId, t.clientId),
+    uniqueIndex("users_ical_token_unique")
+      .on(t.icalToken)
+      .where(sql`${t.icalToken} IS NOT NULL`),
   ],
 );
 
@@ -620,6 +627,12 @@ export const events = pgTable(
     attendees: text("attendees").array().notNull().default(sql`ARRAY[]::text[]`),
     reminderMinutes: integer("reminder_minutes"),
     icalUid: text("ical_uid").notNull(),
+    // iCal bidireccional (Fase 4.3): when this event was imported from an
+    // external subscription, externalSubscriptionId points to the source and
+    // externalUid is the UID emitted by the external calendar (used to dedupe
+    // re-imports). Both NULL for events created inside the app.
+    externalSubscriptionId: uuid("external_subscription_id"),
+    externalUid: text("external_uid"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -630,8 +643,47 @@ export const events = pgTable(
     index("events_firm_case_idx").on(t.firmId, t.caseId),
     index("events_firm_start_idx").on(t.firmId, t.startAt),
     uniqueIndex("events_ical_uid_unique").on(t.icalUid),
+    // Dedupe key for re-imports: each (subscription, externalUid) maps to
+    // exactly one event row. Insert-on-conflict keeps the import idempotent.
+    uniqueIndex("events_external_unique")
+      .on(t.externalSubscriptionId, t.externalUid)
+      .where(sql`${t.externalSubscriptionId} IS NOT NULL AND ${t.externalUid} IS NOT NULL`),
   ],
 );
+
+// =============================================================================
+// external_calendar_subscriptions — iCal feeds the user wants to ingest
+// =============================================================================
+// User pastes an .ics URL (Outlook share / Google calendar URL / a colleague's
+// LDP feed); on demand or on schedule we fetch and upsert into events with
+// externalSubscriptionId set. Soft-deleted on disconnect.
+
+export const externalCalendarSubscriptions = pgTable(
+  "external_calendar_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    active: boolean("active").notNull().default(true),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    lastEventCount: integer("last_event_count"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("external_cal_firm_user_idx").on(t.firmId, t.userId),
+  ],
+);
+
+export type ExternalCalendarSubscription = typeof externalCalendarSubscriptions.$inferSelect;
 
 // =============================================================================
 // expenses — case expenses (always case-scoped per maestro)
