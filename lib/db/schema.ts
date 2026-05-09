@@ -1096,6 +1096,11 @@ export const auditLog = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     entityType: text("entity_type").notNull(),
     entityId: uuid("entity_id").notNull(),
+    // Optional correlation: when an entity belongs to a case (invoice / time
+    // entry / expense / document / note attached to a case), set caseId so
+    // the case detail's Bitácora tab can list all related events together,
+    // not just events whose entity_type is exactly 'case'.
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
     action: auditActionEnum("action").notNull(),
     summary: text("summary"),
     diff: jsonb("diff").$type<Record<string, unknown>>(),
@@ -1104,6 +1109,7 @@ export const auditLog = pgTable(
   (t) => [
     index("audit_firm_idx").on(t.firmId),
     index("audit_firm_entity_idx").on(t.firmId, t.entityType, t.entityId),
+    index("audit_firm_case_idx").on(t.firmId, t.caseId),
     index("audit_firm_user_idx").on(t.firmId, t.userId),
     index("audit_firm_created_idx").on(t.firmId, t.createdAt),
   ],

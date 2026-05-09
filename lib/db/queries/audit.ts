@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { auditLog, users } from "../schema";
 
@@ -14,16 +14,40 @@ export type AuditEntry = {
   createdAt: Date;
 };
 
+// listAuditFor supports two filter modes:
+//   1) Exact entity:    pass { entityType, entityId } — returns events whose
+//      target IS that entity. Use for non-case detail pages.
+//   2) Case correlation: pass { caseId } — returns events whose target IS the
+//      case itself, OR whose target is any sub-entity (invoice / time / expense
+//      / document / note / task / event) tagged with case_id = caseId. Use
+//      this on the case detail's Bitácora tab so all activity related to the
+//      case appears together.
 export async function listAuditFor(
   firmId: string,
   userId: string,
-  filter: { entityType?: string; entityId?: string; limit?: number },
+  filter: {
+    entityType?: string;
+    entityId?: string;
+    caseId?: string;
+    limit?: number;
+  },
 ): Promise<AuditEntry[]> {
   const limit = Math.min(Math.max(filter.limit ?? 50, 1), 200);
   return withFirm(firmId, userId, async (tx) => {
     const conds = [];
-    if (filter.entityType) conds.push(eq(auditLog.entityType, filter.entityType));
-    if (filter.entityId) conds.push(eq(auditLog.entityId, filter.entityId));
+    if (filter.caseId) {
+      // case detail: events about the case itself OR sub-entities tagged with
+      // this case_id (invoices, time entries, expenses, documents, notes…).
+      conds.push(
+        or(
+          and(eq(auditLog.entityType, "case"), eq(auditLog.entityId, filter.caseId)),
+          eq(auditLog.caseId, filter.caseId),
+        )!,
+      );
+    } else {
+      if (filter.entityType) conds.push(eq(auditLog.entityType, filter.entityType));
+      if (filter.entityId) conds.push(eq(auditLog.entityId, filter.entityId));
+    }
 
     const rows = await tx
       .select({

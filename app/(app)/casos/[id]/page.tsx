@@ -92,7 +92,7 @@ export default async function CasoDetailPage({
     listInvoices(user.firmId, user.userId, { limit: 100 }),
     listFirmUsers(user.firmId, user.userId),
     listNcfRanges(user.firmId, user.userId),
-    listAuditFor(user.firmId, user.userId, { entityType: "case", entityId: c.id, limit: 100 }),
+    listAuditFor(user.firmId, user.userId, { caseId: c.id, limit: 100 }),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges

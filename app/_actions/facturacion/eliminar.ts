@@ -30,6 +30,7 @@ export async function eliminarFacturaAction(formData: FormData): Promise<void> {
     userId: user.userId,
     entityType: "invoice",
     entityId: parsed.invoiceId,
+    caseId: inv.invoice.caseId ?? undefined,
     action: "deleted",
     summary: `Eliminó borrador de factura ${inv.invoice.number}`,
   });

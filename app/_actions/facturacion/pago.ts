@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
-import { recordPayment } from "@/lib/db/queries/invoices";
+import { getInvoiceById, recordPayment } from "@/lib/db/queries/invoices";
 import { logAuditStandalone } from "@/lib/audit/log";
 
 const Schema = z.object({
@@ -47,11 +47,15 @@ export async function registrarPagoAction(
     reference: parsed.data.reference ?? null,
     notes: parsed.data.notes ?? null,
   });
+  // Resolve caseId so the case detail's Bitácora can correlate this payment
+  // event with the case (the action targets the invoice, not the case).
+  const inv = await getInvoiceById(user.firmId, user.userId, parsed.data.invoiceId);
   await logAuditStandalone({
     firmId: user.firmId,
     userId: user.userId,
     entityType: "invoice",
     entityId: parsed.data.invoiceId,
+    caseId: inv?.invoice.caseId ?? undefined,
     action: "paid",
     summary: `Registró pago de DOP ${amount.toFixed(2)} (${parsed.data.method})`,
     diff: { amount, method: parsed.data.method, reference: parsed.data.reference ?? null },

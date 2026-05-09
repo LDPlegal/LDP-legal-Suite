@@ -21,6 +21,7 @@ export async function marcarFacturaEnviadaAction(formData: FormData): Promise<vo
       userId: user.userId,
       entityType: "invoice",
       entityId: inv.id,
+      caseId: inv.caseId ?? undefined,
       action: "sent",
       summary: `Marcó factura ${inv.number} como enviada`,
     });

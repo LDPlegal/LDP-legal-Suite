@@ -117,6 +117,7 @@ export async function generarFacturaAction(
       userId: user.userId,
       entityType: "invoice",
       entityId: inv.id,
+      caseId: parsed.data.caseId,
       action: "created",
       summary: `Generó factura ${inv.number}${inv.ncf ? ` (NCF ${inv.ncf})` : ""}`,
       diff: { total: inv.total, ncfType: inv.ncfType },

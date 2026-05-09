@@ -25,6 +25,10 @@ export type LogAuditInput = {
   userId: string;
   entityType: "case" | "client" | "invoice" | "payment" | "time_entry" | "expense" | "task" | "event" | "document" | "note" | "user" | "ncf_range";
   entityId: string;
+  // When the entity belongs to a case (invoice/time/expense/document/note/
+  // task/event), set caseId so the case detail's Bitácora tab can list all
+  // related events together — not just events whose entity_type='case'.
+  caseId?: string;
   action: AuditAction;
   summary?: string;
   diff?: Record<string, unknown>;
@@ -36,6 +40,7 @@ export async function logAudit(tx: Tx, input: LogAuditInput): Promise<void> {
     userId: input.userId,
     entityType: input.entityType,
     entityId: input.entityId,
+    caseId: input.caseId ?? null,
     action: input.action,
     summary: input.summary ?? null,
     diff: input.diff ?? null,
