@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { crearClienteAction, type ClienteFormState } from "@/app/_actions/clientes/crear";
 import { editarClienteAction, type ClienteEditState } from "@/app/_actions/clientes/editar";
+import { ConflictAlert } from "@/components/conflictos/conflict-alert";
 
 type FormState = ClienteFormState | ClienteEditState;
 const initial: FormState = { ok: true };
@@ -50,6 +51,11 @@ export function ClienteFormDrawer({
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const isEdit = !!cliente;
+  // Live values for the conflict-check alert. They mirror the inputs below
+  // via uncontrolled→controlled bridge: form keeps name=, the alert reads
+  // local state. Saving still goes through the form action.
+  const [taxIdValue, setTaxIdValue] = useState(cliente?.taxId ?? "");
+  const [nameValue, setNameValue] = useState(cliente?.displayName ?? "");
   const [state, action, pending] = useActionState<FormState, FormData>(
     async (prev, fd) => {
       const result = isEdit
@@ -93,7 +99,12 @@ export function ClienteFormDrawer({
             </Field>
 
             <Field label="Nombre / Razón comercial *" error={errFor(state, "displayName")}>
-              <Input name="displayName" required defaultValue={cliente?.displayName ?? ""} />
+              <Input
+                name="displayName"
+                required
+                defaultValue={cliente?.displayName ?? ""}
+                onChange={(e) => setNameValue(e.currentTarget.value)}
+              />
             </Field>
 
             <Field label="Razón social legal" error={errFor(state, "legalName")}>
@@ -122,9 +133,16 @@ export function ClienteFormDrawer({
                   name="taxId"
                   placeholder="XXX-XXXXX-X"
                   defaultValue={cliente?.taxId ?? ""}
+                  onChange={(e) => setTaxIdValue(e.currentTarget.value)}
                 />
               </Field>
             </div>
+
+            <ConflictAlert
+              taxId={taxIdValue}
+              name={nameValue}
+              mode={{ kind: "client", excludeClientId: cliente?.id }}
+            />
 
             <Field label="Persona de contacto" error={errFor(state, "primaryContactName")}>
               <Input

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet";
 import { crearCasoAction, type CasoFormState } from "@/app/_actions/casos/crear";
 import { MATTER_LABEL } from "@/lib/schemas/caso";
+import { ConflictAlert } from "@/components/conflictos/conflict-alert";
 
 type Cliente = { id: string; displayName: string };
 type User = { id: string; name: string; role: string };
@@ -38,6 +39,9 @@ export function CasoFormDrawer({
   const [open, setOpen] = useState(false);
   const [restricted, setRestricted] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  // Live values for the conflict-of-interest alert (counterparty fields).
+  const [counterpartyName, setCounterpartyName] = useState("");
+  const [counterpartyTaxId, setCounterpartyTaxId] = useState("");
   const [state, action, pending] = useActionState<CasoFormState, FormData>(
     crearCasoAction,
     initial,
@@ -171,12 +175,25 @@ export function CasoFormDrawer({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Contraparte" error={errFor(state, "counterpartyName")}>
-                <Input name="counterpartyName" />
+                <Input
+                  name="counterpartyName"
+                  onChange={(e) => setCounterpartyName(e.currentTarget.value)}
+                />
               </Field>
               <Field label="ID contraparte" error={errFor(state, "counterpartyTaxId")}>
-                <Input name="counterpartyTaxId" placeholder="RNC / cédula" />
+                <Input
+                  name="counterpartyTaxId"
+                  placeholder="RNC / cédula"
+                  onChange={(e) => setCounterpartyTaxId(e.currentTarget.value)}
+                />
               </Field>
             </div>
+
+            <ConflictAlert
+              taxId={counterpartyTaxId}
+              name={counterpartyName}
+              mode={{ kind: "case" }}
+            />
 
             <Field label="Etiquetas" error={errFor(state, "tags")}>
               <Input name="tags" placeholder="Coma separadas: urgente, ProBono" />

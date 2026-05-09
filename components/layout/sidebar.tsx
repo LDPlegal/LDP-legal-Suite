@@ -15,6 +15,7 @@ import {
   Receipt,
   Scale,
   Settings,
+  ShieldAlert,
   ListChecks,
   Users,
 } from "lucide-react";
@@ -37,6 +38,7 @@ const NAV: NavItem[] = [
   { href: "/documentos", label: "Documentos", icon: FileText, enabled: false },
   { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: true },
   { href: "/reportes", label: "Reportes", icon: BarChart3, enabled: true },
+  { href: "/conflictos", label: "Conflictos", icon: ShieldAlert, enabled: true },
   { href: "/configuracion", label: "Configuración", icon: Settings, enabled: true },
 ];
 
