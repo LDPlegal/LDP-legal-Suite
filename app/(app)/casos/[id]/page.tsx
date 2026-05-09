@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ComingSoon } from "@/components/layout/coming-soon";
 import { getCaseById } from "@/lib/db/queries/cases";
 import { listTimeEntriesForCase } from "@/lib/db/queries/time-entries";
 import { listExpensesForCase, totalAmount } from "@/lib/db/queries/expenses";
@@ -25,6 +24,7 @@ import { listNotesForCase } from "@/lib/db/queries/notes";
 import { listBillableForCase, listInvoices } from "@/lib/db/queries/invoices";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { listFirmUsers } from "@/lib/db/queries/users";
+import { listAuditFor, ACTION_LABEL, ENTITY_LABEL } from "@/lib/db/queries/audit";
 import type { NcfType } from "@/lib/invoicing/ncf";
 import { requireUser } from "@/lib/auth/session";
 import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
@@ -81,7 +81,7 @@ export default async function CasoDetailPage({
 
   const { case: c, client, leadLawyer, assignments } = detail;
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -92,6 +92,7 @@ export default async function CasoDetailPage({
     listInvoices(user.firmId, user.userId, { limit: 100 }),
     listFirmUsers(user.firmId, user.userId),
     listNcfRanges(user.firmId, user.userId),
+    listAuditFor(user.firmId, user.userId, { entityType: "case", entityId: c.id, limit: 100 }),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges
@@ -724,8 +725,42 @@ export default async function CasoDetailPage({
             </Table>
           </Card>
         </TabsContent>
-        <TabsContent value="bitacora">
-          <ComingSoon module="Bitácora" phase="Fase 3" description="Audit log completo de cambios sobre el caso." />
+        <TabsContent value="bitacora" className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {bitacoraCaso.length} {bitacoraCaso.length === 1 ? "evento" : "eventos"} registrado{bitacoraCaso.length === 1 ? "" : "s"} sobre este caso.
+          </p>
+          <Card className="overflow-hidden">
+            <ul className="divide-y divide-border">
+              {bitacoraCaso.length === 0 ? (
+                <li className="p-6 text-center text-sm text-muted-foreground">
+                  Sin actividad registrada todavía.
+                </li>
+              ) : (
+                bitacoraCaso.map((e) => (
+                  <li key={e.id} className="flex items-start gap-3 p-3 text-sm">
+                    <span className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-[10px] font-medium uppercase">
+                      {(e.userName ?? "?").slice(0, 2)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p>
+                        <strong>{e.userName ?? "Sistema"}</strong>{" "}
+                        {ACTION_LABEL[e.action] ?? e.action}{" "}
+                        <span className="text-muted-foreground">
+                          {ENTITY_LABEL[e.entityType] ?? e.entityType}
+                        </span>
+                      </p>
+                      {e.summary ? (
+                        <p className="text-xs text-muted-foreground">{e.summary}</p>
+                      ) : null}
+                    </div>
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {formatInFirmTz(e.createdAt, undefined, "dd/MM/yyyy HH:mm")}
+                    </Badge>
+                  </li>
+                ))
+              )}
+            </ul>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

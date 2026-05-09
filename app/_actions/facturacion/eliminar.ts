@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { getInvoiceById, softDeleteInvoice } from "@/lib/db/queries/invoices";
+import { logAuditStandalone } from "@/lib/audit/log";
 
 const Schema = z.object({ invoiceId: z.string().uuid() });
 
@@ -24,6 +25,14 @@ export async function eliminarFacturaAction(formData: FormData): Promise<void> {
   }
 
   await softDeleteInvoice(user.firmId, user.userId, parsed.invoiceId);
+  await logAuditStandalone({
+    firmId: user.firmId,
+    userId: user.userId,
+    entityType: "invoice",
+    entityId: parsed.invoiceId,
+    action: "deleted",
+    summary: `Eliminó borrador de factura ${inv.invoice.number}`,
+  });
   revalidatePath("/facturacion");
   redirect("/facturacion");
 }

@@ -1060,3 +1060,59 @@ export type NewInvoiceItem = typeof invoiceItems.$inferInsert;
 
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+
+// =============================================================================
+// FASE 3 — Bitácora (audit_log)
+// =============================================================================
+// Cada cambio relevante (crear/editar/eliminar/aprobar/enviar/pagar/anular/
+// subir/iniciar-timer/detener-timer) se registra para auditoría. Usado por:
+//   * la pestaña Bitácora del detalle de cada entidad,
+//   * la página /reportes (feed reciente del firm),
+//   * verificación post-incidente cuando se necesita reconstruir qué pasó.
+// El campo `diff` guarda un objeto libre (campos cambiados o snapshot mínimo).
+// =============================================================================
+
+export const auditActionEnum = pgEnum("audit_action", [
+  "created",
+  "updated",
+  "deleted",
+  "approved",
+  "sent",
+  "paid",
+  "voided",
+  "uploaded",
+  "timer_started",
+  "timer_stopped",
+  "ncf_assigned",
+]);
+
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id").notNull(),
+    action: auditActionEnum("action").notNull(),
+    summary: text("summary"),
+    diff: jsonb("diff").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("audit_firm_idx").on(t.firmId),
+    index("audit_firm_entity_idx").on(t.firmId, t.entityType, t.entityId),
+    index("audit_firm_user_idx").on(t.firmId, t.userId),
+    index("audit_firm_created_idx").on(t.firmId, t.createdAt),
+  ],
+);
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+  firm: one(firms, { fields: [auditLog.firmId], references: [firms.id] }),
+  user: one(users, { fields: [auditLog.userId], references: [users.id] }),
+}));
+
+export type AuditLog = typeof auditLog.$inferSelect;
+export type NewAuditLog = typeof auditLog.$inferInsert;

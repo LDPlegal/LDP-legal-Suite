@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { recordPayment } from "@/lib/db/queries/invoices";
+import { logAuditStandalone } from "@/lib/audit/log";
 
 const Schema = z.object({
   invoiceId: z.string().uuid(),
@@ -45,6 +46,15 @@ export async function registrarPagoAction(
     paidOn: new Date(parsed.data.paidOn),
     reference: parsed.data.reference ?? null,
     notes: parsed.data.notes ?? null,
+  });
+  await logAuditStandalone({
+    firmId: user.firmId,
+    userId: user.userId,
+    entityType: "invoice",
+    entityId: parsed.data.invoiceId,
+    action: "paid",
+    summary: `Registró pago de DOP ${amount.toFixed(2)} (${parsed.data.method})`,
+    diff: { amount, method: parsed.data.method, reference: parsed.data.reference ?? null },
   });
   revalidatePath(`/facturacion/${parsed.data.invoiceId}`);
   revalidatePath("/facturacion");

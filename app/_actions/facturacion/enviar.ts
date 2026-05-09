@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { markInvoiceSent } from "@/lib/db/queries/invoices";
+import { logAuditStandalone } from "@/lib/audit/log";
 
 const Schema = z.object({ invoiceId: z.string().uuid() });
 
@@ -13,7 +14,17 @@ export async function marcarFacturaEnviadaAction(formData: FormData): Promise<vo
     throw new Error("Solo admins y socios pueden marcar facturas como enviadas.");
   }
   const parsed = Schema.parse({ invoiceId: formData.get("invoiceId") });
-  await markInvoiceSent(user.firmId, user.userId, parsed.invoiceId);
+  const inv = await markInvoiceSent(user.firmId, user.userId, parsed.invoiceId);
+  if (inv) {
+    await logAuditStandalone({
+      firmId: user.firmId,
+      userId: user.userId,
+      entityType: "invoice",
+      entityId: inv.id,
+      action: "sent",
+      summary: `Marcó factura ${inv.number} como enviada`,
+    });
+  }
   revalidatePath("/facturacion");
   revalidatePath(`/facturacion/${parsed.invoiceId}`);
 }

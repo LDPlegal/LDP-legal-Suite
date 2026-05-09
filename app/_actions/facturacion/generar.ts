@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { generateInvoiceFromCase } from "@/lib/db/queries/invoices";
 import { getClientById } from "@/lib/db/queries/clients";
+import { logAuditStandalone } from "@/lib/audit/log";
 
 const LineSchema = z.object({
   description: z.string().trim().min(1).max(400),
@@ -110,6 +111,15 @@ export async function generarFacturaAction(
       terms: parsed.data.terms ?? null,
       fiscal: parsed.data.fiscal,
       ncfType: parsed.data.ncfType,
+    });
+    await logAuditStandalone({
+      firmId: user.firmId,
+      userId: user.userId,
+      entityType: "invoice",
+      entityId: inv.id,
+      action: "created",
+      summary: `Generó factura ${inv.number}${inv.ncf ? ` (NCF ${inv.ncf})` : ""}`,
+      diff: { total: inv.total, ncfType: inv.ncfType },
     });
     revalidatePath("/facturacion");
     revalidatePath(`/casos/${parsed.data.caseId}`);
