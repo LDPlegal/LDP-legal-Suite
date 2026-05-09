@@ -1,6 +1,7 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import {
+  cases,
   documents,
   users,
   type Document,
@@ -12,6 +13,93 @@ import type { DocumentListRow } from "@/lib/documents/format";
 // so client components can import them without dragging the pg driver in.
 export type { DocumentListRow } from "@/lib/documents/format";
 export { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
+
+// Global document listing across all visible cases. Powers /documentos.
+// Search hits document name, tags (joined with comma), AND ocr_text when
+// available — OCR was decided to be real in F2 (§9.7) so a search for
+// "demanda 2024" actually finds the scanned PDF.
+export type GlobalDocumentRow = DocumentListRow & {
+  caseId: string | null;
+  caseCode: string | null;
+  caseTitle: string | null;
+  ocrTextSnippet: string | null;
+};
+
+export async function listAllDocuments(
+  firmId: string,
+  userId: string,
+  opts: {
+    search?: string;
+    caseId?: string;
+    onlyShared?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<{ rows: GlobalDocumentRow[]; total: number }> {
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+  const offset = Math.max(opts.offset ?? 0, 0);
+  const term = opts.search?.trim() ?? "";
+
+  return withFirm(firmId, userId, async (tx) => {
+    const conds = [isNull(documents.deletedAt)];
+    if (opts.caseId) conds.push(eq(documents.caseId, opts.caseId));
+    if (opts.onlyShared) conds.push(eq(documents.sharedWithClient, true));
+    if (term) {
+      const like = `%${term}%`;
+      const search = or(
+        ilike(documents.name, like),
+        ilike(documents.ocrText, like),
+        sql`array_to_string(${documents.tags}, ',') ILIKE ${like}`,
+      );
+      if (search) conds.push(search);
+    }
+
+    const where = and(...conds);
+
+    const [rows, totalRow] = await Promise.all([
+      tx
+        .select({
+          id: documents.id,
+          name: documents.name,
+          mimeType: documents.mimeType,
+          sizeBytes: documents.sizeBytes,
+          storageKey: documents.storageKey,
+          tags: documents.tags,
+          ocrStatus: documents.ocrStatus,
+          version: documents.version,
+          parentDocumentId: documents.parentDocumentId,
+          uploadedById: documents.uploadedBy,
+          uploadedByName: users.name,
+          sharedWithClient: documents.sharedWithClient,
+          createdAt: documents.createdAt,
+          caseId: documents.caseId,
+          caseCode: cases.code,
+          caseTitle: cases.title,
+          // Truncated context around the search term — best-effort, just
+          // takes the first 200 chars when there's a hit on ocr_text.
+          ocrTextSnippet: term
+            ? sql<string | null>`CASE WHEN ${documents.ocrText} ILIKE ${`%${term}%`} THEN substring(${documents.ocrText} FROM 1 FOR 200) ELSE NULL END`
+            : sql<string | null>`NULL::text`,
+        })
+        .from(documents)
+        .leftJoin(users, eq(users.id, documents.uploadedBy))
+        .leftJoin(cases, eq(cases.id, documents.caseId))
+        .where(where)
+        .orderBy(desc(documents.createdAt))
+        .limit(limit)
+        .offset(offset),
+      tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(documents)
+        .where(where),
+    ]);
+
+    return {
+      rows: rows as GlobalDocumentRow[],
+      total: totalRow[0]?.count ?? 0,
+    };
+  });
+}
 
 export async function listDocumentsForCase(
   firmId: string,

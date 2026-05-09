@@ -35,7 +35,7 @@ const NAV: NavItem[] = [
   { href: "/tiempos", label: "Tiempos", icon: Clock, enabled: true },
   { href: "/tareas", label: "Tareas", icon: ListChecks, enabled: true },
   { href: "/calendario", label: "Calendario", icon: Calendar, enabled: true },
-  { href: "/documentos", label: "Documentos", icon: FileText, enabled: false },
+  { href: "/documentos", label: "Documentos", icon: FileText, enabled: true },
   { href: "/facturacion", label: "Facturación", icon: Receipt, enabled: true },
   { href: "/reportes", label: "Reportes", icon: BarChart3, enabled: true },
   { href: "/conflictos", label: "Conflictos", icon: ShieldAlert, enabled: true },
