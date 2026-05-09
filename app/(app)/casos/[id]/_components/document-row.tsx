@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Download, FileText, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
+import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
@@ -74,6 +75,37 @@ export function DocumentRow({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
+        <form action={compartirDocumentoAction} className="inline-block">
+          <input type="hidden" name="documentId" value={doc.id} />
+          <input type="hidden" name="caseId" value={caseId} />
+          <input
+            type="hidden"
+            name="shared"
+            value={doc.sharedWithClient ? "false" : "true"}
+          />
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label={
+              doc.sharedWithClient
+                ? "Dejar de compartir con el cliente"
+                : "Compartir con el cliente"
+            }
+            title={
+              doc.sharedWithClient
+                ? "Visible para el cliente — clic para ocultar"
+                : "Oculto para el cliente — clic para compartir"
+            }
+          >
+            {doc.sharedWithClient ? (
+              <Eye className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </form>
         <Button asChild variant="ghost" size="icon" className="h-7 w-7" aria-label="Descargar">
           <Link
             href={`/api/documentos/${doc.id}/download`}

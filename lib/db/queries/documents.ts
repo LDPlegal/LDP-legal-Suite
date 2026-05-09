@@ -32,6 +32,7 @@ export async function listDocumentsForCase(
         parentDocumentId: documents.parentDocumentId,
         uploadedById: documents.uploadedBy,
         uploadedByName: users.name,
+        sharedWithClient: documents.sharedWithClient,
         createdAt: documents.createdAt,
       })
       .from(documents)
@@ -105,6 +106,24 @@ export async function softDeleteDocument(
       .set({ deletedAt: new Date() })
       .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
       .returning({ id: documents.id });
+    return !!row;
+  });
+}
+
+// Toggle whether a document is visible in the client's portal. Idempotent:
+// passing the same value as the current one is a no-op write.
+export async function setDocumentSharedWithClient(
+  firmId: string,
+  userId: string,
+  documentId: string,
+  shared: boolean,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(documents)
+      .set({ sharedWithClient: shared, updatedAt: new Date() })
+      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
+      .returning({ id: documents.id, caseId: documents.caseId });
     return !!row;
   });
 }

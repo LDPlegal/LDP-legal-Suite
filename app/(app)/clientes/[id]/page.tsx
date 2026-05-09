@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,10 +15,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { getClientById } from "@/lib/db/queries/clients";
 import { listCasesForClient } from "@/lib/db/queries/cases";
+import { listPortalUsersForClient } from "@/lib/db/queries/users";
 import { requireUser } from "@/lib/auth/session";
 import { eliminarClienteAction } from "@/app/_actions/clientes/eliminar";
 import { CASE_STATUS_LABEL, MATTER_LABEL } from "@/lib/schemas/caso";
+import { formatInFirmTz } from "@/lib/datetime/format";
 import { ClienteFormDrawer } from "../_components/cliente-form-drawer";
+import { InvitarPortalDrawer } from "../_components/invitar-portal-drawer";
 
 export const metadata = { title: "Cliente · LDP Legal Suite" };
 
@@ -37,7 +40,11 @@ export default async function ClienteDetailPage({
   const cliente = await getClientById(user.firmId, user.userId, id);
   if (!cliente) notFound();
 
-  const casos = await listCasesForClient(user.firmId, user.userId, cliente.id);
+  const [casos, portalUsers] = await Promise.all([
+    listCasesForClient(user.firmId, user.userId, cliente.id),
+    listPortalUsersForClient(user.firmId, user.userId, cliente.id),
+  ]);
+  const canManagePortal = user.role === "admin" || user.role === "partner";
 
   return (
     <div className="space-y-6">
@@ -114,6 +121,61 @@ export default async function ClienteDetailPage({
         </Card>
 
         <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Acceso al portal</CardTitle>
+            <Badge variant="secondary">{portalUsers.length}</Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Personas autorizadas a iniciar sesión en el portal cliente y ver
+              los casos, facturas y documentos compartidos de este cliente.
+            </p>
+            {portalUsers.length === 0 ? (
+              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                Aún no hay accesos al portal para este cliente.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {portalUsers.map((u) => (
+                  <li
+                    key={u.id}
+                    className="flex items-center justify-between rounded-md border p-2 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{u.name}</p>
+                      <p className="text-xs text-muted-foreground">{u.email}</p>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <Badge variant="outline" className="text-[10px]">
+                        {u.status}
+                      </Badge>
+                      <p className="mt-1">
+                        {u.lastLoginAt
+                          ? `Último acceso ${formatInFirmTz(u.lastLoginAt, undefined, "dd/MM/yyyy")}`
+                          : "Sin accesos aún"}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canManagePortal ? (
+              <InvitarPortalDrawer
+                clientId={cliente.id}
+                defaultName={cliente.primaryContactName ?? cliente.displayName}
+                defaultEmail={cliente.email}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Crear acceso
+                  </Button>
+                }
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Casos asociados</CardTitle>
             <Badge variant="secondary">{casos.length}</Badge>

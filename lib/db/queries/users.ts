@@ -26,3 +26,33 @@ export async function getUserById(
     return rows[0] ?? null;
   });
 }
+
+// Portal users (role='client') attached to a specific client. Used in the
+// /clientes/[id] admin page to show who has access to the portal for that
+// client and to manage invitations.
+export async function listPortalUsersForClient(
+  firmId: string,
+  userId: string,
+  clientId: string,
+): Promise<Array<Pick<User, "id" | "name" | "email" | "status" | "lastLoginAt" | "createdAt">>> {
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        status: users.status,
+        lastLoginAt: users.lastLoginAt,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, "client"),
+          eq(users.clientId, clientId),
+          isNull(users.deletedAt),
+        ),
+      )
+      .orderBy(users.name);
+  });
+}

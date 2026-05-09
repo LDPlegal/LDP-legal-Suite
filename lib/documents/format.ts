@@ -16,6 +16,9 @@ export type DocumentListRow = {
   parentDocumentId: string | null;
   uploadedById: string | null;
   uploadedByName: string | null;
+  // Portal Cliente (Fase 4): true if this doc appears in /portal/documentos
+  // for the case's client.
+  sharedWithClient: boolean;
   createdAt: Date;
 };
 

@@ -9,6 +9,9 @@ import { getCurrentFirm } from "@/lib/db/queries/firms";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Portal-cliente users land here only by typing /casos etc. directly —
+  // route them to their own area instead of the internal app.
+  if (user.role === "client") redirect("/portal/dashboard");
   const firm = await getCurrentFirm(user.firmId, user.userId);
 
   return (

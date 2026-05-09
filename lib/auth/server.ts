@@ -56,6 +56,14 @@ export const auth = betterAuth({
         input: true,
         defaultValue: "lawyer",
       },
+      // Portal Cliente (Fase 4): set on role='client' rows so the portal
+      // layout knows which client's data to scope queries to. Optional —
+      // staff users have no client_id.
+      clientId: {
+        type: "string",
+        required: false,
+        input: true,
+      },
     },
   },
   session: {

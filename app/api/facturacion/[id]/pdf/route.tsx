@@ -18,6 +18,12 @@ export async function GET(
   const { id } = await params;
   const inv = await getInvoiceById(user.firmId, user.userId, id);
   if (!inv) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Portal-cliente users may only download PDFs of invoices belonging to
+  // their own client. Without this guard a curious /portal user could enum
+  // other clients' invoice IDs and pull their PDFs.
+  if (user.role === "client" && inv.invoice.clientId !== user.clientId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const firm = await getCurrentFirm(user.firmId, user.userId);
 
   const data: InvoicePdfData = {

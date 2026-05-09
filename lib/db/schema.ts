@@ -126,6 +126,18 @@ export const users = pgTable(
     role: userRoleEnum("role").notNull().default("lawyer"),
     hourlyRate: decimal("hourly_rate", { precision: 12, scale: 2 }),
     image: text("image"), // avatar (better-auth uses `image` by convention)
+    // For role='client' (Portal Cliente, Fase 4): the client this user can
+    // see. NULL for staff roles. Server-side helpers enforce that
+    // role='client' rows have a non-null client_id, and the portal layout
+    // refuses to render for any other role.
+    //
+    // The foreign key constraint to clients(id) ON DELETE CASCADE is declared
+    // in migration 0007_portal_cliente.sql, NOT via Drizzle's .references().
+    // Declaring it here would create a circular type reference
+    // (clients.created_by -> users.id, users.client_id -> clients.id) that
+    // breaks TypeScript inference for both tables. DB behaviour is identical;
+    // only Drizzle's relation graph doesn't model it.
+    clientId: uuid("client_id"),
     status: userStatusEnum("status").notNull().default("active"),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -142,6 +154,7 @@ export const users = pgTable(
     // Lookup index for better-auth signin by email alone (signin currently
     // assumes globally-unique email; seed data is curated to not conflict).
     index("users_email_idx").on(t.email),
+    index("users_firm_client_idx").on(t.firmId, t.clientId),
   ],
 );
 
@@ -807,6 +820,11 @@ export const documents = pgTable(
     tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
     ocrText: text("ocr_text"),
     ocrStatus: documentOcrStatusEnum("ocr_status").notNull().default("pending"),
+    // Portal Cliente (Fase 4): when true, this document is visible to the
+    // client in /portal/documentos. Default false — internal docs (drafts,
+    // working notes, lawyer-prep material) stay hidden until explicitly
+    // shared by an admin/partner/lawyer.
+    sharedWithClient: boolean("shared_with_client").notNull().default(false),
     version: integer("version").notNull().default(1),
     parentDocumentId: uuid("parent_document_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
