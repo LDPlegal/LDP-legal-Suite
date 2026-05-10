@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,7 @@ import { listFirmUsers } from "@/lib/db/queries/users";
 import { listAuditFor, ACTION_LABEL, ENTITY_LABEL } from "@/lib/db/queries/audit";
 import type { NcfType } from "@/lib/invoicing/ncf";
 import { requireUser } from "@/lib/auth/session";
+import { isAiEnabled } from "@/lib/ai";
 import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
 import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
 import { aprobarGastoAction } from "@/app/_actions/gastos/aprobar";
@@ -53,6 +54,7 @@ import { TaskFormDrawer } from "@/app/(app)/tareas/_components/task-form-drawer"
 import { EventoFormDrawer } from "@/app/(app)/calendario/_components/evento-form-drawer";
 import { StartTimerButton } from "./_components/start-timer-button";
 import { GastoFormDrawer } from "./_components/gasto-form-drawer";
+import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
 
 export const metadata = { title: "Caso · LDP Legal Suite" };
 
@@ -75,6 +77,7 @@ export default async function CasoDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireUser();
+  const aiEnabled = isAiEnabled();
   const { id } = await params;
   const detail = await getCaseById(user.firmId, user.userId, id);
   if (!detail) notFound();
@@ -143,6 +146,17 @@ export default async function CasoDetailPage({
           </div>
           <div className="flex items-center gap-2">
             <StartTimerButton caseId={c.id} caseTitle={c.title} />
+            {aiEnabled ? (
+              <AiSummaryDrawer
+                caseId={c.id}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Sparkles className="h-4 w-4" />
+                    Resumen IA
+                  </Button>
+                }
+              />
+            ) : null}
             <Badge variant="outline">{CASE_STATUS_LABEL[c.status]}</Badge>
             <form action={eliminarCasoAction}>
               <input type="hidden" name="caseId" value={c.id} />
@@ -634,6 +648,7 @@ export default async function CasoDetailPage({
             </p>
             <NoteFormDrawer
               caseId={c.id}
+              aiEnabled={aiEnabled}
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="h-3.5 w-3.5" />
@@ -649,7 +664,7 @@ export default async function CasoDetailPage({
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {notas.map((n) => (
-                <NoteCard key={n.id} note={n} caseId={c.id} />
+                <NoteCard key={n.id} note={n} caseId={c.id} aiEnabled={aiEnabled} />
               ))}
             </div>
           )}

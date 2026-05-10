@@ -957,4 +957,76 @@ Hook `session.create.after` actualiza `users.lastLoginAt` y bumpa
 en el card "Acceso al portal" de `/clientes/[id]` ahora se sincroniza
 con la realidad.
 
+## F5 — Capa de IA (Claude API)
+
+**Decisión:** la IA es **un módulo aislado y opcional** detrás de la
+variable `ANTHROPIC_API_KEY`. Si no está set, los puntos de entrada IA
+no se renderizan en el UI y el resto de la app funciona normal. Esto
+respeta dos cosas: (a) no toda firma quiere mandar contenido a un
+proveedor LLM, (b) los costos de API se asumen explícitamente al
+configurar la key.
+
+**Provider:** Claude vía `@anthropic-ai/sdk`. Modelo por default
+`claude-sonnet-4-6` (balance calidad/coste para legal); `ANTHROPIC_MODEL`
+permite override. Llamadas todas server-side; nunca se expone la key al
+browser.
+
+**Arquitectura del módulo (`lib/ai/`):**
+- `claude.ts` — único cliente. `runPrompt(messages, opts)` con system
+  preamble fijo: rol "asistente legal RD", prohibición de inventar leyes
+  / artículos / RNC / NCF / nombres de tribunales que no estén en el
+  contexto.
+- `tiptap-text.ts` — extrae texto plano de notas Tiptap para mandarlas a
+  prompts.
+- `case-summary.ts`, `note-assist.ts`, `document-search.ts` — un archivo
+  por feature, cada uno con su query gather + prompt builder.
+
+### F5.1 — Foundation
+- Tab "IA" en `/configuracion` muestra estado (Activo / No configurado),
+  modelo en uso, instrucciones para configurar la key, y disclaimer
+  privacidad ("Anthropic API tiene política no-training por default,
+  pero los datos viajan a sus servidores").
+
+### F5.2 — Resumen de caso (`/casos/[id]` → botón "Resumen IA")
+Junta caso + cliente + eventos + notas + tiempos + gastos + OCR de
+documentos (con caps por sección — 30 events, 20 notas, 1500 chars por
+nota, 30 docs con 1200 chars de OCR cada uno) y pide a Claude un
+resumen ejecutivo con secciones fijas: Hechos, Estado, Próximos pasos,
+Riesgos, Métricas. Botón "Guardar como nota" wrappea el resultado en
+un Tiptap doc mínimo y crea una nota del caso.
+
+### F5.3 — Mejorar redacción de notas
+Botón "Mejorar redacción" en el drawer de notas. Toma el contenido
+Tiptap actual, lo convierte a texto plano, pide a Claude que lo refine
+manteniendo "TODOS los hechos, fechas, nombres y números exactos".
+Reemplaza el contenido del editor con el texto refinado dividido en
+párrafos. Cliente puede editarlo después o regenerar.
+
+**Limitación conocida:** se pierde formato Tiptap (negritas, listas).
+Para preservarlo habría que pedirle a Claude que devuelva HTML/Markdown
++ parsearlo de vuelta a nodos Tiptap. Está fuera de scope F5.
+
+### F5.4 — Búsqueda semántica de documentos
+Sin embeddings/pgvector. Estrategia: ILIKE permisivo para narrowing
+(top 30) → fallback a "30 docs más recientes con OCR" si ILIKE retorna
+nada → mandar la lista (con OCR truncado a 1500 chars/doc) + la pregunta
+del usuario a Claude → pide JSON estricto con `[{index, score 0-10,
+reason}]`, filtra score < 4. Caja "Búsqueda IA" arriba de la tabla
+existente en `/documentos`.
+
+**Por qué no embeddings:** mantenerlo todo en Postgres sin extensión
+pgvector + sin job de indexación es operacionalmente más simple para un
+firm pequeño-mediano. El costo es 1 llamada a Claude por búsqueda IA
+(no por documento), aceptable. Si emerge volumen, migrar a pgvector +
+nightly re-embed es el siguiente paso.
+
+### Diferidos a F5.5+
+- Redactar notas desde cero a partir de un prompt del usuario
+  ("Redacta una carta de cobro al deudor por DOP 50,000").
+- Búsqueda semántica preserva formato Tiptap.
+- Streaming de respuestas IA (ahora la UI espera el bloque completo).
+- Embeddings + pgvector cuando documentos > ~500.
+- Cost tracking en `/reportes` (los `usage` ya vienen en cada response).
+- Auto-resumen on demand desde el dashboard ("¿qué pasó esta semana?").
+
 

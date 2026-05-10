@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/table";
 import { requireUser } from "@/lib/auth/session";
 import { listAllDocuments } from "@/lib/db/queries/documents";
+import { isAiEnabled } from "@/lib/ai";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
 } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
+import { AiDocumentSearch } from "./_components/ai-search";
 
 export const metadata = { title: "Documentos · LDP Legal Suite" };
 
@@ -45,6 +47,8 @@ export default async function DocumentosPage({
           contenido (OCR de PDFs e imágenes escaneadas).
         </p>
       </div>
+
+      {isAiEnabled() ? <AiDocumentSearch /> : null}
 
       <form className="flex flex-wrap items-center gap-2" action="/documentos">
         <div className="relative flex-1 min-w-[260px]">

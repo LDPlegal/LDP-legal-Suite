@@ -1,9 +1,12 @@
 import { ComingSoon } from "@/components/layout/coming-soon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
 import { requireUser } from "@/lib/auth/session";
+import { isAiEnabled } from "@/lib/ai";
 import { NcfRangesPanel } from "./_components/ncf-ranges-panel";
 import { FirmForm } from "./_components/firm-form";
 
@@ -16,6 +19,8 @@ export default async function ConfiguracionPage() {
     getCurrentFirm(user.firmId, user.userId),
   ]);
   const isAdmin = user.role === "admin" || user.role === "partner";
+  const aiEnabled = isAiEnabled();
+  const aiModel = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
   return (
     <div className="space-y-6">
@@ -30,6 +35,7 @@ export default async function ConfiguracionPage() {
         <TabsList>
           <TabsTrigger value="fiscal">Fiscal (NCF)</TabsTrigger>
           <TabsTrigger value="firm">Datos del firm</TabsTrigger>
+          <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
         </TabsList>
@@ -83,6 +89,79 @@ export default async function ConfiguracionPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="ia">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                Asistente IA (Claude)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge variant={aiEnabled ? "success" : "secondary"}>
+                  {aiEnabled ? "Activo" : "No configurado"}
+                </Badge>
+                {aiEnabled ? (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {aiModel}
+                  </span>
+                ) : null}
+              </div>
+              {aiEnabled ? (
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    La capa de IA está activa. Disponible en:
+                  </p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    <li>
+                      <strong>Caso → Resumen IA</strong>: genera un resumen ejecutivo
+                      del caso a partir de eventos, notas, gastos y documentos OCR.
+                    </li>
+                    <li>
+                      <strong>Notas del caso → Mejorar redacción</strong>: refina la
+                      nota actual manteniendo el contenido legal.
+                    </li>
+                    <li>
+                      <strong>Documentos → Búsqueda IA</strong>: en lugar de
+                      coincidencia textual, Claude rankea por relevancia semántica.
+                    </li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    Para habilitar las funciones de IA, agrega tu API key de Anthropic
+                    en el archivo <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">.env</code>:
+                  </p>
+                  <pre className="rounded-md bg-muted p-3 font-mono text-xs">
+                    ANTHROPIC_API_KEY=sk-ant-...
+                  </pre>
+                  <p>
+                    Genera una key en{" "}
+                    <a
+                      href="https://console.anthropic.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      console.anthropic.com
+                    </a>
+                    . Luego reinicia el servidor.
+                  </p>
+                </div>
+              )}
+              <div className="rounded-md border border-dashed bg-muted/30 p-3 text-[11px] text-muted-foreground">
+                <strong>Privacidad:</strong> los prompts se envían a Anthropic vía API.
+                No se entrena ningún modelo con tu información (Anthropic API tiene
+                política de no-training por default), pero los datos viajan a sus
+                servidores. No actives la IA si tu firm tiene cláusulas de
+                confidencialidad que lo prohíban.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="plantillas">
           <ComingSoon
             module="Plantillas"

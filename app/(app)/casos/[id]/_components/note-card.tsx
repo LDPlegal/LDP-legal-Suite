@@ -10,6 +10,7 @@ import { preview } from "@/lib/tiptap/extract-text";
 export function NoteCard({
   note,
   caseId,
+  aiEnabled = false,
 }: {
   note: {
     id: string;
@@ -19,6 +20,7 @@ export function NoteCard({
     updatedAt: Date;
   };
   caseId: string;
+  aiEnabled?: boolean;
 }) {
   const txt = preview(note.content, 280);
   return (
@@ -42,6 +44,7 @@ export function NoteCard({
             noteId={note.id}
             initialTitle={note.title}
             initialContent={note.content}
+            aiEnabled={aiEnabled}
             trigger={
               <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar nota">
                 <Pencil className="h-3.5 w-3.5" />
