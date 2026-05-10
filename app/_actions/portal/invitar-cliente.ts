@@ -2,24 +2,26 @@
 
 // Admin action: create a portal-cliente account for a given client. The
 // admin/partner provides email + temporary password; the client uses these
-// to sign in at /login (better-auth signin works for role='client' too) and
-// is automatically routed to /portal/dashboard by the requireUser flow.
+// to sign in at /login and is automatically routed to /portal/dashboard by
+// the requireUser flow.
 //
-// Why a temp password instead of a magic link: Fase 4 keeps the auth surface
-// area minimal. better-auth supports magic-link / passwordless flows but
-// adopting them is its own decision (email infra, deliverability, etc.).
-// We can swap this action for a magic-link version without changing the
-// portal layer.
+// IMPORTANT: we do NOT use auth.api.signUpEmail() here even though it would
+// be the obvious choice. With autoSignIn=true (our global config) signUpEmail
+// creates a session for the new user AND the nextCookies() plugin plants
+// the new session cookie in the response of THIS server action — which
+// silently logs the admin out and signs them in as the just-created client.
+//
+// Instead we go through auth.$context.internalAdapter directly: hash the
+// password, create the user with the additional fields (firmId, role,
+// clientId), and link a credential account. No session, no cookies, the
+// admin's session stays intact.
 
-import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth/server";
-import { adminDb } from "@/lib/db/admin";
 import { requireUser } from "@/lib/auth/session";
 import { getClientById } from "@/lib/db/queries/clients";
 import { logAuditStandalone } from "@/lib/audit/log";
-import { users } from "@/lib/db/schema";
 
 const Schema = z.object({
   clientId: z.string().uuid(),
@@ -55,35 +57,49 @@ export async function invitarPortalAction(
     return { ok: false, error: first ?? "Datos inválidos." };
   }
 
-  // Verify the client belongs to the firm.
   const client = await getClientById(user.firmId, user.userId, parsed.data.clientId);
   if (!client) {
     return { ok: false, error: "Cliente no encontrado." };
   }
 
-  // Better-auth's signUpEmail expects no active session context for the new
-  // user, but we're inside an admin's session. Create the row directly via
-  // the admin connection so we control firmId + role + clientId, then write
-  // the credential through better-auth's account adapter via signUpEmail.
-  // Simpler: use signUpEmail with the additional fields. better-auth will
-  // create the new session for the SIGNED-IN admin if we don't pass
-  // disableCookieAuth — but it expects clientId in additionalFields.
-  let createdId: string | null = null;
+  const ctx = await auth.$context;
+  const normalizedEmail = parsed.data.email.toLowerCase();
+
+  // Reject duplicates up front with a friendly message instead of letting
+  // the unique constraint blow up.
+  const existing = await ctx.internalAdapter.findUserByEmail(normalizedEmail, {
+    includeAccounts: false,
+  });
+  if (existing) {
+    return {
+      ok: false,
+      error: "Ya existe un usuario con ese email.",
+    };
+  }
+
+  let createdId: string;
   try {
-    const result = await auth.api.signUpEmail({
-      body: {
-        email: parsed.data.email,
-        password: parsed.data.password,
-        name: parsed.data.name,
-        firmId: user.firmId,
-        role: "client",
-        clientId: parsed.data.clientId,
-      },
-      // NOTE: we deliberately don't forward request headers so the new user's
-      // session isn't planted in the admin's cookies. better-auth will still
-      // create the user row + credential; the client logs in afterwards.
+    const hash = await ctx.password.hash(parsed.data.password);
+    // createUser accepts our additionalFields (firmId, role, clientId) since
+    // we declared them in betterAuth({ user: { additionalFields: { ... } } }).
+    const created = await ctx.internalAdapter.createUser({
+      email: normalizedEmail,
+      name: parsed.data.name,
+      emailVerified: false,
+      firmId: user.firmId,
+      role: "client",
+      clientId: parsed.data.clientId,
+      status: "invited",
+    } as Parameters<typeof ctx.internalAdapter.createUser>[0]);
+    if (!created?.id) throw new Error("No se pudo crear el usuario.");
+    createdId = created.id;
+
+    await ctx.internalAdapter.linkAccount({
+      userId: created.id,
+      providerId: "credential",
+      accountId: created.id,
+      password: hash,
     });
-    createdId = result.user.id;
   } catch (err) {
     return {
       ok: false,
@@ -91,26 +107,16 @@ export async function invitarPortalAction(
     };
   }
 
-  // Belt-and-suspenders: ensure the new row really is role=client and
-  // points at the right clientId. signUpEmail goes through the admin db
-  // connection (BYPASSRLS) which is fine here since we're the firm admin.
-  if (createdId) {
-    await adminDb
-      .update(users)
-      .set({ role: "client", clientId: parsed.data.clientId, status: "invited" })
-      .where(eq(users.id, createdId));
-
-    await logAuditStandalone({
-      firmId: user.firmId,
-      userId: user.userId,
-      entityType: "user",
-      entityId: createdId,
-      action: "created",
-      summary: `Creó acceso al portal para ${parsed.data.name} (${parsed.data.email})`,
-      diff: { clientId: parsed.data.clientId },
-    });
-  }
+  await logAuditStandalone({
+    firmId: user.firmId,
+    userId: user.userId,
+    entityType: "user",
+    entityId: createdId,
+    action: "created",
+    summary: `Creó acceso al portal para ${parsed.data.name} (${normalizedEmail})`,
+    diff: { clientId: parsed.data.clientId },
+  });
 
   revalidatePath(`/clientes/${parsed.data.clientId}`);
-  return { ok: true, userId: createdId ?? "" };
+  return { ok: true, userId: createdId };
 }

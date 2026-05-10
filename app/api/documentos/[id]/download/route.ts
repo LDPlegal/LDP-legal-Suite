@@ -14,6 +14,13 @@ export async function GET(
 ) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Portal-cliente users have a dedicated endpoint at
+  // /api/portal/documentos/[id]/download with shared+client guards. Block
+  // them here so they can't bypass the shared_with_client filter by
+  // hitting the staff endpoint.
+  if (user.role === "client") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const { id } = await params;
   const doc = await getDocumentById(user.firmId, user.userId, id);
   if (!doc) return NextResponse.json({ error: "not_found" }, { status: 404 });

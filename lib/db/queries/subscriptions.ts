@@ -95,6 +95,16 @@ export async function syncSubscription(
   });
   if (!sub) return { ok: false, error: "Suscripción no encontrada." };
 
+  // Basic SSRF guard. We refuse to fetch obvious internal targets so a user
+  // can't trick the server into hitting localhost / private LAN / cloud
+  // metadata. This isn't bulletproof (a public hostname that resolves to
+  // 127.0.0.1 still gets through), but it stops casual abuse.
+  const ssrfError = sniffSsrf(sub.url);
+  if (ssrfError) {
+    await markError(firmId, userId, subscriptionId, ssrfError);
+    return { ok: false, error: ssrfError };
+  }
+
   let body: string;
   try {
     const res = await fetch(sub.url, {
@@ -178,6 +188,53 @@ export async function syncSubscription(
 
   await markSync(firmId, userId, subscriptionId, parsed.length);
   return { ok: true, count: parsed.length };
+}
+
+// Refuses URLs whose hostname is a literal local/private/loopback address
+// or a name that maps to one (only the well-known ones). Does NOT resolve
+// DNS — a malicious public name pointing at 127.0.0.1 still gets through
+// this. For Fase 4 the threat model is "user accidentally pastes intranet
+// URL", not "user actively attacks our infra"; if/when we widen that, add
+// dns.lookup() + IP-range check here.
+function sniffSsrf(rawUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return "URL inválida.";
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return "Solo se aceptan URLs http(s).";
+  }
+  const host = parsed.hostname.toLowerCase();
+  // Bare loopback / link-local / common local hostnames.
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host === "::" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local")
+  ) {
+    return "URL apunta a un host local; se rechaza por seguridad.";
+  }
+  // RFC 1918 private ranges + cloud metadata IP.
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/u);
+  if (ipv4) {
+    const a = Number(ipv4[1]);
+    const b = Number(ipv4[2]);
+    if (
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) {
+      return "URL apunta a un rango privado; se rechaza por seguridad.";
+    }
+  }
+  return null;
 }
 
 async function markSync(

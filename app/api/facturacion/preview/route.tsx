@@ -36,6 +36,10 @@ const Schema = z.object({
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Invoice generation preview is a staff-only operation.
+  if (user.role === "client") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
 
   const body = await req.json();
   const parsed = Schema.safeParse(body);

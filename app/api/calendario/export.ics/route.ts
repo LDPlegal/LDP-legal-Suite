@@ -10,6 +10,12 @@ import { buildIcs } from "@/lib/db/queries/expenses";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Portal-cliente users get only the events of their own cases via
+  // /portal/casos/[id] (event lists) and would see far too much here. Block
+  // them; they have no equivalent firm-wide export.
+  if (user.role === "client") {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
 
   // Range: 90 days back to 365 days forward — matches a typical cal client window.
   const now = new Date();
