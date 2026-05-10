@@ -57,9 +57,43 @@ export async function createTimeEntry(
     throw new Error("createTimeEntry: end must be after start");
   }
   return withFirm(firmId, userId, async (tx) => {
+    // Resolve the most specific applicable rate at start time (Fase 6).
+    // We snapshot the hourly rate so historical entries keep their value
+    // even when current rates change. Skip if caller already passed one
+    // (e.g. fixed-fee or contingency cases set 0 explicitly).
+    let hourlyRateSnapshot = data.hourlyRateSnapshot ?? null;
+    if (hourlyRateSnapshot == null && data.caseId && data.userId) {
+      try {
+        const { cases } = await import("../schema");
+        const { eq, and: andOp, isNull } = await import("drizzle-orm");
+        const [caseRow] = await tx
+          .select({ matterType: cases.matterType, clientId: cases.clientId })
+          .from(cases)
+          .where(andOp(eq(cases.id, data.caseId), isNull(cases.deletedAt)))
+          .limit(1);
+        if (caseRow) {
+          const { resolveRate } = await import("./rates");
+          const rate = await resolveRate(firmId, userId, {
+            forUserId: data.userId,
+            matterType: caseRow.matterType,
+            clientId: caseRow.clientId,
+            asOf: startedAt,
+          });
+          if (rate) hourlyRateSnapshot = rate.hourlyRate;
+        }
+      } catch {
+        // Best-effort. Fall back to user.hourly_rate at billing time.
+      }
+    }
+
     const [row] = await tx
       .insert(timeEntries)
-      .values({ ...data, firmId, durationSeconds })
+      .values({
+        ...data,
+        firmId,
+        durationSeconds,
+        hourlyRateSnapshot,
+      })
       .returning();
     if (!row) throw new Error("createTimeEntry: insert returned no row");
     return row;

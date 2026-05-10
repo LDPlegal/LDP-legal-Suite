@@ -15,6 +15,7 @@ import {
 import { listCases } from "@/lib/db/queries/cases";
 import { listClients } from "@/lib/db/queries/clients";
 import { listFirmUsers } from "@/lib/db/queries/users";
+import { listMatterTemplates } from "@/lib/db/queries/matter-templates";
 import { requireUser } from "@/lib/auth/session";
 import { CasoFormDrawer } from "./_components/caso-form-drawer";
 import {
@@ -44,7 +45,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
   const status = (sp.status ?? "") as "" | "open" | "on_hold" | "closed";
   const matter = (sp.matter ?? "") as "" | MatterType;
 
-  const [casesRes, clientesRes, lawyers] = await Promise.all([
+  const [casesRes, clientesRes, lawyers, templates] = await Promise.all([
     listCases(user.firmId, user.userId, {
       search: q,
       status: status || undefined,
@@ -53,6 +54,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
     }),
     listClients(user.firmId, user.userId, { limit: 200 }),
     listFirmUsers(user.firmId, user.userId),
+    listMatterTemplates(user.firmId, user.userId),
   ]);
 
   return (
@@ -67,6 +69,13 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
         <CasoFormDrawer
           clientes={clientesRes.rows.map((c) => ({ id: c.id, displayName: c.displayName }))}
           users={lawyers.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
+          templates={templates.map((t) => ({
+            id: t.id,
+            name: t.name,
+            matterType: t.matterType,
+            defaultTasks: t.defaultTasks ?? [],
+            defaultEvents: t.defaultEvents ?? [],
+          }))}
           trigger={
             <Button>
               <Plus className="h-4 w-4" />

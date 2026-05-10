@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { CasoSchema } from "@/lib/schemas/caso";
 import { createCase } from "@/lib/db/queries/cases";
+import { applyTemplateToCase } from "@/lib/db/queries/matter-templates";
 
 export type CasoFormState =
   | { ok: true }
@@ -79,6 +81,25 @@ export async function crearCasoAction(
     visibility: data.visibility,
     assignments: data.assignments,
   });
+  // Optionally apply a matter template — fire after createCase succeeded so
+  // we don't leave dangling tasks if the case insert failed. Errors here
+  // don't roll back the case; the partner can re-apply manually if needed.
+  const rawTemplate = formData.get("templateId");
+  const templateParse = z.string().uuid().safeParse(rawTemplate);
+  if (templateParse.success) {
+    try {
+      await applyTemplateToCase(
+        user.firmId,
+        user.userId,
+        templateParse.data,
+        created.id,
+      );
+    } catch {
+      // Swallow — the case exists; the user can still manage tasks/events
+      // by hand. We don't want template failures to block case creation.
+    }
+  }
+
   revalidatePath("/casos");
   redirect(`/casos/${created.id}`);
 }

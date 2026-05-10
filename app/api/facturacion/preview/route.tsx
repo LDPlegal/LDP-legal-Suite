@@ -55,11 +55,17 @@ export async function POST(req: Request) {
     getCaseById(user.firmId, user.userId, data.caseId),
   ]);
 
+  const settings = (firm?.settings ?? {}) as Record<string, unknown>;
   const pdfData: InvoicePdfData = {
     firm: {
       name: firm?.name ?? "",
       rnc: firm?.rnc ?? null,
       address: firm?.address ?? null,
+      logoUrl: typeof firm?.logoUrl === "string" ? firm.logoUrl : null,
+      invoiceHeader:
+        typeof settings.invoiceHeader === "string" ? settings.invoiceHeader : null,
+      invoiceFooter:
+        typeof settings.invoiceFooter === "string" ? settings.invoiceFooter : null,
     },
     invoice: {
       number: "VISTA PREVIA",

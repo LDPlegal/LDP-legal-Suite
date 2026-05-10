@@ -24,6 +24,7 @@ import { ConflictAlert } from "@/components/conflictos/conflict-alert";
 type Cliente = { id: string; displayName: string };
 type User = { id: string; name: string; role: string };
 type Assignment = { userId: string; roleInCase: "lead" | "associate" | "paralegal" };
+type Template = { id: string; name: string; matterType: string; defaultTasks: unknown[]; defaultEvents: unknown[] };
 
 const initial: CasoFormState = { ok: true };
 
@@ -31,10 +32,12 @@ export function CasoFormDrawer({
   trigger,
   clientes,
   users,
+  templates = [],
 }: {
   trigger: ReactNode;
   clientes: Cliente[];
   users: User[];
+  templates?: Template[];
 }) {
   const [open, setOpen] = useState(false);
   const [restricted, setRestricted] = useState(false);
@@ -42,6 +45,12 @@ export function CasoFormDrawer({
   // Live values for the conflict-of-interest alert (counterparty fields).
   const [counterpartyName, setCounterpartyName] = useState("");
   const [counterpartyTaxId, setCounterpartyTaxId] = useState("");
+  // Matter template selection. The list filters down to the currently
+  // selected matterType so partners don't pick a "Civil" template for a
+  // "Penal" case by accident.
+  const [matterType, setMatterType] = useState<string>("civil");
+  const [templateId, setTemplateId] = useState<string>("");
+  const matchingTemplates = templates.filter((t) => t.matterType === matterType);
   const [state, action, pending] = useActionState<CasoFormState, FormData>(
     crearCasoAction,
     initial,
@@ -102,7 +111,11 @@ export function CasoFormDrawer({
                 <select
                   name="matterType"
                   required
-                  defaultValue="civil"
+                  value={matterType}
+                  onChange={(e) => {
+                    setMatterType(e.target.value);
+                    setTemplateId(""); // reset template when matter changes
+                  }}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
                   {Object.entries(MATTER_LABEL).map(([k, v]) => (
@@ -117,6 +130,30 @@ export function CasoFormDrawer({
             <Field label="Descripción" error={errFor(state, "description")}>
               <Textarea name="description" rows={3} />
             </Field>
+
+            {matchingTemplates.length > 0 ? (
+              <Field label="Aplicar plantilla (opcional)">
+                <select
+                  name="templateId"
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">— Sin plantilla —</option>
+                  {matchingTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.defaultTasks.length} tareas, {t.defaultEvents.length} eventos)
+                    </option>
+                  ))}
+                </select>
+                {templateId ? (
+                  <p className="text-xs text-muted-foreground">
+                    Al guardar, se crearán automáticamente las tareas y eventos
+                    de esta plantilla con fechas relativas a hoy.
+                  </p>
+                ) : null}
+              </Field>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Estado" error={errFor(state, "status")}>

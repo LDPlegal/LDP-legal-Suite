@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ShortcutsHelp } from "@/components/layout/shortcuts-help";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
@@ -23,6 +24,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
       </div>
+      <ShortcutsHelp />
     </TooltipProvider>
   );
 }

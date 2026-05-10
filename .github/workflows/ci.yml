@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck + lint + tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ldp_legal_suite
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://app_user:app_password@localhost:5432/ldp_legal_suite
+      DATABASE_MIGRATE_URL: postgres://postgres:postgres@localhost:5432/ldp_legal_suite
+      BETTER_AUTH_SECRET: ci_dummy_secret_at_least_32_chars_long_xx
+      BETTER_AUTH_URL: http://localhost:3000
+      DEFAULT_FIRM_TIMEZONE: America/Santo_Domingo
+      DEFAULT_FIRM_CURRENCY: DOP
+      STORAGE_DRIVER: local
+      STORAGE_ROOT: ./storage
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - run: pnpm typecheck
+
+      - run: pnpm lint
+
+      - run: pnpm test

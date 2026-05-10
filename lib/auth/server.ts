@@ -43,6 +43,17 @@ export const auth = betterAuth({
     autoSignIn: true,
     minPasswordLength: 8,
     maxPasswordLength: 72,
+    // Reset-password flow (Fase 6). When the user requests a reset we just
+    // log the link in development — no email provider wired yet. The admin
+    // can copy the URL from the server log and share it manually. In
+    // production this should be replaced with a real email provider
+    // (Resend / Postmark / SES).
+    async sendResetPassword({ user, url }) {
+      console.log(
+        `[auth] Reset password URL for ${user.email}: ${url}\n` +
+          `(replace this stub with a real email send in production)`,
+      );
+    },
   },
   user: {
     additionalFields: {

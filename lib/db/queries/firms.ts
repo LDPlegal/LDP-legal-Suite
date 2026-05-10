@@ -22,6 +22,8 @@ export async function updateFirm(
     address?: string | null;
     timezone?: string;
     defaultCurrency?: string;
+    logoUrl?: string | null;
+    settings?: Record<string, unknown>;
   },
 ) {
   return withFirm(firmId, userId, async (tx) => {

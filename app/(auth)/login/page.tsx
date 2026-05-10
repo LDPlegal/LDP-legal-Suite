@@ -15,12 +15,22 @@ export default function LoginPage() {
       <Suspense fallback={<Skeleton className="h-44 w-full" />}>
         <LoginForm />
       </Suspense>
-      <p className="text-center text-sm text-muted-foreground">
-        ¿No tienes una firma registrada?{" "}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          Crear cuenta
-        </Link>
-      </p>
+      <div className="space-y-2 text-center text-sm text-muted-foreground">
+        <p>
+          <Link
+            href="/forgot-password"
+            className="text-primary hover:underline"
+          >
+            Olvidé mi contraseña
+          </Link>
+        </p>
+        <p>
+          ¿No tienes una firma registrada?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:underline">
+            Crear cuenta
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

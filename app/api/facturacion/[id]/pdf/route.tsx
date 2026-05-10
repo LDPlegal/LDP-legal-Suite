@@ -26,11 +26,17 @@ export async function GET(
   }
   const firm = await getCurrentFirm(user.firmId, user.userId);
 
+  const settings = (firm?.settings ?? {}) as Record<string, unknown>;
   const data: InvoicePdfData = {
     firm: {
       name: firm?.name ?? "",
       rnc: firm?.rnc ?? null,
       address: firm?.address ?? null,
+      logoUrl: typeof firm?.logoUrl === "string" ? firm.logoUrl : null,
+      invoiceHeader:
+        typeof settings.invoiceHeader === "string" ? settings.invoiceHeader : null,
+      invoiceFooter:
+        typeof settings.invoiceFooter === "string" ? settings.invoiceFooter : null,
     },
     invoice: {
       number: inv.invoice.number,

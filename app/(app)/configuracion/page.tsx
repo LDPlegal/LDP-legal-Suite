@@ -1,22 +1,32 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
+import { listMatterTemplates } from "@/lib/db/queries/matter-templates";
+import { listRates } from "@/lib/db/queries/rates";
+import { listFirmUsers } from "@/lib/db/queries/users";
+import { listClients } from "@/lib/db/queries/clients";
 import { requireUser } from "@/lib/auth/session";
 import { isAiEnabled } from "@/lib/ai";
 import { NcfRangesPanel } from "./_components/ncf-ranges-panel";
 import { FirmForm } from "./_components/firm-form";
+import { TemplatesPanel } from "./_components/templates-panel";
+import { BrandingPanel } from "./_components/branding-panel";
+import { RatesPanel } from "./_components/rates-panel";
 
 export const metadata = { title: "Configuración · LDP Legal Suite" };
 
 export default async function ConfiguracionPage() {
   const user = await requireUser();
-  const [ranges, firm] = await Promise.all([
+  const [ranges, firm, templates, ratesRows, firmUsers, clientsRes] = await Promise.all([
     listNcfRanges(user.firmId, user.userId),
     getCurrentFirm(user.firmId, user.userId),
+    listMatterTemplates(user.firmId, user.userId),
+    listRates(user.firmId, user.userId),
+    listFirmUsers(user.firmId, user.userId),
+    listClients(user.firmId, user.userId, { limit: 200 }),
   ]);
   const isAdmin = user.role === "admin" || user.role === "partner";
   const aiEnabled = isAiEnabled();
@@ -64,7 +74,7 @@ export default async function ConfiguracionPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="firm">
+        <TabsContent value="firm" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Datos del firm</CardTitle>
@@ -86,6 +96,30 @@ export default async function ConfiguracionPage() {
                   No se pudo cargar la información del firm.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Branding de factura</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BrandingPanel
+                canEdit={isAdmin}
+                initialLogoUrl={firm?.logoUrl ?? null}
+                initialHeader={
+                  typeof (firm?.settings as Record<string, unknown> | undefined)?.invoiceHeader ===
+                  "string"
+                    ? ((firm!.settings as Record<string, unknown>).invoiceHeader as string)
+                    : ""
+                }
+                initialFooter={
+                  typeof (firm?.settings as Record<string, unknown> | undefined)?.invoiceFooter ===
+                  "string"
+                    ? ((firm!.settings as Record<string, unknown>).invoiceFooter as string)
+                    : ""
+                }
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -163,18 +197,65 @@ export default async function ConfiguracionPage() {
         </TabsContent>
 
         <TabsContent value="plantillas">
-          <ComingSoon
-            module="Plantillas"
-            phase="Fase 3"
-            description="Plantillas de matter, plantilla de factura, plantilla de documento."
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Plantillas de matter</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Define plantillas por tipo de caso para autopoblar tareas y
+                eventos al abrir uno nuevo. Útil cuando ciertos matters siguen
+                un workflow repetible (demanda en cobro, constitución de
+                sociedad, asistencia migratoria, etc.).
+              </p>
+              <TemplatesPanel
+                canEdit={isAdmin}
+                templates={templates.map((t) => ({
+                  id: t.id,
+                  name: t.name,
+                  matterType: t.matterType,
+                  description: t.description,
+                  defaultTasks: t.defaultTasks ?? [],
+                  defaultEvents: t.defaultEvents ?? [],
+                }))}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="tarifas">
-          <ComingSoon
-            module="Tarifas"
-            phase="Fase 3"
-            description="Tarifas por usuario, por matter, por cliente."
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Tarifas (override por usuario / materia / cliente)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Tarifa por hora con resolución por especificidad: cliente {">"}
+                materia {">"} usuario {">"} fallback al rate base del usuario.
+                Útil cuando hay tarifas diferenciadas para clientes corporativos
+                o para casos pro-bono.
+              </p>
+              <RatesPanel
+                canEdit={isAdmin}
+                rates={ratesRows.map((r) => ({
+                  id: r.id,
+                  userId: r.userId,
+                  userName: r.userName,
+                  matterType: r.matterType,
+                  clientId: r.clientId,
+                  hourlyRate: r.hourlyRate,
+                  currency: r.currency,
+                  notes: r.notes,
+                  validFrom: r.validFrom,
+                  validTo: r.validTo,
+                }))}
+                users={firmUsers.map((u) => ({ id: u.id, name: u.name }))}
+                clients={clientsRes.rows.map((c) => ({
+                  id: c.id,
+                  displayName: c.displayName,
+                }))}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

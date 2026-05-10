@@ -1192,3 +1192,102 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
 
 export type AuditLog = typeof auditLog.$inferSelect;
 export type NewAuditLog = typeof auditLog.$inferInsert;
+
+// =============================================================================
+// matter_templates — plantillas para autopoblar tareas/eventos al crear un caso
+// =============================================================================
+// Each row is a "type of case" preset. When a partner creates a case and picks
+// a template, we copy the entries in defaultTasks/defaultEvents into the
+// corresponding tables, with offsetDays added to today() for due dates.
+
+export const matterTemplates = pgTable(
+  "matter_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    matterType: matterTypeEnum("matter_type").notNull(),
+    description: text("description"),
+    // Each item: { title, description?, priority?, offsetDays? }
+    defaultTasks: jsonb("default_tasks")
+      .$type<
+        Array<{
+          title: string;
+          description?: string;
+          priority?: "low" | "med" | "high" | "urgent";
+          offsetDays?: number;
+        }>
+      >()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    // Each item: { title, description?, location?, offsetDays, durationMinutes? }
+    defaultEvents: jsonb("default_events")
+      .$type<
+        Array<{
+          title: string;
+          description?: string;
+          location?: string;
+          offsetDays: number;
+          durationMinutes?: number;
+        }>
+      >()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("matter_tpl_firm_idx").on(t.firmId),
+    index("matter_tpl_firm_type_idx").on(t.firmId, t.matterType),
+  ],
+);
+
+export type MatterTemplate = typeof matterTemplates.$inferSelect;
+export type NewMatterTemplate = typeof matterTemplates.$inferInsert;
+
+// =============================================================================
+// rates — tarifas con override por user / matter / cliente
+// =============================================================================
+// Lookup precedence (most specific wins):
+//   1. (user, client)
+//   2. (user, matter)
+//   3. (user)
+//   4. fallback to users.hourly_rate
+// All NULL means "applies to anyone in this firm" — a firm-wide default.
+// validFrom/validTo carve historical periods so old time entries keep their
+// rate even when current rates change.
+
+export const rates = pgTable(
+  "rates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    matterType: matterTypeEnum("matter_type"),
+    clientId: uuid("client_id").references(() => clients.id, {
+      onDelete: "cascade",
+    }),
+    hourlyRate: decimal("hourly_rate", { precision: 12, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("DOP"),
+    notes: text("notes"),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull().defaultNow(),
+    validTo: timestamp("valid_to", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("rates_firm_idx").on(t.firmId),
+    index("rates_firm_user_idx").on(t.firmId, t.userId),
+    index("rates_firm_matter_idx").on(t.firmId, t.matterType),
+    index("rates_firm_client_idx").on(t.firmId, t.clientId),
+  ],
+);
+
+export type Rate = typeof rates.$inferSelect;
+export type NewRate = typeof rates.$inferInsert;

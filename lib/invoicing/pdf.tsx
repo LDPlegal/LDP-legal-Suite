@@ -7,6 +7,7 @@
 
 import {
   Document as PdfDocument,
+  Image as PdfImage,
   Page,
   Text,
   View,
@@ -94,6 +95,9 @@ export type InvoicePdfData = {
     name: string;
     rnc: string | null;
     address: string | null;
+    logoUrl: string | null;
+    invoiceHeader: string | null;
+    invoiceFooter: string | null;
   };
   invoice: {
     number: string;
@@ -143,10 +147,18 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
         ) : null}
 
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.brand}>{data.firm.name}</Text>
-            {data.firm.rnc ? <Text style={styles.sub}>RNC {data.firm.rnc}</Text> : null}
-            {data.firm.address ? <Text style={styles.sub}>{data.firm.address}</Text> : null}
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+            {data.firm.logoUrl ? (
+              <PdfImage
+                src={data.firm.logoUrl}
+                style={{ width: 60, height: 60, objectFit: "contain" }}
+              />
+            ) : null}
+            <View>
+              <Text style={styles.brand}>{data.firm.name}</Text>
+              {data.firm.rnc ? <Text style={styles.sub}>RNC {data.firm.rnc}</Text> : null}
+              {data.firm.address ? <Text style={styles.sub}>{data.firm.address}</Text> : null}
+            </View>
           </View>
           <View style={styles.rightAligned}>
             <Text style={styles.invoiceMeta}>FACTURA {data.invoice.number}</Text>
@@ -157,6 +169,14 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
             <Text style={styles.sub}>Vence: {fmtDate(data.invoice.dueOn)}</Text>
           </View>
         </View>
+
+        {data.firm.invoiceHeader ? (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 9, color: "#64748B" }}>
+              {data.firm.invoiceHeader}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.twoCol}>
           <View style={{ flex: 1 }}>
@@ -238,6 +258,14 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
           <View style={styles.footer}>
             <Text style={{ fontWeight: "bold", marginBottom: 2 }}>Términos</Text>
             <Text>{data.invoice.terms}</Text>
+          </View>
+        ) : null}
+
+        {data.firm.invoiceFooter ? (
+          <View style={[styles.footer, { marginTop: 12 }]}>
+            <Text style={{ fontSize: 9, color: "#64748B" }}>
+              {data.firm.invoiceFooter}
+            </Text>
           </View>
         ) : null}
 

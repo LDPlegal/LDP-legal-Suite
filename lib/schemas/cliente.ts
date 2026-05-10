@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCedula, isValidRnc } from "@/lib/validation/dgii";
 
 const TaxIdType = z.enum(["rnc", "cedula", "passport", "other"]);
 
@@ -40,19 +41,35 @@ export const ClienteSchema = z
         message: "Razón social requerida para clientes jurídicos",
       });
     }
-    if (val.taxIdType === "rnc" && val.taxId && !/^\d{3}-?\d{5}-?\d$/u.test(val.taxId)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["taxId"],
-        message: "RNC inválido (formato XXX-XXXXX-X)",
-      });
+    if (val.taxIdType === "rnc" && val.taxId) {
+      if (!/^\d{3}-?\d{5}-?\d$/u.test(val.taxId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["taxId"],
+          message: "RNC inválido (formato XXX-XXXXX-X)",
+        });
+      } else if (!isValidRnc(val.taxId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["taxId"],
+          message: "RNC inválido: el dígito verificador no coincide.",
+        });
+      }
     }
-    if (val.taxIdType === "cedula" && val.taxId && !/^\d{3}-?\d{7}-?\d$/u.test(val.taxId)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["taxId"],
-        message: "Cédula inválida (formato XXX-XXXXXXX-X)",
-      });
+    if (val.taxIdType === "cedula" && val.taxId) {
+      if (!/^\d{3}-?\d{7}-?\d$/u.test(val.taxId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["taxId"],
+          message: "Cédula inválida (formato XXX-XXXXXXX-X)",
+        });
+      } else if (!isValidCedula(val.taxId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["taxId"],
+          message: "Cédula inválida: el dígito verificador no coincide.",
+        });
+      }
     }
   });
 
