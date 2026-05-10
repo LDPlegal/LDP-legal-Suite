@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { and, eq, isNull } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import * as schema from "@/lib/db/schema";
 
@@ -80,6 +81,69 @@ export const auth = betterAuth({
       // generator emits short random strings that Postgres rejects when
       // casting to uuid. Force UUIDs so all PKs match the column type.
       generateId: () => crypto.randomUUID(),
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        // Sanitise user creations that arrive through better-auth's HTTP
+        // endpoints (POST /api/auth/sign-up/email). Without this hook,
+        // anyone with the URL can inject `role: "admin"` and a known
+        // `firmId` to plant a privileged user inside someone else's firm.
+        //
+        // The hook fires for BOTH paths:
+        //   - HTTP endpoint  → context is non-null  (the public threat)
+        //   - internalAdapter.createUser() called from server code →
+        //     context is null  (our own admin actions, trusted)
+        //
+        // We scrub the dangerous fields only when context is non-null.
+        // Server-side code that legitimately needs to set role='client' +
+        // clientId (e.g. invitarPortalAction) uses internalAdapter.createUser
+        // and so passes through untouched.
+        async before(user, context) {
+          if (context === null) return; // trusted server-side path
+          const u = user as Record<string, unknown>;
+          const firmId = typeof u.firmId === "string" ? u.firmId : null;
+          if (!firmId) return false;
+
+          // Public signups are only allowed when the firm has no users yet
+          // (the first-admin flow from /signup). Any subsequent attempt to
+          // create a user via the public endpoint targeting an existing firm
+          // is rejected — preventing privilege escalation by injecting a
+          // known firmId. To add staff to an existing firm, an admin must
+          // call internalAdapter.createUser from a server action (which
+          // bypasses this hook because context is null).
+          const existing = await adminDb
+            .select({ id: schema.users.id })
+            .from(schema.users)
+            .where(and(eq(schema.users.firmId, firmId), isNull(schema.users.deletedAt)))
+            .limit(1);
+          if (existing.length > 0) return false;
+
+          return {
+            data: {
+              ...u,
+              role: "admin",
+              clientId: null,
+            },
+          };
+        },
+      },
+    },
+    session: {
+      create: {
+        // After a session is created (signup auto-login OR signin), bump the
+        // user's lastLoginAt + flip status from 'invited' → 'active' so the
+        // UI reflects "first-login happened".
+        async after(session) {
+          const userId = (session as { userId?: string }).userId;
+          if (!userId) return;
+          await adminDb
+            .update(schema.users)
+            .set({ lastLoginAt: new Date(), status: "active", updatedAt: new Date() })
+            .where(eq(schema.users.id, userId));
+        },
+      },
     },
   },
   // nextCookies() must be the LAST plugin so it wraps all cookie writes from
