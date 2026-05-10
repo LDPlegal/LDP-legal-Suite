@@ -2,14 +2,19 @@ import { ComingSoon } from "@/components/layout/coming-soon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
+import { getCurrentFirm } from "@/lib/db/queries/firms";
 import { requireUser } from "@/lib/auth/session";
 import { NcfRangesPanel } from "./_components/ncf-ranges-panel";
+import { FirmForm } from "./_components/firm-form";
 
 export const metadata = { title: "Configuración · LDP Legal Suite" };
 
 export default async function ConfiguracionPage() {
   const user = await requireUser();
-  const ranges = await listNcfRanges(user.firmId, user.userId);
+  const [ranges, firm] = await Promise.all([
+    listNcfRanges(user.firmId, user.userId),
+    getCurrentFirm(user.firmId, user.userId),
+  ]);
   const isAdmin = user.role === "admin" || user.role === "partner";
 
   return (
@@ -54,11 +59,29 @@ export default async function ConfiguracionPage() {
         </TabsContent>
 
         <TabsContent value="firm">
-          <ComingSoon
-            module="Datos del firm"
-            phase="Fase 3"
-            description="Editar nombre, RNC, dirección, logo, timezone, moneda default."
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Datos del firm</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {firm ? (
+                <FirmForm
+                  firm={{
+                    name: firm.name,
+                    rnc: firm.rnc,
+                    address: firm.address,
+                    timezone: firm.timezone,
+                    defaultCurrency: firm.defaultCurrency,
+                  }}
+                  canEdit={isAdmin}
+                />
+              ) : (
+                <p className="py-4 text-sm text-muted-foreground">
+                  No se pudo cargar la información del firm.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="plantillas">
           <ComingSoon

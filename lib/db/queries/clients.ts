@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
-import { clients, type Client, type NewClient } from "../schema";
+import { clients, sessions, users, type Client, type NewClient } from "../schema";
 
 export type ListClientsOptions = {
   search?: string;
@@ -105,6 +105,19 @@ export async function updateClient(
   });
 }
 
+// Archive a client + cut all portal access tied to it.
+//
+// 1. Soft-delete the client itself.
+// 2. Soft-delete every portal user attached to it (role='client' rows with
+//    matching client_id). They keep their email/audit trail but their
+//    deletedAt is set so getCurrentUser refuses to load them on next request.
+// 3. Hard-delete any active sessions of those users so the cookie they
+//    already have stops working immediately, not just on next sign-in.
+//
+// We do this inside withFirm so the soft-deletes go through RLS-protected
+// connection (firm isolation). Sessions table doesn't have firm_id so the
+// session delete uses the userIds we already collected — no cross-firm
+// leakage.
 export async function softDeleteClient(
   firmId: string,
   userId: string,
@@ -116,6 +129,35 @@ export async function softDeleteClient(
       .set({ deletedAt: new Date() })
       .where(and(eq(clients.id, clientId), isNull(clients.deletedAt)))
       .returning({ id: clients.id });
-    return !!row;
+    if (!row) return false;
+
+    // Find portal users for this client (under firm-isolated tx).
+    const portalUserIds = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, "client"),
+          eq(users.clientId, clientId),
+          isNull(users.deletedAt),
+        ),
+      );
+
+    if (portalUserIds.length > 0) {
+      const ids = portalUserIds.map((u) => u.id);
+      await tx
+        .update(users)
+        .set({
+          deletedAt: new Date(),
+          status: "suspended",
+          updatedAt: new Date(),
+        })
+        .where(inArray(users.id, ids));
+      // Sessions table: kill any live cookies. Better-auth doesn't gate
+      // signin on users.deletedAt by itself, so cutting sessions is the
+      // belt; getCurrentUser's deletedAt check is the suspenders.
+      await tx.delete(sessions).where(inArray(sessions.userId, ids));
+    }
+    return true;
   });
 }

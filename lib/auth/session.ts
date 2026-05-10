@@ -4,8 +4,11 @@
 // that domain code needs to pass to withFirm().
 
 import "server-only";
+import { and, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { adminDb } from "@/lib/db/admin";
+import { users as usersTable } from "@/lib/db/schema";
 import { auth } from "./server";
 
 export type SessionUser = {
@@ -33,6 +36,18 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     // A user without firmId/role is invalid for this app; force re-auth.
     return null;
   }
+
+  // Belt-and-suspenders soft-delete check. better-auth's cookie cache (5 min
+  // TTL) means session.user can survive after we soft-delete the row — for
+  // example when a portal user's owning client gets archived. Verify the
+  // user is still alive on each request before treating them as logged in.
+  // The query is a single PK lookup, indexed; cost is trivial.
+  const [live] = await adminDb
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, user.id), isNull(usersTable.deletedAt)))
+    .limit(1);
+  if (!live) return null;
 
   return {
     userId: user.id,

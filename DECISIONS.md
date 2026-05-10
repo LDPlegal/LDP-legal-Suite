@@ -898,3 +898,63 @@ que las parseemos y peguemos eventos en `events` (escritura).
 - Sync periódico automático: por ahora es manual con botón "Sincronizar".
   Vercel Cron o pg-boss cuando emerja la necesidad.
 
+## F4.5 — Hooks de seguridad y deactivation cascade
+
+Tres bugs aparecieron al pulir Fase 4. Los tres se cierran con hooks
+nativos de better-auth (`databaseHooks.user.create.before`,
+`databaseHooks.session.create.before/after`) y un cascade en
+`softDeleteClient`.
+
+### Bug 1 — invitar cliente sustituía la sesión del admin
+
+`auth.api.signUpEmail` con `autoSignIn: true` (config global) crea
+sesión para el nuevo user. El plugin `nextCookies()` planta el
+`Set-Cookie` en la respuesta del server action y sobrescribe la cookie
+del admin que invitó.
+
+**Fix:** `invitarPortalAction` ya no usa `signUpEmail`. Ahora va por
+`auth.$context.internalAdapter.createUser` + `linkAccount` directo, lo
+que crea el user sin tocar cookies. El admin queda autenticado.
+
+### Bug 2 — public signup permitía inyección de role/firmId/clientId
+
+`POST /api/auth/sign-up/email` está expuesto por better-auth y aceptaba
+`role` / `firmId` / `clientId` en el body. Un atacante con el `firmId`
+de otra empresa podía crear un user `role=admin` dentro de ella.
+
+**Fix:** hook `user.create.before`. Cuando el contexto es `null` (server
+action interna) no toca nada. Cuando hay contexto (HTTP público):
+- Verifica que el `firmId` no tenga aún users (legítimo solo en flow
+  de primer admin via `/signup`).
+- Fuerza `role=admin` y `clientId=null`.
+
+Para añadir staff a un firm existente hay que pasar por código backend
+(`internalAdapter.createUser`); el endpoint público queda solo para
+self-signup de nuevos firms.
+
+### Bug 3 — soft-delete de cliente no cortaba acceso al portal
+
+Antes, archivar un cliente no afectaba sus portal users. Seguían
+logueados (cookie cache), podían volver a iniciar sesión, y veían sus
+casos hasta que la RLS los detenía (no lo hacía: `cases.client_id` ya
+no aparece visible si el cliente está deletedAt — pero el portal layout
+sí los autenticaba).
+
+**Fix en cascada:**
+- `softDeleteClient` ahora hace soft-delete también de los portal users
+  del cliente y borra sus filas en `sessions` (kill cookie).
+- `getCurrentUser` agrega un PK lookup que rechaza users con
+  `deletedAt IS NOT NULL`. Esto cubre el cookie cache de 5 min.
+- Hook `session.create.before` rechaza creación de sesión si el user
+  está soft-deleted. Cubre el caso "el user re-autentica con su
+  password después del soft-delete" — antes la sesión se creaba y solo
+  fallaba en el siguiente render.
+
+### Bonus — lastLoginAt + status active automáticos
+
+Hook `session.create.after` actualiza `users.lastLoginAt` y bumpa
+`status` de `invited` a `active` al primer login. El badge "invited"
+en el card "Acceso al portal" de `/clientes/[id]` ahora se sincroniza
+con la realidad.
+
+

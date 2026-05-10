@@ -132,6 +132,22 @@ export const auth = betterAuth({
     },
     session: {
       create: {
+        // Refuse to create a session for soft-deleted users. better-auth's
+        // signin only validates email + password; it doesn't know about
+        // users.deletedAt. Without this hook, a portal user whose owning
+        // client was just archived would still be able to re-login (the
+        // password check passes) and trigger getCurrentUser → null on the
+        // next request, looking like a broken login. Stop earlier.
+        async before(session) {
+          const userId = (session as { userId?: string }).userId;
+          if (!userId) return;
+          const [live] = await adminDb
+            .select({ id: schema.users.id })
+            .from(schema.users)
+            .where(and(eq(schema.users.id, userId), isNull(schema.users.deletedAt)))
+            .limit(1);
+          if (!live) return false;
+        },
         // After a session is created (signup auto-login OR signin), bump the
         // user's lastLoginAt + flip status from 'invited' → 'active' so the
         // UI reflects "first-login happened".
