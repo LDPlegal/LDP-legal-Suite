@@ -45,4 +45,6 @@ drizzle/meta
 *.pem
 
 # local file storage (dev — production uses S3-compatible driver)
-storage/
+# Slash inicial obligatorio: sin él, ignora también lib/storage/* (modulo de
+# codigo). Solo queremos ignorar la carpeta raiz donde se guardan uploads.
+/storage/
