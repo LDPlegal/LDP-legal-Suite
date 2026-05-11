@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -14,12 +12,8 @@ import {
 import { requireUser } from "@/lib/auth/session";
 import { listAllDocuments } from "@/lib/db/queries/documents";
 import { isAiEnabled } from "@/lib/ai";
-import {
-  formatBytes,
-  OCR_STATUS_LABEL,
-} from "@/lib/documents/format";
-import { formatInFirmTz } from "@/lib/datetime/format";
 import { AiDocumentSearch } from "./_components/ai-search";
+import { DocumentGlobalRow } from "./_components/document-global-row";
 
 export const metadata = { title: "Documentos · LDP Legal Suite" };
 
@@ -108,101 +102,30 @@ export default async function DocumentosPage({
                   <TableHead>Subido</TableHead>
                   <TableHead>Tamaño</TableHead>
                   <TableHead>OCR</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-40 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((d) => {
-                  const isImage = d.mimeType.startsWith("image/");
-                  return (
-                    <TableRow key={d.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {isImage ? (
-                            <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          ) : (
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          )}
-                          <Link
-                            href={`/api/documentos/${d.id}/download`}
-                            target="_blank"
-                            rel="noopener"
-                            className="font-medium hover:underline"
-                          >
-                            {d.name}
-                          </Link>
-                          {d.version > 1 ? (
-                            <Badge variant="outline" className="font-mono text-[10px]">
-                              v{d.version}
-                            </Badge>
-                          ) : null}
-                          {d.sharedWithClient ? (
-                            <Eye
-                              className="h-3.5 w-3.5 text-emerald-600"
-                              aria-label="Compartido con cliente"
-                            />
-                          ) : (
-                            <EyeOff
-                              className="h-3.5 w-3.5 text-muted-foreground"
-                              aria-label="No compartido"
-                            />
-                          )}
-                        </div>
-                        {d.tags.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {d.tags.map((t) => (
-                              <Badge key={t} variant="secondary" className="text-[10px]">
-                                {t}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : null}
-                        {d.ocrTextSnippet ? (
-                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                            …{d.ocrTextSnippet}…
-                          </p>
-                        ) : null}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {d.caseId ? (
-                          <Link
-                            href={`/casos/${d.caseId}`}
-                            className="font-mono text-muted-foreground hover:underline"
-                          >
-                            {d.caseCode}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {d.uploadedByName ?? "—"}
-                        <br />
-                        {formatInFirmTz(d.createdAt, undefined, "dd/MM/yyyy")}
-                      </TableCell>
-                      <TableCell className="text-xs tabular-nums">
-                        {formatBytes(d.sizeBytes)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">
-                          {OCR_STATUS_LABEL[d.ocrStatus]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          href={`/api/documentos/${d.id}/download`}
-                          target="_blank"
-                          rel="noopener"
-                          download={d.name}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-                          aria-label="Descargar"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {rows.map((d) => (
+                  <DocumentGlobalRow
+                    key={d.id}
+                    doc={{
+                      id: d.id,
+                      name: d.name,
+                      mimeType: d.mimeType,
+                      sizeBytes: d.sizeBytes,
+                      tags: d.tags,
+                      ocrStatus: d.ocrStatus,
+                      version: d.version,
+                      sharedWithClient: d.sharedWithClient,
+                      createdAt: d.createdAt,
+                      uploadedByName: d.uploadedByName,
+                      caseId: d.caseId,
+                      caseCode: d.caseCode,
+                      ocrTextSnippet: d.ocrTextSnippet,
+                    }}
+                  />
+                ))}
               </TableBody>
             </Table>
           )}
