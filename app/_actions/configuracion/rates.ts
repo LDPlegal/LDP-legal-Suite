@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { MatterTypeEnum } from "@/lib/schemas/caso";
 import { createRate, softDeleteRate } from "@/lib/db/queries/rates";
 import { logAuditStandalone } from "@/lib/audit/log";
@@ -27,7 +27,7 @@ export async function guardarRateAction(
   formData: FormData,
 ): Promise<GuardarRateState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admin y socios pueden manejar tarifas." };
   }
   const parsed = Schema.safeParse({
@@ -69,7 +69,7 @@ export async function guardarRateAction(
 
 export async function eliminarRateAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admin y socios pueden eliminar tarifas.");
   }
   const id = z.string().uuid().parse(formData.get("rateId"));

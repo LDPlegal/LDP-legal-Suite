@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { updateInvoiceDraft } from "@/lib/db/queries/invoices";
 
 const LineSchema = z.object({
@@ -32,7 +32,7 @@ export async function editarFacturaAction(
   formData: FormData,
 ): Promise<EditarFacturaState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admins y socios pueden editar facturas." };
   }
 

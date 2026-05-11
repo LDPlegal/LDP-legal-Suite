@@ -183,6 +183,26 @@ export async function updateDocumentOcr(
   });
 }
 
+export async function renameDocument(
+  firmId: string,
+  userId: string,
+  documentId: string,
+  data: { name: string; tags: string[] },
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(documents)
+      .set({
+        name: data.name,
+        tags: data.tags,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
+      .returning({ id: documents.id });
+    return !!row;
+  });
+}
+
 export async function softDeleteDocument(
   firmId: string,
   userId: string,

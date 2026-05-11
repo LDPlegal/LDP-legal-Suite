@@ -14,7 +14,7 @@
 // Name-only matches are reported with lower confidence; we never block on
 // them, only surface as a soft warning. Tax_id matches are the strong signal.
 
-import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { caseAssignments, cases, clients, users } from "../schema";
 import type { ConflictHit, ConflictReport } from "@/lib/conflictos/types";
@@ -143,66 +143,13 @@ export async function checkConflicts(
     }
 
     // -------------------------------------------------------------------------
-    // Soft signal: name fuzzy matches (only when no strong hit was found, to
-    // avoid duplicating warnings; legal_name and counterparty_name use ILIKE).
+    // Match por nombre: DESACTIVADO por feedback (genera demasiados falsos
+    // positivos — "Juan Pérez" matchea con cualquier Juan o cualquier Pérez).
+    // El conflict check ahora solo dispara con tax_id que coincida (señal
+    // fuerte). Si vuelve a interesar el match por nombre, hay que hacerlo
+    // con un algoritmo más serio (token-set ratio, threshold > 80) — el
+    // ILIKE substring que tenía antes era ruido puro.
     // -------------------------------------------------------------------------
-    if (name && hits.length === 0) {
-      const term = `%${name}%`;
-      const clientNameRows = await tx
-        .select({
-          id: clients.id,
-          displayName: clients.displayName,
-          legalName: clients.legalName,
-          status: clients.status,
-        })
-        .from(clients)
-        .where(
-          and(
-            isNull(clients.deletedAt),
-            or(ilike(clients.displayName, term), ilike(clients.legalName, term)),
-            input.excludeClientId
-              ? sql`${clients.id} <> ${input.excludeClientId}`
-              : sql`true`,
-          ),
-        )
-        .limit(5);
-      for (const c of clientNameRows) {
-        hits.push({
-          kind: "client_name",
-          refId: c.id,
-          refType: "client",
-          label: c.displayName,
-          detail: `Cliente ${c.status === "active" ? "activo" : c.status} (coincidencia por nombre)`,
-        });
-      }
-
-      const caseNameRows = await tx
-        .select({
-          id: cases.id,
-          code: cases.code,
-          title: cases.title,
-          status: cases.status,
-          counterpartyName: cases.counterpartyName,
-        })
-        .from(cases)
-        .where(
-          and(
-            isNull(cases.deletedAt),
-            ilike(cases.counterpartyName, term),
-            input.excludeCaseId ? sql`${cases.id} <> ${input.excludeCaseId}` : sql`true`,
-          ),
-        )
-        .limit(5);
-      for (const c of caseNameRows) {
-        hits.push({
-          kind: "counterparty_name",
-          refId: c.id,
-          refType: "case",
-          label: `${c.code} — ${c.title}`,
-          detail: `Contraparte: ${c.counterpartyName} (coincidencia por nombre)`,
-        });
-      }
-    }
 
     const blocking = hits.some((h) => h.kind === "client_taxid" || h.kind === "counterparty_taxid");
     return { hits, blocking };

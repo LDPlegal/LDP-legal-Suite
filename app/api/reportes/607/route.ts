@@ -5,7 +5,7 @@
 // archivo a la oficina virtual.
 
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { dgii607Report } from "@/lib/db/queries/audit";
 
 function pad(n: number, width: number): string {
@@ -41,7 +41,7 @@ function taxIdTypeCode(t: string | null): string {
 
 export async function GET(req: Request) {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

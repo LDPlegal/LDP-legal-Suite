@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { generateInvoiceFromCase } from "@/lib/db/queries/invoices";
 import { getClientById } from "@/lib/db/queries/clients";
 import { logAuditStandalone } from "@/lib/audit/log";
@@ -39,7 +39,7 @@ export async function generarFacturaAction(
   formData: FormData,
 ): Promise<GenerarFacturaState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admins y socios pueden generar facturas." };
   }
 

@@ -1,13 +1,17 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { users, type User } from "../schema";
 
+// Returns staff users only (admin/partner/lawyer/paralegal/tester) — never
+// portal clients. Use this for every "select assignee / lead lawyer /
+// timekeeper" UI in the app. listing portal clients is a separate function
+// (`listPortalUsersForClient`) so the contexts don't get confused.
 export async function listFirmUsers(firmId: string, userId: string): Promise<User[]> {
   return withFirm(firmId, userId, async (tx) => {
     return tx
       .select()
       .from(users)
-      .where(isNull(users.deletedAt))
+      .where(and(isNull(users.deletedAt), ne(users.role, "client")))
       .orderBy(users.name);
   });
 }

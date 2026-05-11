@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { getInvoiceById, softDeleteInvoice } from "@/lib/db/queries/invoices";
 import { logAuditStandalone } from "@/lib/audit/log";
 
@@ -11,7 +11,7 @@ const Schema = z.object({ invoiceId: z.string().uuid() });
 
 export async function eliminarFacturaAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admins y socios pueden eliminar facturas.");
   }
   const parsed = Schema.parse({ invoiceId: formData.get("invoiceId") });

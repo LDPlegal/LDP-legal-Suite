@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { restoreClient } from "@/lib/db/queries/clients";
 import { logAuditStandalone } from "@/lib/audit/log";
 
 export async function restaurarClienteAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admin y socios pueden restaurar clientes.");
   }
   const id = z.string().uuid().parse(formData.get("clientId"));

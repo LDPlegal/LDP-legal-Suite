@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { getCurrentFirm, updateFirm } from "@/lib/db/queries/firms";
 import { logAuditStandalone } from "@/lib/audit/log";
 
@@ -29,7 +29,7 @@ export async function subirLogoFirmAction(
   formData: FormData,
 ): Promise<LogoState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admin y socios pueden cambiar el logo." };
   }
   const parsed = LogoSchema.safeParse({
@@ -57,7 +57,7 @@ export async function subirLogoFirmAction(
 
 export async function quitarLogoFirmAction(): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") return;
+  if (!hasAdminPowers(user.role)) return;
   await updateFirm(user.firmId, user.userId, { logoUrl: null });
   await logAuditStandalone({
     firmId: user.firmId,
@@ -84,7 +84,7 @@ export async function actualizarBrandingFacturaAction(
   formData: FormData,
 ): Promise<BrandingState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admin y socios pueden editar branding." };
   }
   const parsed = BrandingSchema.safeParse({

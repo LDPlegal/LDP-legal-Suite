@@ -49,7 +49,9 @@ export function Sidebar({ firmName }: { firmName: string }) {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width]",
+        // sticky + top-0 + h-screen mantiene la barra fija al hacer scroll en
+        // el main; flex-shrink-0 evita que el flex padre la encoja.
+        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width]",
         collapsed ? "w-16" : "w-60",
       )}
     >
@@ -111,10 +113,7 @@ export function Sidebar({ firmName }: { firmName: string }) {
 
       <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
         {!collapsed ? (
-          <div className="space-y-1">
-            <p className="font-medium text-foreground">LDP Legal Suite</p>
-            <p>Fase 1 · Tiempos · Tareas · Calendario · Gastos</p>
-          </div>
+          <p className="font-medium text-foreground">LDP Legal Suite</p>
         ) : (
           <Clock className="mx-auto h-4 w-4" aria-label="LDP" />
         )}

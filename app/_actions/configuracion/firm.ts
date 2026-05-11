@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { updateFirm } from "@/lib/db/queries/firms";
 import { logAuditStandalone } from "@/lib/audit/log";
 
@@ -36,7 +36,7 @@ export async function actualizarFirmAction(
   formData: FormData,
 ): Promise<FirmFormState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admin y socios pueden editar el firm." };
   }
 

@@ -181,7 +181,7 @@ export async function hoursByUserReport(
         AND t.started_at >= ${range.from}
         AND t.started_at < ${range.to}
       WHERE u.deleted_at IS NULL
-        AND u.role IN ('admin', 'partner', 'lawyer', 'paralegal')
+        AND u.role <> 'client'
       GROUP BY u.id, u.name
       ORDER BY total_seconds DESC
     `);

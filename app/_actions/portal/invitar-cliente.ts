@@ -19,7 +19,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { getClientById } from "@/lib/db/queries/clients";
 import { logAuditStandalone } from "@/lib/audit/log";
 
@@ -39,7 +39,7 @@ export async function invitarPortalAction(
   formData: FormData,
 ): Promise<InvitarPortalState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return {
       ok: false,
       error: "Solo admin y socios pueden crear accesos al portal.",

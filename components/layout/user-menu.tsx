@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ const ROLE_LABEL: Record<string, string> = {
   partner: "Socio",
   lawyer: "Abogado",
   paralegal: "Paralegal",
+  tester: "Tester informático",
   client: "Cliente",
 };
 
@@ -55,9 +57,11 @@ export function UserMenu({
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserCog className="h-4 w-4" />
-          Configuración (Pronto)
+        <DropdownMenuItem asChild>
+          <Link href="/configuracion">
+            <UserCog className="h-4 w-4" />
+            Configuración
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action={logoutAction}>

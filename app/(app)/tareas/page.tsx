@@ -44,7 +44,13 @@ export default async function TareasPage({ searchParams }: { searchParams: SP })
         />
       </div>
 
-      <TasksView tareas={tareas} initialView={view} initialMine={mine} />
+      <TasksView
+        tareas={tareas}
+        initialView={view}
+        initialMine={mine}
+        casos={casos.rows.map((c) => ({ id: c.id, code: c.code, title: c.title }))}
+        users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
+      />
     </div>
   );
 }

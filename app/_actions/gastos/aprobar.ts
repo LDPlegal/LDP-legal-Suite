@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { approveExpense } from "@/lib/db/queries/expenses";
 
 const Schema = z.object({
@@ -12,7 +12,7 @@ const Schema = z.object({
 
 export async function aprobarGastoAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admins y socios pueden aprobar gastos.");
   }
   const parsed = Schema.parse({

@@ -38,7 +38,7 @@ type StaffMember = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "partner" | "lawyer" | "paralegal" | "client";
+  role: "admin" | "partner" | "lawyer" | "paralegal" | "tester" | "client";
   status: "active" | "invited" | "suspended";
   hourlyRate: string | null;
   lastLoginAt: Date | null;
@@ -49,6 +49,7 @@ const ROLE_LABEL: Record<StaffMember["role"], string> = {
   partner: "Socio",
   lawyer: "Abogado/a",
   paralegal: "Paralegal",
+  tester: "Tester informático",
   client: "Cliente",
 };
 
@@ -57,6 +58,7 @@ const ROLE_VARIANT: Record<StaffMember["role"], "default" | "secondary" | "outli
   partner: "default",
   lawyer: "secondary",
   paralegal: "outline",
+  tester: "warning",
   client: "outline",
 };
 

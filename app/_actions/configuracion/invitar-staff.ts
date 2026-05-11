@@ -10,14 +10,14 @@ import { revalidatePath } from "next/cache";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth/server";
 import { adminDb } from "@/lib/db/admin";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { logAuditStandalone } from "@/lib/audit/log";
 import { sessions, users } from "@/lib/db/schema";
 
 const InviteSchema = z.object({
   email: z.string().trim().email().max(200),
   name: z.string().trim().min(1).max(120),
-  role: z.enum(["admin", "partner", "lawyer", "paralegal"]),
+  role: z.enum(["admin", "partner", "lawyer", "paralegal", "tester"]),
   password: z.string().min(8).max(72),
   hourlyRate: z
     .string()
@@ -36,7 +36,7 @@ export async function invitarStaffAction(
   formData: FormData,
 ): Promise<InvitarStaffState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return {
       ok: false,
       error: "Solo admin y socios pueden agregar miembros al equipo.",
@@ -133,7 +133,7 @@ export async function invitarStaffAction(
 
 const UpdateRoleSchema = z.object({
   targetId: z.string().uuid(),
-  role: z.enum(["admin", "partner", "lawyer", "paralegal"]),
+  role: z.enum(["admin", "partner", "lawyer", "paralegal", "tester"]),
 });
 
 export type UpdateRoleState =
@@ -187,7 +187,7 @@ const DeactivateSchema = z.object({ targetId: z.string().uuid() });
 
 export async function desactivarStaffAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admin y socios pueden desactivar miembros.");
   }
   const parsed = DeactivateSchema.parse({ targetId: formData.get("targetId") });

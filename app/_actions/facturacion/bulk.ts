@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import {
   getInvoiceById,
   softDeleteInvoice,
@@ -22,7 +22,7 @@ export type BulkResult = {
 
 export async function bulkInvoiceAction(formData: FormData): Promise<BulkResult> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admins y socios pueden ejecutar acciones en bulk.");
   }
   const parsed = Schema.parse({

@@ -34,7 +34,13 @@ const PRIORITY_VARIANT: Record<TareaRow["priority"], "default" | "warning" | "de
   urgent: "destructive",
 };
 
-export function TaskKanban({ tareas: initialTareas }: { tareas: TareaRow[] }) {
+export function TaskKanban({
+  tareas: initialTareas,
+}: {
+  tareas: TareaRow[];
+  casos?: Array<{ id: string; code: string; title: string }>;
+  users?: Array<{ id: string; name: string }>;
+}) {
   // Local optimistic copy so drop is instant; server roundtrip happens in transition.
   const [tareas, setTareas] = useState(initialTareas);
   const [, startTransition] = useTransition();

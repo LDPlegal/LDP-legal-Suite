@@ -14,7 +14,7 @@ import { auth } from "./server";
 export type SessionUser = {
   userId: string;
   firmId: string;
-  role: "admin" | "partner" | "lawyer" | "paralegal" | "client";
+  role: "admin" | "partner" | "lawyer" | "paralegal" | "tester" | "client";
   email: string;
   name: string;
   // Set only when role='client' (Portal Cliente). Identifies which client's
@@ -73,6 +73,13 @@ export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
   if (user.role !== "admin") redirect("/dashboard");
   return user;
+}
+
+// Roles with admin-level powers: invitar staff, editar firm, crear plantillas,
+// archivar/restaurar, gestionar tarifas, etc. 'tester' es para QA del firm —
+// puede tocarlo todo durante pruebas sin riesgo (es solo dentro del firm).
+export function hasAdminPowers(role: SessionUser["role"]): boolean {
+  return role === "admin" || role === "partner" || role === "tester";
 }
 
 // Portal Cliente entry point: requires role='client' and a non-null clientId.

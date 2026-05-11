@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -13,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from "@/lib/schemas/fase1";
+import { eliminarTareaAction } from "@/app/_actions/tareas/eliminar";
+import { TaskFormDrawer } from "./task-form-drawer";
 import type { TareaRow } from "./tasks-view";
 
 const STATUS_VARIANT: Record<TareaRow["status"], "warning" | "success" | "secondary" | "default"> = {
@@ -29,7 +33,15 @@ const PRIORITY_VARIANT: Record<TareaRow["priority"], "default" | "warning" | "de
   urgent: "destructive",
 };
 
-export function TaskList({ tareas }: { tareas: TareaRow[] }) {
+export function TaskList({
+  tareas,
+  casos,
+  users,
+}: {
+  tareas: TareaRow[];
+  casos: Array<{ id: string; code: string; title: string }>;
+  users: Array<{ id: string; name: string }>;
+}) {
   return (
     <Card className="overflow-hidden">
       <Table>
@@ -41,12 +53,13 @@ export function TaskList({ tareas }: { tareas: TareaRow[] }) {
             <TableHead className="w-28">Prioridad</TableHead>
             <TableHead className="w-28">Estado</TableHead>
             <TableHead className="w-32">Vence</TableHead>
+            <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {tareas.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
                 Sin tareas. Crea una nueva.
               </TableCell>
             </TableRow>
@@ -79,6 +92,44 @@ export function TaskList({ tareas }: { tareas: TareaRow[] }) {
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <TaskFormDrawer
+                    casos={casos}
+                    users={users}
+                    task={{
+                      id: t.id,
+                      title: t.title,
+                      description: t.description,
+                      caseId: t.caseId,
+                      assigneeId: t.assigneeId,
+                      dueAt: t.dueAt,
+                      priority: t.priority,
+                      status: t.status,
+                    }}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        aria-label="Editar tarea"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  />
+                  <form action={eliminarTareaAction} className="inline-block">
+                    <input type="hidden" name="taskId" value={t.id} />
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      aria-label="Eliminar tarea"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </form>
                 </TableCell>
               </TableRow>
             ))

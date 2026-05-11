@@ -39,10 +39,14 @@ export function TasksView({
   tareas,
   initialView,
   initialMine,
+  casos,
+  users,
 }: {
   tareas: TareaRow[];
   initialView: "lista" | "kanban";
   initialMine: boolean;
+  casos: Array<{ id: string; code: string; title: string }>;
+  users: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -94,9 +98,9 @@ export function TasksView({
       </div>
 
       {initialView === "kanban" ? (
-        <TaskKanban tareas={tareas} />
+        <TaskKanban tareas={tareas} casos={casos} users={users} />
       ) : (
-        <TaskList tareas={tareas} />
+        <TaskList tareas={tareas} casos={casos} users={users} />
       )}
     </div>
   );

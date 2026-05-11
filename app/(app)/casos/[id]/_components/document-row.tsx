@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
+import { DocumentEditDrawer } from "./document-edit-drawer";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
@@ -116,6 +117,15 @@ export function DocumentRow({
             <Download className="h-3.5 w-3.5" />
           </Link>
         </Button>
+        <DocumentEditDrawer
+          caseId={caseId}
+          doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
+          trigger={
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
         <form action={eliminarDocumentoAction} className="inline-block">
           <input type="hidden" name="documentId" value={doc.id} />
           <input type="hidden" name="caseId" value={caseId} />

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth/session";
+import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { upsertNcfRange, deleteNcfRange } from "@/lib/db/queries/ncf-ranges";
 
 const Schema = z.object({
@@ -21,7 +21,7 @@ export async function guardarNcfRangoAction(
   formData: FormData,
 ): Promise<NcfRangoState> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     return { ok: false, error: "Solo admins y socios pueden configurar rangos NCF." };
   }
   const parsed = Schema.safeParse({
@@ -61,7 +61,7 @@ const DeleteSchema = z.object({
 
 export async function eliminarNcfRangoAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  if (user.role !== "admin" && user.role !== "partner") {
+  if (!hasAdminPowers(user.role)) {
     throw new Error("Solo admins y socios pueden eliminar rangos NCF.");
   }
   const parsed = DeleteSchema.parse({ ncfType: formData.get("ncfType") });
