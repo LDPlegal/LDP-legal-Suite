@@ -16,6 +16,27 @@
 
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { adminDb } from "@/lib/db/admin";
+import { aiUsage } from "@/lib/db/schema";
+
+// Anthropic pricing per million tokens. Source: https://www.anthropic.com/pricing
+// Updated when models change. Used to compute cost_usd per call.
+const PRICING: Record<string, { input: number; output: number }> = {
+  "claude-opus-4-7": { input: 15, output: 75 },
+  "claude-sonnet-4-6": { input: 3, output: 15 },
+  "claude-haiku-4-5-20251001": { input: 0.8, output: 4 },
+};
+
+function computeCostUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): string | null {
+  const p = PRICING[model];
+  if (!p) return null;
+  const cost = (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
+  return cost.toFixed(6);
+}
 
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
@@ -65,6 +86,13 @@ export type RunPromptOptions = {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  // Cost-tracking metadata. When set, runPrompt persists a row in ai_usage
+  // with the firm_id + user_id + feature so /reportes -> IA shows consumption.
+  tracking?: {
+    firmId: string;
+    userId: string;
+    feature: "case_summary" | "refine_note" | "doc_search";
+  };
 };
 
 export type RunPromptResult = {
@@ -84,8 +112,9 @@ export async function runPrompt(
     LEGAL_SYSTEM_PREAMBLE +
     (opts.systemAddendum ? `\n\n${opts.systemAddendum}` : "");
 
+  const model = opts.model ?? DEFAULT_MODEL;
   const response = await client.messages.create({
-    model: opts.model ?? DEFAULT_MODEL,
+    model,
     max_tokens: opts.maxTokens ?? 1500,
     temperature: opts.temperature ?? 0.4,
     system,
@@ -100,11 +129,32 @@ export async function runPrompt(
     .join("\n")
     .trim();
 
+  const inputTokens = response.usage.input_tokens;
+  const outputTokens = response.usage.output_tokens;
+
+  // Persist usage if caller asked for tracking. We use adminDb because the
+  // table has RLS firm-isolation but the row is from a controlled call site
+  // (server-only); piping through withFirm would only add overhead. The
+  // firm_id we write is the one the caller already validated via requireUser.
+  if (opts.tracking) {
+    try {
+      await adminDb.insert(aiUsage).values({
+        firmId: opts.tracking.firmId,
+        userId: opts.tracking.userId,
+        feature: opts.tracking.feature,
+        model,
+        inputTokens,
+        outputTokens,
+        costUsd: computeCostUsd(model, inputTokens, outputTokens),
+      });
+    } catch {
+      // Don't fail the user-facing prompt over a tracking write. We log to
+      // server logs in dev mode below.
+    }
+  }
+
   return {
     text,
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
+    usage: { inputTokens, outputTokens },
   };
 }

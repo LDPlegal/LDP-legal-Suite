@@ -48,6 +48,7 @@ export async function refinarNotaAction(
       caseTitle: caso.case.title,
       noteTitle: parsed.data.noteTitle ?? null,
       content: parsedContent,
+      tracking: { firmId: user.firmId, userId: user.userId },
     });
     return { ok: true, text: result.text, usage: result.usage };
   } catch (err) {

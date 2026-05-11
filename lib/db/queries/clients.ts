@@ -118,6 +118,35 @@ export async function updateClient(
 // connection (firm isolation). Sessions table doesn't have firm_id so the
 // session delete uses the userIds we already collected — no cross-firm
 // leakage.
+export async function listArchivedClients(
+  firmId: string,
+  userId: string,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const rows = await tx
+      .select()
+      .from(clients)
+      .where(sql`${clients.deletedAt} IS NOT NULL`)
+      .orderBy(desc(clients.deletedAt));
+    return rows;
+  });
+}
+
+export async function restoreClient(
+  firmId: string,
+  userId: string,
+  clientId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(clients)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(and(eq(clients.id, clientId), sql`${clients.deletedAt} IS NOT NULL`))
+      .returning({ id: clients.id });
+    return !!row;
+  });
+}
+
 export async function softDeleteClient(
   firmId: string,
   userId: string,

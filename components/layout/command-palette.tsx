@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, Search, Users } from "lucide-react";
+import {
+  Briefcase,
+  FileText,
+  Receipt,
+  Search,
+  StickyNote,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -13,14 +20,15 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { searchPalette } from "@/app/_actions/palette/search";
+import { searchPalette, type PaletteResult } from "@/app/_actions/palette/search";
 
-type PaletteResult = {
-  clientes: Array<{ id: string; displayName: string; status: string }>;
-  casos: Array<{ id: string; code: string; title: string; status: string }>;
+const EMPTY: PaletteResult = {
+  clientes: [],
+  casos: [],
+  documentos: [],
+  facturas: [],
+  notas: [],
 };
-
-const EMPTY: PaletteResult = { clientes: [], casos: [] };
 
 export function CommandPalette() {
   const router = useRouter();
@@ -45,7 +53,7 @@ export function CommandPalette() {
     const t = setTimeout(async () => {
       const r = await searchPalette(query);
       if (!cancelled) setResults(r);
-    }, 150);
+    }, 200);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -58,6 +66,14 @@ export function CommandPalette() {
     router.push(href);
   }
 
+  const anyResults =
+    results.casos.length +
+      results.clientes.length +
+      results.documentos.length +
+      results.facturas.length +
+      results.notas.length >
+    0;
+
   return (
     <>
       <Button
@@ -66,7 +82,7 @@ export function CommandPalette() {
         onClick={() => setOpen(true)}
       >
         <Search className="h-4 w-4" />
-        Buscar clientes o casos...
+        Buscar...
         <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
           ⌘K
         </kbd>
@@ -83,12 +99,13 @@ export function CommandPalette() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Buscar clientes o casos..."
+          placeholder="Buscar clientes, casos, documentos, facturas, notas..."
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>Sin resultados.</CommandEmpty>
+          {!anyResults ? <CommandEmpty>Sin resultados.</CommandEmpty> : null}
+
           {results.casos.length > 0 ? (
             <CommandGroup heading="Casos">
               {results.casos.map((c) => (
@@ -98,28 +115,105 @@ export function CommandPalette() {
                   onSelect={() => go(`/casos/${c.id}`)}
                 >
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-mono text-xs text-muted-foreground">{c.code}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {c.code}
+                  </span>
                   <span className="ml-2">{c.title}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
           ) : null}
-          {results.casos.length > 0 && results.clientes.length > 0 ? (
-            <CommandSeparator />
-          ) : null}
+
           {results.clientes.length > 0 ? (
-            <CommandGroup heading="Clientes">
-              {results.clientes.map((c) => (
-                <CommandItem
-                  key={c.id}
-                  value={`cliente-${c.displayName}`}
-                  onSelect={() => go(`/clientes/${c.id}`)}
-                >
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>{c.displayName}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            <>
+              {results.casos.length > 0 ? <CommandSeparator /> : null}
+              <CommandGroup heading="Clientes">
+                {results.clientes.map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`cliente-${c.displayName}`}
+                    onSelect={() => go(`/clientes/${c.id}`)}
+                  >
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span>{c.displayName}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          ) : null}
+
+          {results.facturas.length > 0 ? (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Facturas">
+                {results.facturas.map((f) => (
+                  <CommandItem
+                    key={f.id}
+                    value={`factura-${f.number}-${f.ncf ?? ""}`}
+                    onSelect={() => go(`/facturacion/${f.id}`)}
+                  >
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-mono text-xs">{f.number}</span>
+                    {f.ncf ? (
+                      <span className="ml-2 font-mono text-xs text-muted-foreground">
+                        {f.ncf}
+                      </span>
+                    ) : null}
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {f.status}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          ) : null}
+
+          {results.documentos.length > 0 ? (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Documentos">
+                {results.documentos.map((d) => (
+                  <CommandItem
+                    key={d.id}
+                    value={`doc-${d.name}`}
+                    onSelect={() =>
+                      // Open the download endpoint in a new tab — the palette
+                      // doesn't have an inline preview view yet.
+                      window.open(`/api/documentos/${d.id}/download`, "_blank")
+                    }
+                  >
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="truncate">{d.name}</span>
+                    {d.caseCode ? (
+                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                        {d.caseCode}
+                      </span>
+                    ) : null}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
+          ) : null}
+
+          {results.notas.length > 0 ? (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading="Notas">
+                {results.notas.map((n) => (
+                  <CommandItem
+                    key={n.id}
+                    value={`nota-${n.title ?? n.id}`}
+                    onSelect={() => go(`/casos/${n.caseId}?tab=notas`)}
+                  >
+                    <StickyNote className="h-4 w-4 text-muted-foreground" />
+                    <span>{n.title ?? "(sin título)"}</span>
+                    <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                      {n.caseCode}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </>
           ) : null}
         </CommandList>
       </CommandDialog>

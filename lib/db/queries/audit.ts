@@ -256,6 +256,135 @@ export async function topCasesByHoursReport(
   });
 }
 
+// AI usage summary (Fase 6.2): totals + breakdown by feature and user
+// for the given period. Used by /reportes tab "IA".
+export async function aiUsageSummary(
+  firmId: string,
+  userId: string,
+  range: { from: Date; to: Date },
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const totals = await tx.execute(sql`
+      SELECT
+        COUNT(*)::int AS call_count,
+        COALESCE(SUM(input_tokens), 0)::int AS input_tokens,
+        COALESCE(SUM(output_tokens), 0)::int AS output_tokens,
+        COALESCE(SUM(cost_usd::numeric), 0)::text AS cost_usd
+      FROM ai_usage
+      WHERE created_at >= ${range.from}
+        AND created_at < ${range.to}
+    `);
+    const byFeature = await tx.execute(sql`
+      SELECT
+        feature,
+        COUNT(*)::int AS call_count,
+        COALESCE(SUM(input_tokens), 0)::int AS input_tokens,
+        COALESCE(SUM(output_tokens), 0)::int AS output_tokens,
+        COALESCE(SUM(cost_usd::numeric), 0)::text AS cost_usd
+      FROM ai_usage
+      WHERE created_at >= ${range.from}
+        AND created_at < ${range.to}
+      GROUP BY feature
+      ORDER BY cost_usd DESC
+    `);
+    const byUser = await tx.execute(sql`
+      SELECT
+        u.id AS user_id,
+        u.name AS user_name,
+        COUNT(a.*)::int AS call_count,
+        COALESCE(SUM(a.input_tokens), 0)::int AS input_tokens,
+        COALESCE(SUM(a.output_tokens), 0)::int AS output_tokens,
+        COALESCE(SUM(a.cost_usd::numeric), 0)::text AS cost_usd
+      FROM ai_usage a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE a.created_at >= ${range.from}
+        AND a.created_at < ${range.to}
+      GROUP BY u.id, u.name
+      ORDER BY cost_usd DESC
+    `);
+    return {
+      totals: totals.rows[0] as {
+        call_count: number;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: string;
+      },
+      byFeature: byFeature.rows as Array<{
+        feature: string;
+        call_count: number;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: string;
+      }>,
+      byUser: byUser.rows as Array<{
+        user_id: string | null;
+        user_name: string | null;
+        call_count: number;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: string;
+      }>,
+    };
+  });
+}
+
+export const AI_FEATURE_LABEL: Record<string, string> = {
+  case_summary: "Resumen de caso",
+  refine_note: "Mejorar nota",
+  doc_search: "Búsqueda documentos",
+};
+
+// =============================================================================
+// DGII Reporte 607 — ventas con NCF del período (Fase 6.2)
+// =============================================================================
+// Formato standard DGII: una línea por factura emitida con NCF en el período,
+// pipe-delimited, con columnas predefinidas. Lo usa el contador para subir el
+// archivo mensual a la oficina virtual.
+
+export async function dgii607Report(
+  firmId: string,
+  userId: string,
+  range: { from: Date; to: Date },
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const result = await tx.execute(sql`
+      SELECT
+        i.ncf AS ncf,
+        i.ncf_type AS ncf_type,
+        c.tax_id_type AS client_tax_id_type,
+        c.tax_id AS client_tax_id,
+        c.legal_name AS client_legal_name,
+        c.display_name AS client_display_name,
+        i.issued_on AS issued_on,
+        i.subtotal::text AS subtotal,
+        i.itbis_amount::text AS itbis,
+        i.isr_withholding_amount::text AS isr_withholding,
+        i.total::text AS total
+      FROM invoices i
+      INNER JOIN clients c ON c.id = i.client_id
+      WHERE i.deleted_at IS NULL
+        AND i.ncf IS NOT NULL
+        AND i.status IN ('sent', 'partial', 'paid', 'overdue')
+        AND i.issued_on >= ${range.from}
+        AND i.issued_on < ${range.to}
+      ORDER BY i.issued_on ASC
+    `);
+    return result.rows as Array<{
+      ncf: string;
+      ncf_type: "B01" | "B02" | "E31" | "E32";
+      client_tax_id_type: string | null;
+      client_tax_id: string | null;
+      client_legal_name: string | null;
+      client_display_name: string;
+      issued_on: Date;
+      subtotal: string;
+      itbis: string;
+      isr_withholding: string;
+      total: string;
+    }>;
+  });
+}
+
 export async function billingSummary(
   firmId: string,
   userId: string,

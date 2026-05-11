@@ -230,6 +230,31 @@ export async function softDeleteCase(
   });
 }
 
+export async function listArchivedCases(firmId: string, userId: string) {
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select()
+      .from(cases)
+      .where(sql`${cases.deletedAt} IS NOT NULL`)
+      .orderBy(desc(cases.deletedAt));
+  });
+}
+
+export async function restoreCase(
+  firmId: string,
+  userId: string,
+  caseId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(cases)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(and(eq(cases.id, caseId), sql`${cases.deletedAt} IS NOT NULL`))
+      .returning({ id: cases.id });
+    return !!row;
+  });
+}
+
 export async function listCasesForClient(
   firmId: string,
   userId: string,

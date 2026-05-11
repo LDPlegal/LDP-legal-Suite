@@ -60,14 +60,38 @@ export async function createTask(
   userId: string,
   data: Omit<NewTask, "firmId" | "id" | "createdAt" | "updatedAt" | "deletedAt" | "createdBy">,
 ): Promise<Task> {
-  return withFirm(firmId, userId, async (tx) => {
-    const [row] = await tx
+  const row = await withFirm(firmId, userId, async (tx) => {
+    const [r] = await tx
       .insert(tasks)
       .values({ ...data, firmId, createdBy: userId })
       .returning();
-    if (!row) throw new Error("createTask: insert returned no row");
-    return row;
+    if (!r) throw new Error("createTask: insert returned no row");
+    return r;
   });
+
+  // Fire-and-forget notification when the task is assigned to someone other
+  // than the creator. Lazy import to avoid circular deps with notifications.
+  if (data.assigneeId && data.assigneeId !== userId) {
+    void (async () => {
+      try {
+        const { notify } = await import("./notifications");
+        await notify({
+          firmId,
+          userId: data.assigneeId!,
+          type: "task_assigned",
+          title: `Nueva tarea: ${row.title}`,
+          body: data.dueAt
+            ? `Vence el ${new Date(data.dueAt).toLocaleDateString("es-DO")}`
+            : "Sin fecha de vencimiento",
+          href: data.caseId ? `/casos/${data.caseId}?tab=tareas` : "/tareas",
+        });
+      } catch {
+        // best-effort
+      }
+    })();
+  }
+
+  return row;
 }
 
 export async function updateTaskStatus(

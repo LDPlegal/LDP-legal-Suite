@@ -117,6 +117,24 @@ export async function invitarPortalAction(
     diff: { clientId: parsed.data.clientId },
   });
 
+  // Send invitation email to the portal user (best-effort).
+  try {
+    const { sendEmail } = await import("@/lib/email");
+    const { buildPortalInviteEmail } = await import("@/lib/email/templates");
+    const { getCurrentFirm } = await import("@/lib/db/queries/firms");
+    const firm = await getCurrentFirm(user.firmId, user.userId);
+    const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+    const { subject, html } = buildPortalInviteEmail({
+      recipientName: parsed.data.name,
+      firmName: firm?.name ?? "tu firma legal",
+      loginUrl: `${baseUrl}/login`,
+      tempPassword: parsed.data.password,
+    });
+    await sendEmail({ to: normalizedEmail, subject, html });
+  } catch (err) {
+    console.error("[invitarPortal] email failed:", err);
+  }
+
   revalidatePath(`/clientes/${parsed.data.clientId}`);
   return { ok: true, userId: createdId };
 }

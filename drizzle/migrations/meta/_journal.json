@@ -71,6 +71,20 @@
       "when": 1779300000000,
       "tag": "0009_templates_and_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779400000000,
+      "tag": "0010_ai_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779500000000,
+      "tag": "0011_notifications",
+      "breakpoints": true
     }
   ]
 }

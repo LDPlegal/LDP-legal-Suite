@@ -15,6 +15,7 @@ import { FirmForm } from "./_components/firm-form";
 import { TemplatesPanel } from "./_components/templates-panel";
 import { BrandingPanel } from "./_components/branding-panel";
 import { RatesPanel } from "./_components/rates-panel";
+import { TeamPanel } from "./_components/team-panel";
 
 export const metadata = { title: "Configuración · LDP Legal Suite" };
 
@@ -45,6 +46,7 @@ export default async function ConfiguracionPage() {
         <TabsList>
           <TabsTrigger value="fiscal">Fiscal (NCF)</TabsTrigger>
           <TabsTrigger value="firm">Datos del firm</TabsTrigger>
+          <TabsTrigger value="equipo">Equipo</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
@@ -123,6 +125,29 @@ export default async function ConfiguracionPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="equipo">
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipo del firm</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TeamPanel
+                currentUserId={user.userId}
+                currentRole={user.role}
+                members={firmUsers.map((u) => ({
+                  id: u.id,
+                  name: u.name,
+                  email: u.email,
+                  role: u.role,
+                  status: u.status,
+                  hourlyRate: u.hourlyRate,
+                  lastLoginAt: u.lastLoginAt,
+                }))}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="ia">
           <Card>
             <CardHeader>

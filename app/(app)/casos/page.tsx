@@ -66,7 +66,11 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
             {casesRes.total} {casesRes.total === 1 ? "caso" : "casos"}
           </p>
         </div>
-        <CasoFormDrawer
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/casos/archivados">Archivados</Link>
+          </Button>
+          <CasoFormDrawer
           clientes={clientesRes.rows.map((c) => ({ id: c.id, displayName: c.displayName }))}
           users={lawyers.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
           templates={templates.map((t) => ({
@@ -83,6 +87,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
             </Button>
           }
         />
+        </div>
       </div>
 
       <Card className="overflow-hidden">

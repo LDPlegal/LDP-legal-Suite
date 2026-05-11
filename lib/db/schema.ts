@@ -1291,3 +1291,68 @@ export const rates = pgTable(
 
 export type Rate = typeof rates.$inferSelect;
 export type NewRate = typeof rates.$inferInsert;
+
+// =============================================================================
+// ai_usage — cost tracking of every Claude call (Fase 6)
+// =============================================================================
+// One row per LLM request. We persist input/output tokens so the admin can
+// see consumption breakdown by feature and by user in /reportes. Cost is
+// best-effort (uses the rate snapshot at the time of the call); when prices
+// change the historical rows keep the old cost.
+
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    feature: text("feature").notNull(), // "case_summary" | "refine_note" | "doc_search"
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    // USD cost computed at call-time using current model pricing.
+    costUsd: decimal("cost_usd", { precision: 10, scale: 6 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ai_usage_firm_idx").on(t.firmId),
+    index("ai_usage_firm_created_idx").on(t.firmId, t.createdAt),
+    index("ai_usage_firm_user_idx").on(t.firmId, t.userId),
+    index("ai_usage_firm_feature_idx").on(t.firmId, t.feature),
+  ],
+);
+
+export type AiUsage = typeof aiUsage.$inferSelect;
+export type NewAiUsage = typeof aiUsage.$inferInsert;
+
+// =============================================================================
+// notifications — in-app inbox per user (Fase 6)
+// =============================================================================
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    href: text("href"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("notif_firm_user_idx").on(t.firmId, t.userId),
+    index("notif_firm_user_unread_idx").on(t.firmId, t.userId, t.readAt),
+  ],
+);
+
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;

@@ -1,5 +1,6 @@
 import { ActiveTimerWidget } from "./active-timer";
 import { CommandPalette } from "./command-palette";
+import { NotificationsBell } from "./notifications-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
@@ -13,6 +14,7 @@ export function Header({
       <CommandPalette />
       <div className="flex-1" />
       <ActiveTimerWidget />
+      <NotificationsBell />
       <ThemeToggle />
       <UserMenu name={user.name} email={user.email} role={user.role} />
     </header>

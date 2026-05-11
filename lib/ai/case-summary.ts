@@ -61,6 +61,7 @@ export async function summarizeCase(
         "El usuario te pasa el contexto completo de un caso. Devuelve un resumen ejecutivo en español, en formato Markdown, con las siguientes secciones cuando aplique: **Hechos y partes**, **Estado actual**, **Próximos pasos / pendientes**, **Riesgos o señales de alerta**, **Métricas** (horas registradas, gastos, facturado). Sé conciso — máximo 400 palabras. Solo usa información del contexto; si una sección no tiene datos, di 'Sin información disponible' en vez de inventar.",
       maxTokens: 1500,
       temperature: 0.3,
+      tracking: { firmId, userId, feature: "case_summary" },
     },
   );
 

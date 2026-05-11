@@ -46,6 +46,7 @@ export type SemanticSearchResult = {
 export async function rankDocumentsByQuery(
   query: string,
   candidates: DocumentCandidate[],
+  tracking?: { firmId: string; userId: string },
 ): Promise<SemanticSearchResult> {
   const trimmed = query.trim();
   if (!trimmed) {
@@ -89,6 +90,9 @@ export async function rankDocumentsByQuery(
         "Eres un buscador de documentos legales. Tu única salida es un objeto JSON válido. Ningún texto fuera del JSON.",
       maxTokens: 1500,
       temperature: 0.1,
+      tracking: tracking
+        ? { ...tracking, feature: "doc_search" }
+        : undefined,
     },
   );
 

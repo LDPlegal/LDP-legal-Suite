@@ -15,6 +15,8 @@ import { requireUser } from "@/lib/auth/session";
 import {
   ACTION_LABEL,
   AGING_BUCKET_LABEL,
+  AI_FEATURE_LABEL,
+  aiUsageSummary,
   arAgingReport,
   billingSummary,
   ENTITY_LABEL,
@@ -24,6 +26,7 @@ import {
   topCasesByHoursReport,
   type AgingBucket,
 } from "@/lib/db/queries/audit";
+import { isAiEnabled } from "@/lib/ai";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { AgingChart, HoursMonthlyChart } from "./_components/charts";
@@ -45,14 +48,23 @@ export default async function ReportesPage() {
   const ytdStart = new Date(now.getFullYear(), 0, 1);
   const ytdEnd = new Date(now.getFullYear() + 1, 0, 1);
 
-  const [aging, hoursByUser, hoursByMonth, topCases, summary, recent] = await Promise.all([
-    arAgingReport(user.firmId, user.userId),
-    hoursByUserReport(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
-    hoursByMonthReport(user.firmId, user.userId, 6),
-    topCasesByHoursReport(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }, 10),
-    billingSummary(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }),
-    listFirmRecentAudit(user.firmId, user.userId, 50),
-  ]);
+  const aiEnabled = isAiEnabled();
+  const [aging, hoursByUser, hoursByMonth, topCases, summary, recent, aiStats] =
+    await Promise.all([
+      arAgingReport(user.firmId, user.userId),
+      hoursByUserReport(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
+      hoursByMonthReport(user.firmId, user.userId, 6),
+      topCasesByHoursReport(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }, 10),
+      billingSummary(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }),
+      listFirmRecentAudit(user.firmId, user.userId, 50),
+      aiEnabled
+        ? aiUsageSummary(user.firmId, user.userId, { from: monthStart, to: monthEnd })
+        : Promise.resolve(null),
+    ]);
+
+  // Period strings for the 607 download button (current month).
+  const dgiiYear = now.getFullYear();
+  const dgiiMonth = now.getMonth() + 1;
 
   // Normalize aging buckets so all 5 always appear, even if empty.
   const agingMap = new Map<AgingBucket, { total: number; count: number }>();
@@ -109,6 +121,8 @@ export default async function ReportesPage() {
           <TabsTrigger value="horas">Horas por abogado</TabsTrigger>
           <TabsTrigger value="tendencia">Tendencia mensual</TabsTrigger>
           <TabsTrigger value="casos">Top casos</TabsTrigger>
+          <TabsTrigger value="dgii">DGII</TabsTrigger>
+          {aiEnabled ? <TabsTrigger value="ia">IA</TabsTrigger> : null}
           <TabsTrigger value="bitacora">Bitácora ({recent.length})</TabsTrigger>
         </TabsList>
 
@@ -274,6 +288,166 @@ export default async function ReportesPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="dgii">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reportes DGII</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div>
+                <p className="font-medium">607 — Ventas con NCF del mes</p>
+                <p className="text-xs text-muted-foreground">
+                  Archivo pipe-delimited con todas las facturas emitidas con NCF
+                  durante el mes actual. Súbelo a la oficina virtual DGII.
+                </p>
+                <div className="mt-3">
+                  <a
+                    href={`/api/reportes/607?year=${dgiiYear}&month=${dgiiMonth}`}
+                    download
+                    className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent"
+                  >
+                    Descargar 607 {String(dgiiMonth).padStart(2, "0")}/{dgiiYear}
+                  </a>
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-xs text-muted-foreground">
+                  El 606 (compras) requiere capturar NCF de proveedores en los
+                  gastos, lo cual está deferred. Si necesitas el 606 hoy,
+                  generarlo manualmente desde la lista de gastos.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {aiEnabled && aiStats ? (
+          <TabsContent value="ia">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Llamadas (mes)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-mono text-2xl font-semibold tabular-nums">
+                    {aiStats.totals.call_count}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Tokens (mes)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-mono text-2xl font-semibold tabular-nums">
+                    {(aiStats.totals.input_tokens + aiStats.totals.output_tokens).toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {aiStats.totals.input_tokens.toLocaleString()} entrada ·{" "}
+                    {aiStats.totals.output_tokens.toLocaleString()} salida
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Costo (mes)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-mono text-2xl font-semibold tabular-nums">
+                    USD {Number(aiStats.totals.cost_usd).toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Por feature</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Feature</TableHead>
+                      <TableHead className="text-right">Llamadas</TableHead>
+                      <TableHead className="text-right">Tokens</TableHead>
+                      <TableHead className="text-right">Costo USD</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aiStats.byFeature.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
+                          Sin uso registrado este mes.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      aiStats.byFeature.map((r) => (
+                        <TableRow key={r.feature}>
+                          <TableCell>
+                            {AI_FEATURE_LABEL[r.feature] ?? r.feature}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {r.call_count}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {(r.input_tokens + r.output_tokens).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            ${Number(r.cost_usd).toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Por usuario</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Usuario</TableHead>
+                      <TableHead className="text-right">Llamadas</TableHead>
+                      <TableHead className="text-right">Tokens</TableHead>
+                      <TableHead className="text-right">Costo USD</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aiStats.byUser.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
+                          Sin uso registrado este mes.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      aiStats.byUser.map((r) => (
+                        <TableRow key={r.user_id ?? "sin-usuario"}>
+                          <TableCell>{r.user_name ?? "—"}</TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {r.call_count}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            {(r.input_tokens + r.output_tokens).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums">
+                            ${Number(r.cost_usd).toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="bitacora">
           <Card>

@@ -108,7 +108,10 @@ export async function buscarDocumentosAction(
   }
 
   try {
-    const result = await rankDocumentsByQuery(parsed.data.query, candidates);
+    const result = await rankDocumentsByQuery(parsed.data.query, candidates, {
+      firmId: user.firmId,
+      userId: user.userId,
+    });
     return {
       ok: true,
       results: result.ranked,

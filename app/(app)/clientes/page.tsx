@@ -63,14 +63,19 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
             {total} {total === 1 ? "cliente" : "clientes"}
           </p>
         </div>
-        <ClienteFormDrawer
-          trigger={
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nuevo cliente
-            </Button>
-          }
-        />
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/clientes/archivados">Archivados</Link>
+          </Button>
+          <ClienteFormDrawer
+            trigger={
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nuevo cliente
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       <Card className="overflow-hidden">
