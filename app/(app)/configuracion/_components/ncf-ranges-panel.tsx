@@ -6,6 +6,7 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -106,18 +107,24 @@ export function NcfRangesPanel({
                   <TableCell>
                     <RangeFormDialog existing={r} ncfType={type} />
                     {r ? (
-                      <form action={eliminarNcfRangoAction} className="inline-block">
+                      <ConfirmButton
+                        action={eliminarNcfRangoAction}
+                        title={`¿Eliminar rango ${type}?`}
+                        description="Si vuelves a emitir un comprobante de este tipo, la app exigirá configurar un rango nuevo. Las facturas ya emitidas no se afectan."
+                        confirmLabel="Eliminar"
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            aria-label="Eliminar rango"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        }
+                      >
                         <input type="hidden" name="ncfType" value={type} />
-                        <Button
-                          type="submit"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive"
-                          aria-label="Eliminar rango"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </form>
+                      </ConfirmButton>
                     ) : null}
                   </TableCell>
                 ) : null}

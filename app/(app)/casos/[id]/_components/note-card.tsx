@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { eliminarNotaAction } from "@/app/_actions/notas/eliminar";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { NoteFormDrawer } from "./note-form-drawer";
 import { preview } from "@/lib/tiptap/extract-text";
 
@@ -51,19 +52,25 @@ export function NoteCard({
               </Button>
             }
           />
-          <form action={eliminarNotaAction}>
+          <ConfirmButton
+            action={eliminarNotaAction}
+            title="¿Eliminar esta nota?"
+            description={note.title ? `"${note.title}" — esta acción es reversible (queda archivada).` : "Esta acción es reversible (queda archivada)."}
+            confirmLabel="Eliminar"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive"
+                aria-label="Eliminar nota"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            }
+          >
             <input type="hidden" name="noteId" value={note.id} />
             <input type="hidden" name="caseId" value={caseId} />
-            <Button
-              type="submit"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive"
-              aria-label="Eliminar nota"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </form>
+          </ConfirmButton>
         </div>
       </CardHeader>
       <CardContent className="pt-0 text-sm text-muted-foreground">

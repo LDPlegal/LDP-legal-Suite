@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { DocumentEditDrawer } from "./document-edit-drawer";
 import {
   formatBytes,
@@ -126,19 +127,25 @@ export function DocumentRow({
             </Button>
           }
         />
-        <form action={eliminarDocumentoAction} className="inline-block">
+        <ConfirmButton
+          action={eliminarDocumentoAction}
+          title="¿Eliminar este documento?"
+          description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
+          confirmLabel="Eliminar"
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              aria-label="Eliminar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          }
+        >
           <input type="hidden" name="documentId" value={doc.id} />
           <input type="hidden" name="caseId" value={caseId} />
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive"
-            aria-label="Eliminar"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </form>
+        </ConfirmButton>
       </TableCell>
     </TableRow>
   );

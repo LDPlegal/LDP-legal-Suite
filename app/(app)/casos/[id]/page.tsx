@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -158,13 +159,20 @@ export default async function CasoDetailPage({
               />
             ) : null}
             <Badge variant="outline">{CASE_STATUS_LABEL[c.status]}</Badge>
-            <form action={eliminarCasoAction}>
+            <ConfirmButton
+              action={eliminarCasoAction}
+              title="¿Archivar este caso?"
+              description={`"${c.title}" — queda archivado. Lo puedes restaurar desde /casos/archivados.`}
+              confirmLabel="Archivar"
+              trigger={
+                <Button variant="ghost" size="sm" className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                  Archivar
+                </Button>
+              }
+            >
               <input type="hidden" name="caseId" value={c.id} />
-              <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                <Trash2 className="h-4 w-4" />
-                Archivar
-              </Button>
-            </form>
+            </ConfirmButton>
           </div>
         </div>
       </div>

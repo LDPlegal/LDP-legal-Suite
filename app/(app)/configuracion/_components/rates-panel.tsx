@@ -3,6 +3,7 @@
 import { useActionState, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,18 +120,24 @@ export function RatesPanel({
                 </TableCell>
                 <TableCell>
                   {canEdit ? (
-                    <form action={eliminarRateAction}>
+                    <ConfirmButton
+                      action={eliminarRateAction}
+                      title="¿Eliminar esta tarifa?"
+                      description="Los tiempos ya registrados con esta tarifa mantienen su valor (snapshot)."
+                      confirmLabel="Eliminar"
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          aria-label="Eliminar tarifa"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    >
                       <input type="hidden" name="rateId" value={r.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive"
-                        aria-label="Eliminar tarifa"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </form>
+                    </ConfirmButton>
                   ) : null}
                 </TableCell>
               </TableRow>

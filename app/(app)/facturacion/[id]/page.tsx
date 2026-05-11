@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Pencil, Send, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -134,13 +135,20 @@ export default async function InvoiceDetailPage({
               </form>
             ) : null}
             {canDelete ? (
-              <form action={eliminarFacturaAction}>
+              <ConfirmButton
+                action={eliminarFacturaAction}
+                title={`¿Eliminar borrador ${invoice.number}?`}
+                description="Solo borradores se pueden eliminar. Para facturas ya enviadas usa 'Anular' (preserva el rastro fiscal)."
+                confirmLabel="Eliminar borrador"
+                trigger={
+                  <Button variant="ghost" size="sm" className="text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </Button>
+                }
+              >
                 <input type="hidden" name="invoiceId" value={invoice.id} />
-                <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Eliminar
-                </Button>
-              </form>
+              </ConfirmButton>
             ) : null}
             {canRecordPayment ? (
               <PaymentFormDrawer
@@ -155,13 +163,20 @@ export default async function InvoiceDetailPage({
               />
             ) : null}
             {canVoid ? (
-              <form action={anularFacturaAction}>
+              <ConfirmButton
+                action={anularFacturaAction}
+                title={`¿Anular factura ${invoice.number}?`}
+                description="La factura quedará marcada como anulada y no podrá facturarse de nuevo. El NCF asignado se mantiene reservado para el rastro fiscal."
+                confirmLabel="Anular"
+                trigger={
+                  <Button variant="ghost" size="sm" className="text-destructive">
+                    <XCircle className="h-3.5 w-3.5" />
+                    Anular
+                  </Button>
+                }
+              >
                 <input type="hidden" name="invoiceId" value={invoice.id} />
-                <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                  <XCircle className="h-3.5 w-3.5" />
-                  Anular
-                </Button>
-              </form>
+              </ConfirmButton>
             ) : null}
           </div>
         </div>

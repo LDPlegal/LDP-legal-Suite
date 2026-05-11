@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -88,13 +89,20 @@ export default async function ClienteDetailPage({
                 </Button>
               }
             />
-            <form action={eliminarClienteAction}>
+            <ConfirmButton
+              action={eliminarClienteAction}
+              title="¿Archivar este cliente?"
+              description={`"${cliente.displayName}" — sus accesos al portal se desactivan. Lo puedes restaurar desde /clientes/archivados.`}
+              confirmLabel="Archivar"
+              trigger={
+                <Button variant="ghost" size="sm" className="text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                  Archivar
+                </Button>
+              }
+            >
               <input type="hidden" name="clientId" value={cliente.id} />
-              <Button type="submit" variant="ghost" size="sm" className="text-destructive">
-                <Trash2 className="h-4 w-4" />
-                Archivar
-              </Button>
-            </form>
+            </ConfirmButton>
           </div>
         </div>
       </div>

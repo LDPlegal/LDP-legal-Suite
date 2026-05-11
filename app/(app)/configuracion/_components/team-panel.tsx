@@ -6,6 +6,7 @@ import { Loader2, Pencil, Plus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -153,19 +154,24 @@ export function TeamPanel({
                         }
                       />
                     ) : null}
-                    <form action={desactivarStaffAction}>
+                    <ConfirmButton
+                      action={desactivarStaffAction}
+                      title={`¿Desactivar a ${m.name}?`}
+                      description="Sus sesiones activas se cerrarán inmediatamente y no podrá volver a iniciar sesión. Esta acción es difícil de revertir (requiere SQL manual)."
+                      confirmLabel="Desactivar"
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          aria-label="Desactivar miembro"
+                        >
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    >
                       <input type="hidden" name="targetId" value={m.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive"
-                        aria-label="Desactivar miembro"
-                        title="Desactivar miembro (irreversible)"
-                      >
-                        <UserMinus className="h-3.5 w-3.5" />
-                      </Button>
-                    </form>
+                    </ConfirmButton>
                   </div>
                 ) : null}
               </TableCell>
@@ -236,10 +242,11 @@ function InviteDrawer({
                 <option value="partner">Socio</option>
                 <option value="lawyer">Abogado/a</option>
                 <option value="paralegal">Paralegal</option>
+                <option value="tester">Tester informático</option>
               </select>
               <p className="text-[11px] text-muted-foreground">
                 {isAdmin
-                  ? "Solo los admins pueden crear otros admins."
+                  ? "Solo los admins pueden crear otros admins. El rol Tester tiene acceso a todo (igual que admin) — úsalo solo para QA del sistema."
                   : "Para crear un admin, pide a un admin existente."}
               </p>
             </div>
@@ -325,6 +332,7 @@ function RoleDrawer({
               <option value="partner">Socio</option>
               <option value="lawyer">Abogado/a</option>
               <option value="paralegal">Paralegal</option>
+              <option value="tester">Tester informático</option>
             </select>
             {!state.ok ? (
               <p className="text-sm text-destructive">{state.error}</p>

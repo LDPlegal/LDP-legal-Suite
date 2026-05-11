@@ -16,6 +16,7 @@ import {
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL } from "@/lib/schemas/fase1";
 import { eliminarTareaAction } from "@/app/_actions/tareas/eliminar";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { TaskFormDrawer } from "./task-form-drawer";
 import type { TareaRow } from "./tasks-view";
 
@@ -118,18 +119,24 @@ export function TaskList({
                       </Button>
                     }
                   />
-                  <form action={eliminarTareaAction} className="inline-block">
+                  <ConfirmButton
+                    action={eliminarTareaAction}
+                    title="¿Eliminar esta tarea?"
+                    description={`"${t.title}" — esta acción es reversible (queda archivada).`}
+                    confirmLabel="Eliminar"
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        aria-label="Eliminar tarea"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    }
+                  >
                     <input type="hidden" name="taskId" value={t.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      aria-label="Eliminar tarea"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </form>
+                  </ConfirmButton>
                 </TableCell>
               </TableRow>
             ))

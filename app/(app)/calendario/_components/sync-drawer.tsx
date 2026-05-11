@@ -288,6 +288,11 @@ function SubscriptionRow({
   }
 
   async function remove() {
+    // Native confirm — el contexto está dentro de un drawer y queremos
+    // mantener la UX simple sin meter otro modal anidado encima.
+    if (!confirm(`¿Eliminar la suscripción "${sub.name}"? Los eventos importados se conservan.`)) {
+      return;
+    }
     const fd = new FormData();
     fd.set("subscriptionId", sub.id);
     await eliminarSuscripcionAction(fd);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,18 +130,24 @@ function TemplateRowItem({
               </Button>
             }
           />
-          <form action={eliminarTemplateAction}>
+          <ConfirmButton
+            action={eliminarTemplateAction}
+            title="¿Eliminar esta plantilla?"
+            description={`"${template.name}" — los casos ya creados con esta plantilla no se afectan.`}
+            confirmLabel="Eliminar"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive"
+                aria-label="Eliminar"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            }
+          >
             <input type="hidden" name="templateId" value={template.id} />
-            <Button
-              type="submit"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive"
-              aria-label="Eliminar"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </form>
+          </ConfirmButton>
         </div>
       ) : null}
     </li>
