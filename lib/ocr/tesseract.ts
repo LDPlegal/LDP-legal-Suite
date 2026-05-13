@@ -15,15 +15,6 @@
 import { OCR_MAX_BYTES, type OcrProvider, type OcrResult } from "./index";
 import os from "os";
 
-// Polyfill DOMMatrix for Node < 21 (Vercel uses Node 18/20 by default).
-// pdf.js needs DOMMatrix to exist, even if it doesn't use all its methods here.
-if (typeof global !== "undefined" && typeof global.DOMMatrix === "undefined") {
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (global as any).DOMMatrix = class DOMMatrix {
-    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-  };
-}
-
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/bmp"]);
 
 type Worker = {
@@ -90,7 +81,10 @@ export class TesseractOcr implements OcrProvider {
 
     try {
       const worker = await this.getWorker();
-      const result = await worker.recognize(input.bytes);
+      const result = await Promise.race([
+        worker.recognize(input.bytes),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout de OCR (20s). Vercel abortó el proceso por memoria o tiempo.")), 20000))
+      ]);
       return {
         status: "done",
         text: result.data.text.trim(),
