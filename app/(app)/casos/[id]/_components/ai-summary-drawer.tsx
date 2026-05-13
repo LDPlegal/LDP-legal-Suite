@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Sparkles } from "lucide-react";
+import { Loader2, Save, Sparkles, Send } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import {
   guardarResumenComoNotaAction,
   type ResumirCasoState,
 } from "@/app/_actions/ai/resumir-caso";
+import { chatAction } from "@/app/_actions/ai/chat";
+import type { AiMessage } from "@/lib/ai/claude";
+import { Input } from "@/components/ui/input";
 
 export function AiSummaryDrawer({
   trigger,
@@ -33,11 +36,16 @@ export function AiSummaryDrawer({
   const [state, setState] = useState<ResumirCasoState | null>(null);
   const [pending, setPending] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [chatHistory, setChatHistory] = useState<AiMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatPending, setChatPending] = useState(false);
   const router = useRouter();
 
   async function generate() {
     setPending(true);
     setState(null);
+    setChatHistory([]);
     try {
       const fd = new FormData();
       fd.set("caseId", caseId);
@@ -66,6 +74,30 @@ export function AiSummaryDrawer({
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function sendChat(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!chatInput.trim() || chatPending) return;
+    
+    const userMsg: AiMessage = { role: "user", content: chatInput.trim() };
+    const newHistory = [...chatHistory, userMsg];
+    
+    setChatHistory(newHistory);
+    setChatInput("");
+    setChatPending(true);
+
+    try {
+      const r = await chatAction("case", caseId, newHistory);
+      if (r.ok) {
+        setChatHistory([...newHistory, { role: "assistant", content: r.text }]);
+      } else {
+        toast.error(r.error);
+        setChatHistory(chatHistory); // Rollback
+      }
+    } finally {
+      setChatPending(false);
     }
   }
 
@@ -108,6 +140,48 @@ export function AiSummaryDrawer({
                 El contenido está basado en el contexto del caso al momento de generar; vuelve
                 a generar si actualizas información.
               </p>
+              <div className="mt-6 flex flex-col gap-4 border-t pt-4">
+                {chatHistory.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex flex-col gap-1 ${
+                      msg.role === "user" ? "items-end" : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-md p-3 text-sm ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/50 text-foreground"
+                      }`}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {chatPending && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Claude está escribiendo...
+                  </div>
+                )}
+                <form onSubmit={sendChat} className="flex items-center gap-2 pt-2">
+                  <Input
+                    placeholder="Haz una pregunta sobre este caso..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={chatPending}
+                  />
+                  <Button type="submit" size="icon" disabled={!chatInput.trim() || chatPending}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
             </>
           ) : state && !state.ok ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">

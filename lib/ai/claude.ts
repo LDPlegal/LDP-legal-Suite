@@ -91,7 +91,7 @@ export type RunPromptOptions = {
   tracking?: {
     firmId: string;
     userId: string;
-    feature: "case_summary" | "refine_note" | "doc_search" | "doc_summary";
+    feature: "case_summary" | "refine_note" | "doc_search" | "doc_summary" | "chat";
   };
 };
 

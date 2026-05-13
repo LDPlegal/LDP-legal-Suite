@@ -1309,7 +1309,9 @@ export const aiUsage = pgTable(
       .notNull()
       .references(() => firms.id, { onDelete: "cascade" }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
-    feature: text("feature").notNull(), // "case_summary" | "refine_note" | "doc_search"
+    feature: text("feature")
+      .$type<"case_summary" | "refine_note" | "doc_search" | "doc_summary" | "chat">()
+      .notNull(),
     model: text("model").notNull(),
     inputTokens: integer("input_tokens").notNull().default(0),
     outputTokens: integer("output_tokens").notNull().default(0),

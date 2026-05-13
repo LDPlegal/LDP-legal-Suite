@@ -104,7 +104,7 @@ type CaseContext = {
   };
 };
 
-async function gatherCaseContext(
+export async function gatherCaseContext(
   firmId: string,
   userId: string,
   caseId: string,
@@ -234,7 +234,7 @@ async function gatherCaseContext(
   });
 }
 
-function buildPrompt(ctx: CaseContext): string {
+export function buildPrompt(ctx: CaseContext): string {
   const lines: string[] = [];
   const fmtDate = (d: Date) =>
     new Date(d).toLocaleDateString("es-DO", {
