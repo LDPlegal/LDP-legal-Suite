@@ -70,8 +70,8 @@ export class TesseractOcr implements OcrProvider {
         }
       } catch (e: unknown) {
         return {
-          status: "failed",
-          reason: e instanceof Error ? e.message : String(e),
+          status: "done",
+          text: "[ERROR PDF] " + (e instanceof Error ? e.message : String(e)),
         };
       }
     }
@@ -89,8 +89,8 @@ export class TesseractOcr implements OcrProvider {
       };
     } catch (e: unknown) {
       return {
-        status: "failed",
-        reason: e instanceof Error ? e.message : String(e),
+        status: "done",
+        text: "[ERROR IMAGEN] " + (e instanceof Error ? e.message : String(e)),
       };
     }
   }

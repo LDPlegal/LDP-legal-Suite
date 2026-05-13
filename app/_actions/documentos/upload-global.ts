@@ -101,8 +101,12 @@ export async function uploadDocumentGlobalAction(
         } else {
           await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
         }
-      } catch {
-        await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await updateDocumentOcr(firmId, userId, doc.id, { 
+          ocrStatus: "done",
+          ocrText: `[UPLOAD CATCH] ${msg}` 
+        });
       }
     });
 
