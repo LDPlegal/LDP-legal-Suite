@@ -13,9 +13,16 @@
 //     also skipped to keep the upload action under the request timeout.
 
 import { OCR_MAX_BYTES, type OcrProvider, type OcrResult } from "./index";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse");
 import os from "os";
+
+// Polyfill DOMMatrix for Node < 21 (Vercel uses Node 18/20 by default).
+// pdf.js needs DOMMatrix to exist, even if it doesn't use all its methods here.
+if (typeof global !== "undefined" && typeof global.DOMMatrix === "undefined") {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).DOMMatrix = class DOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+  };
+}
 
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/bmp"]);
 
@@ -55,6 +62,8 @@ export class TesseractOcr implements OcrProvider {
     }
     if (input.mimeType === "application/pdf") {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require("pdf-parse");
         const data = await pdfParse(Buffer.from(input.bytes));
         if (data.text && data.text.trim().length > 10) {
           return {
