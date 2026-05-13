@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -99,8 +100,8 @@ export function AiSummaryDrawer({
             </div>
           ) : state?.ok ? (
             <>
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm dark:prose-invert">
-                {state.text}
+              <div className="prose prose-sm max-w-none rounded-md border bg-muted/30 p-4 text-sm dark:prose-invert">
+                <ReactMarkdown>{state.text}</ReactMarkdown>
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Tokens: {state.usage.inputTokens} entrada · {state.usage.outputTokens} salida.
