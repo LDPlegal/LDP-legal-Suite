@@ -332,6 +332,8 @@ export const AI_FEATURE_LABEL: Record<string, string> = {
   case_summary: "Resumen de caso",
   refine_note: "Mejorar nota",
   doc_search: "Búsqueda documentos",
+  doc_summary: "Resumen de documento",
+  chat: "Chat IA",
 };
 
 // =============================================================================

@@ -4,9 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { chatWithContext } from "@/lib/ai/chat";
 import type { AiMessage } from "@/lib/ai/claude";
 import { gatherCaseContext, buildPrompt as buildCasePrompt } from "@/lib/ai/case-summary";
-import { adminDb } from "@/lib/db/admin";
-import { documents } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { getDocumentById } from "@/lib/db/queries/documents";
 
 export type ChatState =
   | { ok: true; text: string; usage: { inputTokens: number; outputTokens: number } }
@@ -27,12 +25,7 @@ export async function chatAction(
       if (!ctx) return { ok: false, error: "Caso no encontrado o sin acceso." };
       contextText = buildCasePrompt(ctx);
     } else if (type === "document") {
-      const [doc] = await adminDb
-        .select({ ocrText: documents.ocrText })
-        .from(documents)
-        .where(and(eq(documents.id, id), eq(documents.firmId, user.firmId)))
-        .limit(1);
-      
+      const doc = await getDocumentById(user.firmId, user.userId, id);
       if (!doc) return { ok: false, error: "Documento no encontrado o sin acceso." };
       if (!doc.ocrText) return { ok: false, error: "El documento no tiene texto OCR extraído." };
       contextText = `Documento:\n\n${doc.ocrText}`;
