@@ -13,6 +13,9 @@
 //     also skipped to keep the upload action under the request timeout.
 
 import { OCR_MAX_BYTES, type OcrProvider, type OcrResult } from "./index";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse");
+import os from "os";
 
 const SUPPORTED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/bmp"]);
 
@@ -28,9 +31,12 @@ export class TesseractOcr implements OcrProvider {
     if (this.workerPromise) return this.workerPromise;
     this.workerPromise = (async () => {
       const tesseract = await import("tesseract.js");
-      // createWorker(['spa', 'eng']) loads both language data files. Spanish
-      // is the primary; English helps with mixed legal text.
-      const w = await tesseract.createWorker(["spa", "eng"]);
+      // createWorker(['spa', 'eng']) loads both language data files.
+      const w = await tesseract.createWorker(["spa", "eng"], 1, {
+        cachePath: os.tmpdir(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logger: (m: any) => console.log("[Tesseract]", m.status, Math.round(m.progress * 100) + "%"),
+      });
       return w as unknown as Worker;
     })();
     return this.workerPromise;
@@ -48,10 +54,26 @@ export class TesseractOcr implements OcrProvider {
       };
     }
     if (input.mimeType === "application/pdf") {
-      return {
-        status: "skipped",
-        reason: "PDF OCR (rendering por página) llega en Fase 2.5.",
-      };
+      try {
+        const data = await pdfParse(Buffer.from(input.bytes));
+        if (data.text && data.text.trim().length > 10) {
+          return {
+            status: "done",
+            text: data.text.trim(),
+            confidence: 1, // Texto digital extraído directamente
+          };
+        } else {
+          return {
+            status: "skipped",
+            reason: "El PDF parece ser un documento escaneado (solo imágenes). El OCR completo de PDFs escaneados llegará en Fase 2.5.",
+          };
+        }
+      } catch (e: unknown) {
+        return {
+          status: "failed",
+          reason: e instanceof Error ? e.message : String(e),
+        };
+      }
     }
     if (!SUPPORTED_MIME.has(input.mimeType)) {
       return { status: "skipped", reason: `MIME ${input.mimeType} no soportado para OCR.` };
