@@ -94,7 +94,7 @@ export function DocumentGlobalRow({ doc }: { doc: GlobalDocRow }) {
             {doc.caseCode}
           </Link>
         ) : (
-          "—"
+          <Badge variant="secondary" className="text-[10px]">General</Badge>
         )}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
@@ -154,43 +154,39 @@ export function DocumentGlobalRow({ doc }: { doc: GlobalDocRow }) {
         >
           <Download className="h-3.5 w-3.5" />
         </Link>
-        {doc.caseId ? (
-          <DocumentEditDrawer
-            caseId={doc.caseId}
-            doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                aria-label="Editar documento"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-            }
-          />
-        ) : null}
-        {doc.caseId ? (
-          <ConfirmButton
-            action={eliminarDocumentoAction}
-            title="¿Eliminar este documento?"
-            description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
-            confirmLabel="Eliminar"
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-destructive"
-                aria-label="Eliminar"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            }
-          >
-            <input type="hidden" name="documentId" value={doc.id} />
-            <input type="hidden" name="caseId" value={doc.caseId} />
-          </ConfirmButton>
-        ) : null}
+        <DocumentEditDrawer
+          caseId={doc.caseId}
+          doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Editar documento"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
+        <ConfirmButton
+          action={eliminarDocumentoAction}
+          title="¿Eliminar este documento?"
+          description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
+          confirmLabel="Eliminar"
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              aria-label="Eliminar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          }
+        >
+          <input type="hidden" name="documentId" value={doc.id} />
+          <input type="hidden" name="caseId" value={doc.caseId ?? ""} />
+        </ConfirmButton>
       </TableCell>
     </TableRow>
   );

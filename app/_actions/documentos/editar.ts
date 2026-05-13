@@ -8,7 +8,7 @@ import { logAuditStandalone } from "@/lib/audit/log";
 
 const Schema = z.object({
   documentId: z.string().uuid(),
-  caseId: z.string().uuid(),
+  caseId: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(240),
   tags: z.string().optional(),
 });
@@ -22,9 +22,10 @@ export async function editarDocumentoAction(
   formData: FormData,
 ): Promise<EditarDocumentoState> {
   const user = await requireUser();
+  const rawCaseId = formData.get("caseId");
   const parsed = Schema.safeParse({
     documentId: formData.get("documentId"),
-    caseId: formData.get("caseId"),
+    caseId: typeof rawCaseId === "string" && rawCaseId.trim() ? rawCaseId.trim() : undefined,
     name: formData.get("name"),
     tags: formData.get("tags"),
   });
@@ -49,12 +50,15 @@ export async function editarDocumentoAction(
     userId: user.userId,
     entityType: "document",
     entityId: parsed.data.documentId,
-    caseId: parsed.data.caseId,
+    caseId: parsed.data.caseId ?? undefined,
     action: "updated",
     summary: `Renombró documento a "${parsed.data.name}"`,
   });
 
-  revalidatePath(`/casos/${parsed.data.caseId}`);
+  if (parsed.data.caseId) {
+    revalidatePath(`/casos/${parsed.data.caseId}`);
+  }
   revalidatePath("/documentos");
   return { ok: true };
 }
+

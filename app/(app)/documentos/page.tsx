@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +15,7 @@ import { listAllDocuments } from "@/lib/db/queries/documents";
 import { isAiEnabled } from "@/lib/ai";
 import { AiDocumentSearch } from "./_components/ai-search";
 import { DocumentGlobalRow } from "./_components/document-global-row";
+import { DocumentUploadGlobalDrawer } from "./_components/document-upload-global-drawer";
 
 export const metadata = { title: "Documentos · LDP Legal Suite" };
 
@@ -34,12 +36,22 @@ export default async function DocumentosPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
-        <p className="text-sm text-muted-foreground">
-          Vista global de archivos del firm. Busca por nombre, etiquetas o por
-          contenido (OCR de PDFs e imágenes escaneadas).
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
+          <p className="text-sm text-muted-foreground">
+            Vista global de archivos del firm. Busca por nombre, etiquetas o por
+            contenido (OCR de PDFs e imágenes escaneadas).
+          </p>
+        </div>
+        <DocumentUploadGlobalDrawer
+          trigger={
+            <Button id="upload-global-doc-btn">
+              <Upload className="mr-2 h-4 w-4" />
+              Subir documento
+            </Button>
+          }
+        />
       </div>
 
       {isAiEnabled() ? <AiDocumentSearch /> : null}
@@ -91,7 +103,7 @@ export default async function DocumentosPage({
             <p className="py-12 text-center text-sm text-muted-foreground">
               {q
                 ? "Sin resultados para esa búsqueda."
-                : "Aún no hay documentos. Súbelos desde la pestaña Documentos de cada caso."}
+                : "Aún no hay documentos. Haz clic en \"Subir documento\" para comenzar."}
             </p>
           ) : (
             <Table>
@@ -134,3 +146,4 @@ export default async function DocumentosPage({
     </div>
   );
 }
+

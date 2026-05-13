@@ -29,7 +29,7 @@ export function DocumentEditDrawer({
   doc,
 }: {
   trigger: ReactNode;
-  caseId: string;
+  caseId: string | null;
   doc: { id: string; name: string; tags: string[] };
 }) {
   const [open, setOpen] = useState(false);
@@ -58,7 +58,7 @@ export function DocumentEditDrawer({
         </SheetHeader>
         <form action={action} className="flex flex-1 flex-col min-h-0">
           <input type="hidden" name="documentId" value={doc.id} />
-          <input type="hidden" name="caseId" value={caseId} />
+          <input type="hidden" name="caseId" value={caseId ?? ""} />
           <SheetBody className="space-y-4">
             <div className="space-y-1.5">
               <Label>Nombre *</Label>
