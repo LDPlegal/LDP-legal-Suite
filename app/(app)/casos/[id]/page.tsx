@@ -643,7 +643,7 @@ export default async function CasoDetailPage({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  documentos.map((doc) => <DocumentRow key={doc.id} doc={doc} caseId={c.id} />)
+                  documentos.map((doc) => <DocumentRow key={doc.id} doc={doc} caseId={c.id} aiEnabled={aiEnabled} />)
                 )}
               </TableBody>
             </Table>

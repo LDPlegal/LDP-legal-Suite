@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, Trash2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -9,6 +9,7 @@ import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { DocumentEditDrawer } from "./document-edit-drawer";
+import { DocumentSummaryDrawer } from "@/app/(app)/documentos/_components/document-summary-drawer";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
@@ -26,9 +27,11 @@ const OCR_VARIANT: Record<DocumentListRow["ocrStatus"], "secondary" | "warning" 
 export function DocumentRow({
   doc,
   caseId,
+  aiEnabled,
 }: {
   doc: DocumentListRow;
   caseId: string;
+  aiEnabled?: boolean;
 }) {
   const isImage = doc.mimeType.startsWith("image/");
   return (
@@ -118,6 +121,17 @@ export function DocumentRow({
             <Download className="h-3.5 w-3.5" />
           </Link>
         </Button>
+        {aiEnabled && doc.ocrStatus === "done" ? (
+          <DocumentSummaryDrawer
+            documentId={doc.id}
+            documentName={doc.name}
+            trigger={
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Resumen IA">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              </Button>
+            }
+          />
+        ) : null}
         <DocumentEditDrawer
           caseId={caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}

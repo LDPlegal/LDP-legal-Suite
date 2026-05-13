@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Pencil,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
+import { DocumentSummaryDrawer } from "./document-summary-drawer";
 import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
@@ -40,7 +42,13 @@ export type GlobalDocRow = {
   ocrTextSnippet: string | null;
 };
 
-export function DocumentGlobalRow({ doc }: { doc: GlobalDocRow }) {
+export function DocumentGlobalRow({
+  doc,
+  aiEnabled,
+}: {
+  doc: GlobalDocRow;
+  aiEnabled?: boolean;
+}) {
   const isImage = doc.mimeType.startsWith("image/");
   return (
     <TableRow>
@@ -154,6 +162,17 @@ export function DocumentGlobalRow({ doc }: { doc: GlobalDocRow }) {
         >
           <Download className="h-3.5 w-3.5" />
         </Link>
+        {aiEnabled && doc.ocrStatus === "done" ? (
+          <DocumentSummaryDrawer
+            documentId={doc.id}
+            documentName={doc.name}
+            trigger={
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label="Resumen IA">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              </Button>
+            }
+          />
+        ) : null}
         <DocumentEditDrawer
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}

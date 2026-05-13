@@ -136,6 +136,7 @@ export default async function DocumentosPage({
                       caseCode: d.caseCode,
                       ocrTextSnippet: d.ocrTextSnippet,
                     }}
+                    aiEnabled={isAiEnabled()}
                   />
                 ))}
               </TableBody>
