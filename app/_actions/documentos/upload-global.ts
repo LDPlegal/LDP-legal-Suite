@@ -53,61 +53,67 @@ export async function uploadDocumentGlobalAction(
     return { ok: false, error: "Datos inválidos." };
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
 
-  const storage = getStorage();
-  const key = storage.buildKey({
-    firmId: user.firmId,
-    scope: "documents",
-    entityId: parsed.data.caseId ?? "general",
-    filename: file.name,
-  });
-  await storage.put(key, bytes, file.type || "application/octet-stream");
+    const storage = getStorage();
+    const key = storage.buildKey({
+      firmId: user.firmId,
+      scope: "documents",
+      entityId: parsed.data.caseId ?? "general",
+      filename: file.name,
+    });
+    await storage.put(key, bytes, file.type || "application/octet-stream");
 
-  const doc = await createDocument(user.firmId, user.userId, {
-    caseId: parsed.data.caseId ?? null,
-    name: file.name,
-    mimeType: file.type || "application/octet-stream",
-    sizeBytes: file.size,
-    storageKey: key,
-    tags: parsed.data.tags,
-    ocrStatus: "processing",
-    version: 1,
-    parentDocumentId: null,
-    clientId: null,
-    ocrText: null,
-  });
+    const doc = await createDocument(user.firmId, user.userId, {
+      caseId: parsed.data.caseId ?? null,
+      name: file.name,
+      mimeType: file.type || "application/octet-stream",
+      sizeBytes: file.size,
+      storageKey: key,
+      tags: parsed.data.tags,
+      ocrStatus: "processing",
+      version: 1,
+      parentDocumentId: null,
+      clientId: null,
+      ocrText: null,
+    });
 
-  // Fire-and-forget OCR via `after()`.
-  const userId = user.userId;
-  const firmId = user.firmId;
-  after(async () => {
-    try {
-      const ocr = await getOcr();
-      const result = await ocr.recognize({
-        mimeType: doc.mimeType,
-        bytes,
-        sizeBytes: doc.sizeBytes,
-      });
-      if (result.status === "done") {
-        await updateDocumentOcr(firmId, userId, doc.id, {
-          ocrStatus: "done",
-          ocrText: result.text,
+    // Fire-and-forget OCR via `after()`.
+    const userId = user.userId;
+    const firmId = user.firmId;
+    after(async () => {
+      try {
+        const ocr = await getOcr();
+        const result = await ocr.recognize({
+          mimeType: doc.mimeType,
+          bytes,
+          sizeBytes: doc.sizeBytes,
         });
-      } else if (result.status === "skipped") {
-        await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "skipped" });
-      } else {
+        if (result.status === "done") {
+          await updateDocumentOcr(firmId, userId, doc.id, {
+            ocrStatus: "done",
+            ocrText: result.text,
+          });
+        } else if (result.status === "skipped") {
+          await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "skipped" });
+        } else {
+          await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
+        }
+      } catch {
         await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
       }
-    } catch {
-      await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
-    }
-  });
+    });
 
-  revalidatePath("/documentos");
-  if (parsed.data.caseId) {
-    revalidatePath(`/casos/${parsed.data.caseId}`);
+    revalidatePath("/documentos");
+    if (parsed.data.caseId) {
+      revalidatePath(`/casos/${parsed.data.caseId}`);
+    }
+    return { ok: true, documentId: doc.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido al subir.";
+    console.error("[uploadDocumentGlobalAction] Error:", err);
+    return { ok: false, error: `Error al subir: ${message}` };
   }
-  return { ok: true, documentId: doc.id };
 }
