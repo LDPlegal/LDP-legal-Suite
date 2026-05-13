@@ -54,8 +54,8 @@ export class TesseractOcr implements OcrProvider {
     if (input.mimeType === "application/pdf") {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse");
-        const data = await pdfParse(Buffer.from(input.bytes));
+        const pdfExtraction = require("pdf-extraction");
+        const data = await pdfExtraction(Buffer.from(input.bytes));
         if (data.text && data.text.trim().length > 10) {
           return {
             status: "done",
