@@ -1343,6 +1343,10 @@ export const aiUsage = pgTable(
         | "doc_summary"
         | "chat"
         | "scan_classify"
+        | "matter_chat"
+        | "matter_context"
+        | "doc_generate"
+        | "event_parse"
       >()
       .notNull(),
     model: text("model").notNull(),
@@ -1392,3 +1396,97 @@ export const notifications = pgTable(
 
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+
+// =============================================================================
+// matter_chats — per-case persistent chat history (F7 — Gabriel spec)
+// =============================================================================
+// Each row is one message in the chat panel inside /casos/[id]. Messages
+// persist across users + sessions so when Marc opens the chat today he sees
+// what Gabriel wrote yesterday. The IA reads the full thread + the matter
+// context to answer.
+//
+// `role` mirrors Anthropic Messages API: user / assistant. We don't store
+// system messages here (the system prompt is built from matter_context + skills
+// at request time). `toolCalls` holds the JSON of any tool_use / tool_result
+// blocks for replay; the human-readable content lives in `content`.
+
+export const chatRoleEnum = pgEnum("chat_role", ["user", "assistant", "system"]);
+
+export const matterChats = pgTable(
+  "matter_chats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    role: chatRoleEnum("role").notNull(),
+    content: text("content").notNull(),
+    // Anthropic tool_use / tool_result blocks attached to this message,
+    // when the assistant called a tool. Stored verbatim for replay.
+    toolCalls: jsonb("tool_calls").$type<Array<Record<string, unknown>>>(),
+    // Token usage of THIS message (input is the message itself when role=user,
+    // not the cumulative context). Output tokens populated for role=assistant.
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    cacheReadTokens: integer("cache_read_tokens"),
+    cacheCreationTokens: integer("cache_creation_tokens"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("matter_chats_firm_case_idx").on(t.firmId, t.caseId),
+    index("matter_chats_firm_case_created_idx").on(t.firmId, t.caseId, t.createdAt),
+  ],
+);
+
+export type MatterChat = typeof matterChats.$inferSelect;
+export type NewMatterChat = typeof matterChats.$inferInsert;
+
+// =============================================================================
+// matter_contexts — incremental narrative summary per case (cost optimization)
+// =============================================================================
+// Instead of sending the 47 documents + events + notes + timesheet of a case
+// in every chat request, we maintain a narrative summary that the LLM
+// updates incrementally. The chat tool reads docs on demand via tool_use
+// when it actually needs the full content of one.
+//
+// One row per case (unique). Updated by a background job when the matter
+// changes (new doc uploaded, new event, etc.) — debounced.
+
+export const matterContexts = pgTable(
+  "matter_contexts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" })
+      .unique(),
+    summary: text("summary").notNull().default(""),
+    // Quick stats shown in the chat header ("La IA conoce: 47 docs, 3 partes,
+    // 8 actuaciones previas, última actividad hace 12 días").
+    stats: jsonb("stats")
+      .$type<{
+        docCount?: number;
+        eventCount?: number;
+        noteCount?: number;
+        timeEntryCount?: number;
+        lastActivityAt?: string;
+      }>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    tokenCount: integer("token_count").notNull().default(0),
+    needsRefresh: boolean("needs_refresh").notNull().default(true),
+    refreshedAt: timestamp("refreshed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("matter_contexts_firm_idx").on(t.firmId)],
+);
+
+export type MatterContext = typeof matterContexts.$inferSelect;

@@ -99,6 +99,13 @@
       "when": 1779700000000,
       "tag": "0013_scan_ingest_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779800000000,
+      "tag": "0014_matter_chat",
+      "breakpoints": true
     }
   ]
 }

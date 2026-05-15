@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
@@ -56,6 +56,7 @@ import { EventoFormDrawer } from "@/app/(app)/calendario/_components/evento-form
 import { StartTimerButton } from "./_components/start-timer-button";
 import { GastoFormDrawer } from "./_components/gasto-form-drawer";
 import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
+import { MatterChatPanel } from "./_components/matter-chat-panel";
 
 export const metadata = { title: "Caso · LDP Legal Suite" };
 
@@ -147,6 +148,24 @@ export default async function CasoDetailPage({
           </div>
           <div className="flex items-center gap-2">
             <StartTimerButton caseId={c.id} caseTitle={c.title} />
+            <MatterChatPanel
+              caseId={c.id}
+              caseCode={c.code}
+              caseTitle={c.title}
+              aiEnabled={aiEnabled}
+              initialStats={{
+                docCount: documentos.length,
+                eventCount: eventos.length,
+                noteCount: notas.length,
+                timeEntryCount: tiempos.length,
+              }}
+              trigger={
+                <Button variant="outline" size="sm" title="Cmd/Ctrl+J">
+                  <MessageSquare className="h-4 w-4" />
+                  Asistente IA
+                </Button>
+              }
+            />
             {aiEnabled ? (
               <AiSummaryDrawer
                 caseId={c.id}

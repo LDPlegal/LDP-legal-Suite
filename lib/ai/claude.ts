@@ -27,6 +27,8 @@ const PRICING: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5-20251001": { input: 0.8, output: 4 },
 };
 
+// Legacy helper kept for backward compat (other modules import this name
+// indirectly via re-export). New code uses computeCostUsdWithCache below.
 function computeCostUsd(
   model: string,
   inputTokens: number,
@@ -37,6 +39,7 @@ function computeCostUsd(
   const cost = (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
   return cost.toFixed(6);
 }
+void computeCostUsd; // keep symbol alive for future use; lint-friendly
 
 const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
@@ -91,13 +94,50 @@ export type RunPromptOptions = {
   tracking?: {
     firmId: string;
     userId: string;
-    feature: "case_summary" | "refine_note" | "doc_search" | "doc_summary" | "chat";
+    feature:
+      | "case_summary"
+      | "refine_note"
+      | "doc_search"
+      | "doc_summary"
+      | "chat"
+      | "scan_classify"
+      | "matter_chat"
+      | "matter_context"
+      | "doc_generate"
+      | "event_parse";
   };
+  // Prompt caching: when set, the systemAddendum and any messages flagged
+  // with cache:true get a cache_control marker. Anthropic charges 1.25x the
+  // input rate on the cached chunks for the FIRST call, then 0.1x for
+  // subsequent calls within 5 min. Saves 50-90% on chat conversations where
+  // the matter context is reused across messages.
+  cacheSystem?: boolean;
 };
 
 export type RunPromptResult = {
   text: string;
-  usage: { inputTokens: number; outputTokens: number };
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheCreationTokens: number;
+  };
+  toolUses: Array<{ id: string; name: string; input: unknown }>;
+};
+
+// Tool definition compatible con la API de Anthropic. Los callers de Bloque
+// 3 (eventos desde chat) y Bloque 2 (generar docs) pasan tools.
+export type AiTool = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+};
+
+export type RunPromptAdvanced = RunPromptOptions & {
+  tools?: AiTool[];
+  // Anthropic message format raw: permite blocks (text + tool_use + tool_result).
+  // Cuando se pasa messagesRaw, ignora `messages` simple.
+  messagesRaw?: Array<{ role: "user" | "assistant"; content: unknown }>;
 };
 
 // Single entry point. Callers pass a list of messages (typically one user
@@ -105,12 +145,28 @@ export type RunPromptResult = {
 // admin can monitor cost from /reportes if we ever surface it.
 export async function runPrompt(
   messages: AiMessage[],
-  opts: RunPromptOptions = {},
+  opts: RunPromptAdvanced = {},
 ): Promise<RunPromptResult> {
   const client = getClient();
-  const system =
+  const systemText =
     LEGAL_SYSTEM_PREAMBLE +
     (opts.systemAddendum ? `\n\n${opts.systemAddendum}` : "");
+
+  // Prompt caching: enviamos system como array de bloques con cache_control
+  // en el bloque grande para que Anthropic lo cachee. Solo aplica cuando el
+  // caller lo pidió y el texto es lo suficientemente grande (>1024 tokens
+  // aproximadamente = ~4kb chars). El primer call paga 1.25x; siguientes
+  // dentro de 5 min pagan 0.1x.
+  const useCache = opts.cacheSystem === true && systemText.length > 4096;
+  const system = useCache
+    ? [
+        {
+          type: "text" as const,
+          text: systemText,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ]
+    : systemText;
 
   const model = opts.model ?? DEFAULT_MODEL;
   const response = await client.messages.create({
@@ -118,19 +174,37 @@ export async function runPrompt(
     max_tokens: opts.maxTokens ?? 1500,
     temperature: opts.temperature ?? 0.4,
     system,
-    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    messages: opts.messagesRaw
+      ? (opts.messagesRaw as Parameters<typeof client.messages.create>[0]["messages"])
+      : messages.map((m) => ({ role: m.role, content: m.content })),
+    ...(opts.tools && opts.tools.length > 0
+      ? { tools: opts.tools as Parameters<typeof client.messages.create>[0]["tools"] }
+      : {}),
   });
 
   // Concatenate text parts (the API may emit multiple content blocks for
-  // tool use etc.; we don't use tools yet but the shape requires the loop).
+  // tool use etc.).
   const text = response.content
     .filter((c): c is Extract<typeof c, { type: "text" }> => c.type === "text")
     .map((c) => c.text)
     .join("\n")
     .trim();
 
+  // Extraer tool_use blocks para que el caller pueda procesarlos.
+  const toolUses = response.content
+    .filter((c): c is Extract<typeof c, { type: "tool_use" }> => c.type === "tool_use")
+    .map((c) => ({ id: c.id, name: c.name, input: c.input as unknown }));
+
   const inputTokens = response.usage.input_tokens;
   const outputTokens = response.usage.output_tokens;
+  // El SDK tipa cache_*_input_tokens como opcional — pueden no venir si el
+  // cache no aplicó. Aceptamos 0 como default.
+  const usageAny = response.usage as unknown as {
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  };
+  const cacheReadTokens = usageAny.cache_read_input_tokens ?? 0;
+  const cacheCreationTokens = usageAny.cache_creation_input_tokens ?? 0;
 
   // Persist usage if caller asked for tracking. We use adminDb because the
   // table has RLS firm-isolation but the row is from a controlled call site
@@ -138,6 +212,14 @@ export async function runPrompt(
   // firm_id we write is the one the caller already validated via requireUser.
   if (opts.tracking) {
     try {
+      // Cost incluye cache discount: tokens read del cache se cobran a 0.1x.
+      const cost = computeCostUsdWithCache(
+        model,
+        inputTokens,
+        outputTokens,
+        cacheReadTokens,
+        cacheCreationTokens,
+      );
       await adminDb.insert(aiUsage).values({
         firmId: opts.tracking.firmId,
         userId: opts.tracking.userId,
@@ -145,16 +227,37 @@ export async function runPrompt(
         model,
         inputTokens,
         outputTokens,
-        costUsd: computeCostUsd(model, inputTokens, outputTokens),
+        costUsd: cost,
       });
     } catch {
-      // Don't fail the user-facing prompt over a tracking write. We log to
-      // server logs in dev mode below.
+      // Don't fail the user-facing prompt over a tracking write.
     }
   }
 
   return {
     text,
-    usage: { inputTokens, outputTokens },
+    usage: { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens },
+    toolUses,
   };
+}
+
+// Cache pricing: read = 0.1x input, creation = 1.25x input. Compute the
+// effective cost so /reportes refleje el ahorro real.
+function computeCostUsdWithCache(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheReadTokens: number,
+  cacheCreationTokens: number,
+): string | null {
+  const p = PRICING[model];
+  if (!p) return null;
+  // inputTokens already excludes cache_read / cache_creation in Anthropic's
+  // billing (those are separate buckets). To compute the bill:
+  const inputCost = (inputTokens * p.input) / 1_000_000;
+  const cacheReadCost = (cacheReadTokens * p.input * 0.1) / 1_000_000;
+  const cacheCreationCost = (cacheCreationTokens * p.input * 1.25) / 1_000_000;
+  const outputCost = (outputTokens * p.output) / 1_000_000;
+  const total = inputCost + cacheReadCost + cacheCreationCost + outputCost;
+  return total.toFixed(6);
 }
