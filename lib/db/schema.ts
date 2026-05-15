@@ -880,6 +880,10 @@ export const documents = pgTable(
     sharedWithClient: boolean("shared_with_client").notNull().default(false),
     version: integer("version").notNull().default(1),
     parentDocumentId: uuid("parent_document_id"),
+    // Idempotency key for the scan-ingest worker. When set, a unique index
+    // on (firm_id, scan_id) ensures retries don't create duplicate rows.
+    // NULL for documents uploaded through the regular UI.
+    scanId: text("scan_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -889,8 +893,30 @@ export const documents = pgTable(
     index("documents_firm_case_idx").on(t.firmId, t.caseId),
     index("documents_firm_client_idx").on(t.firmId, t.clientId),
     index("documents_parent_idx").on(t.parentDocumentId),
+    uniqueIndex("documents_firm_scan_id_unique")
+      .on(t.firmId, t.scanId)
+      .where(sql`${t.scanId} IS NOT NULL`),
   ],
 );
+
+// =============================================================================
+// rate_limits — sliding-window rate limiting for API endpoints (Fase 6+)
+// =============================================================================
+// Single-row-per-key tracking. checkRateLimit() upserts atomically, resetting
+// the window when expired. Keys are app-defined strings like
+// "scan-ingest:resolve-user:203.0.113.5".
+//
+// Why SQL instead of Redis: avoids a second piece of infra. For < 10 req/s
+// per endpoint this is fine; if traffic grows, swap to Upstash with the same
+// helper interface.
+
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type RateLimit = typeof rateLimits.$inferSelect;
 
 // =============================================================================
 // notes — Tiptap richtext per case (jsonb document model)
@@ -1310,7 +1336,14 @@ export const aiUsage = pgTable(
       .references(() => firms.id, { onDelete: "cascade" }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     feature: text("feature")
-      .$type<"case_summary" | "refine_note" | "doc_search" | "doc_summary" | "chat">()
+      .$type<
+        | "case_summary"
+        | "refine_note"
+        | "doc_search"
+        | "doc_summary"
+        | "chat"
+        | "scan_classify"
+      >()
       .notNull(),
     model: text("model").notNull(),
     inputTokens: integer("input_tokens").notNull().default(0),

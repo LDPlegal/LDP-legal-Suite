@@ -334,6 +334,7 @@ export const AI_FEATURE_LABEL: Record<string, string> = {
   doc_search: "Búsqueda documentos",
   doc_summary: "Resumen de documento",
   chat: "Chat IA",
+  scan_classify: "Clasificación de escaneo",
 };
 
 // =============================================================================
