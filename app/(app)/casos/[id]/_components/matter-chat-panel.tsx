@@ -38,6 +38,7 @@ import {
   sendChatMessageAction,
 } from "@/app/_actions/matter-chat/send";
 import { generateDocFromChatAction } from "@/app/_actions/matter-chat/generate-doc";
+import { createEventFromChatAction } from "@/app/_actions/matter-chat/create-event";
 
 type ToolUse = {
   id: string;
@@ -46,6 +47,9 @@ type ToolUse = {
   // Generated document state (after the user clicks "Generar").
   generated?: { documentId: string; downloadUrl: string };
   generating?: boolean;
+  // Event creation state (after the user clicks "Crear evento").
+  eventCreated?: { eventId: string; alertCount: number };
+  creating?: boolean;
 };
 
 type ChatMessage = {
@@ -204,6 +208,96 @@ export function MatterChatPanel({
     }
   }
 
+  // Confirm "Crear evento" click on a create_event tool card.
+  async function handleCreateEvent(messageId: string, toolUseId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const use = msg?.toolUses?.find((t) => t.id === toolUseId);
+    if (!msg || !use) return;
+    const inp = use.input as {
+      eventType?: string;
+      title?: string;
+      description?: string;
+      startAtIso?: string;
+      durationMinutes?: number;
+      location?: string;
+    };
+    if (!inp.eventType || !inp.title || !inp.startAtIso) {
+      toast.error("La IA no proporcionó datos completos. Pídele que vuelva a intentar.");
+      return;
+    }
+    setMessages((cur) =>
+      cur.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              toolUses: m.toolUses?.map((t) =>
+                t.id === toolUseId ? { ...t, creating: true } : t,
+              ),
+            }
+          : m,
+      ),
+    );
+    try {
+      const r = await createEventFromChatAction({
+        caseId,
+        chatMessageId: messageId.startsWith("user-") ? undefined : messageId,
+        eventType: inp.eventType as
+          | "audiencia"
+          | "plazo_procesal"
+          | "reunion_cliente"
+          | "reunion_interna"
+          | "vencimiento_administrativo"
+          | "recordatorio",
+        title: inp.title,
+        description: inp.description,
+        startAtIso: inp.startAtIso,
+        durationMinutes: inp.durationMinutes,
+        location: inp.location,
+        originalPrompt: msg.content,
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        setMessages((cur) =>
+          cur.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  toolUses: m.toolUses?.map((t) =>
+                    t.id === toolUseId ? { ...t, creating: false } : t,
+                  ),
+                }
+              : m,
+          ),
+        );
+        return;
+      }
+      setMessages((cur) =>
+        cur.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                toolUses: m.toolUses?.map((t) =>
+                  t.id === toolUseId
+                    ? {
+                        ...t,
+                        creating: false,
+                        eventCreated: { eventId: r.eventId, alertCount: r.alertCount },
+                      }
+                    : t,
+                ),
+              }
+            : m,
+        ),
+      );
+      toast.success("Evento creado", {
+        description: `${r.alertCount} alerta(s) programada(s).`,
+      });
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error inesperado.");
+    }
+  }
+
   // Confirm "Generate" click on a generate_document tool card.
   async function handleGenerateDoc(messageId: string, toolUseId: string) {
     const msg = messages.find((m) => m.id === messageId);
@@ -332,7 +426,12 @@ export function MatterChatPanel({
           ) : (
             <ul className="space-y-3">
               {messages.map((m) => (
-                <ChatBubble key={m.id} message={m} onGenerate={handleGenerateDoc} />
+                <ChatBubble
+                  key={m.id}
+                  message={m}
+                  onGenerate={handleGenerateDoc}
+                  onCreateEvent={handleCreateEvent}
+                />
               ))}
               {sending ? (
                 <li className="flex items-start gap-2">
@@ -389,9 +488,11 @@ export function MatterChatPanel({
 function ChatBubble({
   message,
   onGenerate,
+  onCreateEvent,
 }: {
   message: ChatMessage;
   onGenerate?: (messageId: string, toolUseId: string) => void;
+  onCreateEvent?: (messageId: string, toolUseId: string) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -430,6 +531,7 @@ function ChatBubble({
             messageId={message.id}
             use={tu}
             onGenerate={onGenerate}
+            onCreateEvent={onCreateEvent}
           />
         ))}
         {isAssistant ? (
@@ -457,10 +559,12 @@ function ToolUseCard({
   messageId,
   use,
   onGenerate,
+  onCreateEvent,
 }: {
   messageId: string;
   use: ToolUse;
   onGenerate?: (messageId: string, toolUseId: string) => void;
+  onCreateEvent?: (messageId: string, toolUseId: string) => void;
 }) {
   if (use.name === "generate_document") {
     const inp = use.input as {
@@ -516,8 +620,9 @@ function ToolUseCard({
     );
   }
 
-  // create_event card — Bloque 3 wires the action. For now we show the
-  // proposed event so the user knows what the assistant intends to do.
+  // create_event card — assistant proposed an event. The user confirms by
+  // clicking "Crear evento", which calls createEventFromChatAction and
+  // schedules alerts per the policy for that event type.
   if (use.name === "create_event") {
     const inp = use.input as {
       eventType?: string;
@@ -542,9 +647,26 @@ function ToolUseCard({
           {inp.durationMinutes ? <li>⏱ {inp.durationMinutes} minutos</li> : null}
           {inp.location ? <li>📍 {inp.location}</li> : null}
         </ul>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Confirmá en el chat para crearlo en el calendario.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {use.eventCreated ? (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+              ✓ Evento creado · {use.eventCreated.alertCount}{" "}
+              {use.eventCreated.alertCount === 1 ? "alerta programada" : "alertas programadas"}
+            </span>
+          ) : use.creating ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Creando evento…
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onCreateEvent?.(messageId, use.id)}
+            >
+              Crear evento
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

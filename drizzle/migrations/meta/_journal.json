@@ -113,6 +113,13 @@
       "when": 1779900000000,
       "tag": "0015_ai_doc_generation",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780000000000,
+      "tag": "0016_event_typology_alerts",
+      "breakpoints": true
     }
   ]
 }

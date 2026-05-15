@@ -634,6 +634,26 @@ export const events = pgTable(
     // re-imports). Both NULL for events created inside the app.
     externalSubscriptionId: uuid("external_subscription_id"),
     externalUid: text("external_uid"),
+    // F7 bloque 3: event typology + AI audit trail. Drives the alert policy
+    // (audiencia → aggressive, recordatorio → light) and the chat history
+    // for events created from natural language ("audiencia el 25 de marzo").
+    eventType: text("event_type").$type<
+      | "audiencia"
+      | "plazo_procesal"
+      | "reunion_cliente"
+      | "reunion_interna"
+      | "vencimiento_administrativo"
+      | "recordatorio"
+    >(),
+    createdByAi: boolean("created_by_ai").notNull().default(false),
+    originalPrompt: text("original_prompt"),
+    aiChatMessageId: uuid("ai_chat_message_id"),
+    // Alert policy as jsonb so partners can override per-event without
+    // schema migrations. Default policies live in lib/events/alerts.ts.
+    alertPolicy: jsonb("alert_policy").$type<{
+      offsetsMinutes: number[];
+      channels: Array<"email" | "inapp">;
+    }>(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -644,13 +664,46 @@ export const events = pgTable(
     index("events_firm_case_idx").on(t.firmId, t.caseId),
     index("events_firm_start_idx").on(t.firmId, t.startAt),
     uniqueIndex("events_ical_uid_unique").on(t.icalUid),
-    // Dedupe key for re-imports: each (subscription, externalUid) maps to
-    // exactly one event row. Insert-on-conflict keeps the import idempotent.
     uniqueIndex("events_external_unique")
       .on(t.externalSubscriptionId, t.externalUid)
       .where(sql`${t.externalSubscriptionId} IS NOT NULL AND ${t.externalUid} IS NOT NULL`),
   ],
 );
+
+// =============================================================================
+// event_alerts — scheduled reminders (email/inapp) per event
+// =============================================================================
+// One row per offset. The background cron job (lib/events/alerts.ts)
+// fetches due rows where sent_at IS NULL AND now() >= due_at and emits the
+// notification, then sets sent_at to mark them processed.
+
+export const eventAlerts = pgTable(
+  "event_alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    channel: text("channel").$type<"email" | "inapp">().notNull(),
+    recipientUserId: uuid("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("event_alerts_firm_idx").on(t.firmId),
+    index("event_alerts_due_idx").on(t.dueAt).where(sql`${t.sentAt} IS NULL`),
+    index("event_alerts_event_idx").on(t.eventId),
+  ],
+);
+
+export type EventAlert = typeof eventAlerts.$inferSelect;
 
 // =============================================================================
 // external_calendar_subscriptions — iCal feeds the user wants to ingest
