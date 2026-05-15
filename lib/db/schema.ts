@@ -884,6 +884,17 @@ export const documents = pgTable(
     // on (firm_id, scan_id) ensures retries don't create duplicate rows.
     // NULL for documents uploaded through the regular UI.
     scanId: text("scan_id"),
+    // AI generation audit (F7 bloque 2): when this document was generated
+    // by the chat AI from a user prompt, these columns capture the lineage.
+    // review_status drives the "pendiente de revisión" UI marker.
+    aiGenerated: boolean("ai_generated").notNull().default(false),
+    aiOriginalPrompt: text("ai_original_prompt"),
+    aiSkillIds: text("ai_skill_ids").array(),
+    aiChatMessageId: uuid("ai_chat_message_id"),
+    reviewStatus: text("review_status")
+      .$type<"pending" | "approved" | "rejected">(),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

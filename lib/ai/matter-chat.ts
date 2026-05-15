@@ -22,6 +22,8 @@
 
 import "server-only";
 import { runPrompt, type AiTool, type RunPromptResult } from "./claude";
+import { resolveSkillsFor, renderSkillsBlock } from "./skills";
+import { matterChatTools } from "./tools";
 import {
   appendChatMessage,
   computeMatterStats,
@@ -31,6 +33,7 @@ import {
   truncateForContext,
   type MatterContextStats,
 } from "@/lib/db/queries/matter-chats";
+import { getCaseById } from "@/lib/db/queries/cases";
 import type { MatterChat } from "@/lib/db/schema";
 
 // How many recent messages to keep in active context. Older messages stay
@@ -72,6 +75,17 @@ export async function runMatterChatTurn(input: ChatTurnInput): Promise<ChatTurnO
   //    queue. The chat works fine even with a stale summary.
   const stats = await computeMatterStats(firmId, userId, caseId);
 
+  // 2b. Load the case to know matterType (drives which skills apply).
+  const caso = await getCaseById(firmId, userId, caseId);
+  const matterType = caso?.case.matterType;
+
+  // 2c. Resolve skills broadly (no specific document type yet — that comes
+  // when the user asks "redacta X"). We send ALL skills that match this
+  // matter type plus the base. The model picks the right one when invoking
+  // the tool. Cost-wise this is fine because the skills block is cached.
+  const skills = await resolveSkillsFor({ matterType });
+  const skillsBlock = renderSkillsBlock(skills);
+
   // 3. Load chat history (oldest first).
   const allHistory = await listChatMessages(firmId, userId, caseId);
   const recent = truncateForContext(allHistory, { keepLast: ACTIVE_HISTORY_TURNS });
@@ -96,10 +110,12 @@ export async function runMatterChatTurn(input: ChatTurnInput): Promise<ChatTurnO
     "Tu rol: asistente de chat para un expediente específico de la firma LDP Legal Advisors.",
     "El usuario está mirando este expediente en la pantalla y puede pedirte (a) consultas sobre el caso, (b) que generes documentos legales, o (c) que crees eventos / plazos en el calendario.",
     "Para consultas: responde directamente con texto claro y conciso.",
-    "Para generar documentos: usa la herramienta `generate_document` cuando exista; no inventes el documento en texto plano.",
-    "Para crear eventos: usa la herramienta `create_event` y SIEMPRE pide confirmación al usuario antes de invocarla.",
+    "Para generar documentos: usa la herramienta `generate_document` con el cuerpo del documento en Markdown LDP. No respondas con el documento como texto plano — el usuario espera un .docx.",
+    "Para crear eventos: usa la herramienta `create_event` y SIEMPRE pide confirmación al usuario antes de invocarla (el usuario debe responder 'sí' o equivalente).",
     "NUNCA actúes en nombre del usuario sin su confirmación explícita. NUNCA mandes correos, anules facturas, ni modifiques nada destructivo automáticamente.",
+    "Cuando generes documentos, sigue ESTRICTAMENTE las reglas de formato y estilo LDP del bloque de Skills más abajo. Si te falta un dato del expediente, márcalo como `[DATO PENDIENTE: descripción específica]` y lista los pendientes en el mensaje del chat.",
     input.systemExtra ?? "",
+    skillsBlock,
     summaryBlock,
     statsBlock,
   ]
@@ -118,11 +134,13 @@ export async function runMatterChatTurn(input: ChatTurnInput): Promise<ChatTurnO
   messages.push({ role: "user", content: input.userMessage });
 
   // 7. Run the LLM. Cache the system prompt (skills + matter context) since
-  //    every turn within a 5-min window reuses it.
+  //    every turn within a 5-min window reuses it. Tools enabled by default
+  //    are matterChatTools (generate_document + create_event); callers may
+  //    override with input.tools when they need a different surface.
   const result = await runPrompt(messages, {
     systemAddendum,
     cacheSystem: true,
-    tools: input.tools,
+    tools: input.tools ?? matterChatTools,
     model: input.model,
     maxTokens: 2500,
     temperature: 0.4,

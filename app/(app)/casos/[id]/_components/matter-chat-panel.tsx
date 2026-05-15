@@ -37,12 +37,23 @@ import {
   loadChatHistory,
   sendChatMessageAction,
 } from "@/app/_actions/matter-chat/send";
+import { generateDocFromChatAction } from "@/app/_actions/matter-chat/generate-doc";
+
+type ToolUse = {
+  id: string;
+  name: string;
+  input: unknown;
+  // Generated document state (after the user clicks "Generar").
+  generated?: { documentId: string; downloadUrl: string };
+  generating?: boolean;
+};
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   createdAt: Date;
+  toolUses?: ToolUse[];
 };
 
 export function MatterChatPanel({
@@ -155,10 +166,9 @@ export function MatterChatPanel({
         setMessages((cur) => cur.filter((m) => m.id !== userMsg.id));
         return;
       }
-      // Replace optimistic + append assistant.
+      // Replace optimistic + append assistant with its tool uses (so the
+      // chat can render generate_document / create_event cards inline).
       setMessages((cur) => {
-        // Reload from server response (assistant included). The user message
-        // is now persistent; tag it with its real id by reloading.
         const withoutTmp = cur.filter((m) => m.id !== userMsg.id);
         return [
           ...withoutTmp,
@@ -173,11 +183,10 @@ export function MatterChatPanel({
             role: "assistant",
             content: result.assistantText,
             createdAt: new Date(),
+            toolUses: result.toolUses,
           },
         ];
       });
-      // Future blocks 2 & 3 will inspect result.toolUses to render document
-      // generation cards / event confirmation prompts.
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error inesperado.");
@@ -192,6 +201,86 @@ export function MatterChatPanel({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  }
+
+  // Confirm "Generate" click on a generate_document tool card.
+  async function handleGenerateDoc(messageId: string, toolUseId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const use = msg?.toolUses?.find((t) => t.id === toolUseId);
+    if (!msg || !use) return;
+    const inp = use.input as {
+      documentType?: string;
+      title?: string;
+      bodyMarkdown?: string;
+    };
+    if (!inp.documentType || !inp.title || !inp.bodyMarkdown) {
+      toast.error("La IA no proporcionó datos completos. Pídele que vuelva a intentar.");
+      return;
+    }
+    // Mark "generating" in state.
+    setMessages((cur) =>
+      cur.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              toolUses: m.toolUses?.map((t) =>
+                t.id === toolUseId ? { ...t, generating: true } : t,
+              ),
+            }
+          : m,
+      ),
+    );
+    try {
+      const r = await generateDocFromChatAction({
+        caseId,
+        chatMessageId: messageId.startsWith("user-") ? undefined : messageId,
+        documentType: inp.documentType,
+        title: inp.title,
+        bodyMarkdown: inp.bodyMarkdown,
+        originalPrompt: msg.content,
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        setMessages((cur) =>
+          cur.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  toolUses: m.toolUses?.map((t) =>
+                    t.id === toolUseId ? { ...t, generating: false } : t,
+                  ),
+                }
+              : m,
+          ),
+        );
+        return;
+      }
+      // Mark generated.
+      setMessages((cur) =>
+        cur.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                toolUses: m.toolUses?.map((t) =>
+                  t.id === toolUseId
+                    ? {
+                        ...t,
+                        generating: false,
+                        generated: { documentId: r.documentId, downloadUrl: r.downloadUrl },
+                      }
+                    : t,
+                ),
+              }
+            : m,
+        ),
+      );
+      toast.success("Documento generado y guardado en el expediente", {
+        description: "Estado: pendiente de revisión humana.",
+      });
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error inesperado.");
     }
   }
 
@@ -243,7 +332,7 @@ export function MatterChatPanel({
           ) : (
             <ul className="space-y-3">
               {messages.map((m) => (
-                <ChatBubble key={m.id} message={m} />
+                <ChatBubble key={m.id} message={m} onGenerate={handleGenerateDoc} />
               ))}
               {sending ? (
                 <li className="flex items-start gap-2">
@@ -297,7 +386,13 @@ export function MatterChatPanel({
   );
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({
+  message,
+  onGenerate,
+}: {
+  message: ChatMessage;
+  onGenerate?: (messageId: string, toolUseId: string) => void;
+}) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
 
@@ -326,7 +421,17 @@ function ChatBubble({ message }: { message: ChatMessage }) {
           isUser ? "bg-primary/5" : "bg-muted/30"
         }`}
       >
-        <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+        {message.content ? (
+          <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+        ) : null}
+        {message.toolUses?.map((tu) => (
+          <ToolUseCard
+            key={tu.id}
+            messageId={message.id}
+            use={tu}
+            onGenerate={onGenerate}
+          />
+        ))}
         {isAssistant ? (
           <div className="mt-2 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
             <button
@@ -345,6 +450,111 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         ) : null}
       </div>
     </li>
+  );
+}
+
+function ToolUseCard({
+  messageId,
+  use,
+  onGenerate,
+}: {
+  messageId: string;
+  use: ToolUse;
+  onGenerate?: (messageId: string, toolUseId: string) => void;
+}) {
+  if (use.name === "generate_document") {
+    const inp = use.input as {
+      documentType?: string;
+      title?: string;
+      bodyMarkdown?: string;
+      summary?: string;
+    };
+    const wordCount = inp.bodyMarkdown ? inp.bodyMarkdown.split(/\s+/).length : 0;
+    return (
+      <div className="mt-3 rounded-md border bg-background p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+            📄 Documento propuesto
+          </span>
+          <span>{inp.documentType ?? "desconocido"}</span>
+          <span className="ml-auto">~{wordCount} palabras</span>
+        </div>
+        <p className="mt-2 text-sm font-medium">{inp.title ?? "(sin título)"}</p>
+        {inp.summary ? (
+          <p className="mt-1 text-xs text-muted-foreground">{inp.summary}</p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {use.generated ? (
+            <>
+              <a
+                href={use.generated.downloadUrl}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex h-7 items-center gap-1 rounded-md border bg-primary px-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Descargar .docx
+              </a>
+              <span className="text-[11px] text-muted-foreground">
+                Guardado en pestaña Documentos como “pendiente de revisión”.
+              </span>
+            </>
+          ) : use.generating ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Generando .docx…
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onGenerate?.(messageId, use.id)}
+            >
+              Generar .docx
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // create_event card — Bloque 3 wires the action. For now we show the
+  // proposed event so the user knows what the assistant intends to do.
+  if (use.name === "create_event") {
+    const inp = use.input as {
+      eventType?: string;
+      title?: string;
+      startAtIso?: string;
+      durationMinutes?: number;
+      location?: string;
+    };
+    return (
+      <div className="mt-3 rounded-md border bg-background p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-400">
+            📅 Evento propuesto
+          </span>
+          <span>{inp.eventType ?? "evento"}</span>
+        </div>
+        <p className="mt-2 text-sm font-medium">{inp.title ?? "(sin título)"}</p>
+        <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+          {inp.startAtIso ? (
+            <li>📆 {new Date(inp.startAtIso).toLocaleString("es-DO")}</li>
+          ) : null}
+          {inp.durationMinutes ? <li>⏱ {inp.durationMinutes} minutos</li> : null}
+          {inp.location ? <li>📍 {inp.location}</li> : null}
+        </ul>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Confirmá en el chat para crearlo en el calendario.
+        </p>
+      </div>
+    );
+  }
+
+  // Fallback for unknown tools — keeps the UI from breaking when we add
+  // new tools server-side before the client supports them.
+  return (
+    <div className="mt-3 rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">
+      Acción solicitada: <code>{use.name}</code>
+    </div>
   );
 }
 
