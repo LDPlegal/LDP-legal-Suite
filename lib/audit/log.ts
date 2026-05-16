@@ -23,7 +23,7 @@ export type AuditAction = NewAuditLog["action"];
 export type LogAuditInput = {
   firmId: string;
   userId: string;
-  entityType: "case" | "client" | "invoice" | "payment" | "time_entry" | "expense" | "task" | "event" | "document" | "note" | "user" | "ncf_range";
+  entityType: "case" | "client" | "invoice" | "payment" | "time_entry" | "expense" | "task" | "event" | "document" | "note" | "user" | "ncf_range" | "firm";
   entityId: string;
   // When the entity belongs to a case (invoice/time/expense/document/note/
   // task/event), set caseId so the case detail's Bitácora tab can list all

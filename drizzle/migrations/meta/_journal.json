@@ -120,6 +120,13 @@
       "when": 1780000000000,
       "tag": "0016_event_typology_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780100000000,
+      "tag": "0017_security_budget_suggestions",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,8 @@
+import { eq } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ShieldCheck } from "lucide-react";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
 import { listMatterTemplates } from "@/lib/db/queries/matter-templates";
@@ -10,28 +11,40 @@ import { listFirmUsers } from "@/lib/db/queries/users";
 import { listClients } from "@/lib/db/queries/clients";
 import { requireUser } from "@/lib/auth/session";
 import { isAiEnabled } from "@/lib/ai";
+import { adminDb } from "@/lib/db/admin";
+import { users } from "@/lib/db/schema";
+import { getBudgetStatus } from "@/lib/ai/budget";
 import { NcfRangesPanel } from "./_components/ncf-ranges-panel";
 import { FirmForm } from "./_components/firm-form";
 import { TemplatesPanel } from "./_components/templates-panel";
 import { BrandingPanel } from "./_components/branding-panel";
 import { RatesPanel } from "./_components/rates-panel";
 import { TeamPanel } from "./_components/team-panel";
+import { TwoFactorPanel } from "./_components/two-factor-panel";
+import { AiBudgetPanel } from "./_components/ai-budget-panel";
 
 export const metadata = { title: "Configuración · LDP Legal Suite" };
 
 export default async function ConfiguracionPage() {
   const user = await requireUser();
-  const [ranges, firm, templates, ratesRows, firmUsers, clientsRes] = await Promise.all([
+  const [ranges, firm, templates, ratesRows, firmUsers, clientsRes, budgetStatus, twoFactorRow] = await Promise.all([
     listNcfRanges(user.firmId, user.userId),
     getCurrentFirm(user.firmId, user.userId),
     listMatterTemplates(user.firmId, user.userId),
     listRates(user.firmId, user.userId),
     listFirmUsers(user.firmId, user.userId),
     listClients(user.firmId, user.userId, { limit: 200 }),
+    getBudgetStatus(user.firmId),
+    adminDb
+      .select({ twoFactorEnabled: users.twoFactorEnabled })
+      .from(users)
+      .where(eq(users.id, user.userId))
+      .limit(1),
   ]);
   const isAdmin = user.role === "admin" || user.role === "partner";
   const aiEnabled = isAiEnabled();
   const aiModel = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
+  const twoFactorEnabled = twoFactorRow[0]?.twoFactorEnabled ?? false;
 
   return (
     <div className="space-y-6">
@@ -47,6 +60,7 @@ export default async function ConfiguracionPage() {
           <TabsTrigger value="fiscal">Fiscal (NCF)</TabsTrigger>
           <TabsTrigger value="firm">Datos del firm</TabsTrigger>
           <TabsTrigger value="equipo">Equipo</TabsTrigger>
+          <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
@@ -148,6 +162,54 @@ export default async function ConfiguracionPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="seguridad" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                Autenticación de dos factores (2FA)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TwoFactorPanel enabled={twoFactorEnabled} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Casos confidenciales</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                Cada caso tiene un nivel de confidencialidad (configurable desde la
+                pestaña Caso → Editar):
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-xs">
+                <li>
+                  <strong>Normal</strong>: comportamiento por defecto. Visible al
+                  equipo del firm asignado al caso.
+                </li>
+                <li>
+                  <strong>Confidencial</strong>: cada lectura por usuarios distintos
+                  al lead lawyer queda registrada en la bitácora de auditoría.
+                </li>
+                <li>
+                  <strong>Ultra-confidencial</strong>: los documentos se cifran a
+                  nivel de aplicación (AES-256-GCM) antes de subirlos al storage.
+                  Cloudflare R2 nunca ve el contenido original, solo blobs opacos.
+                </li>
+              </ul>
+              <p className="rounded-md border border-dashed bg-muted/30 p-3 text-[11px]">
+                <strong>Importante:</strong> el cifrado app-layer requiere la
+                variable de entorno <code>APP_CRYPTO_MASTER_KEY</code> configurada
+                en producción. Rotarla deja inaccesibles los documentos cifrados
+                con la versión anterior — solo hacelo si tenés respaldo de la
+                clave original.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="ia">
           <Card>
             <CardHeader>
@@ -217,6 +279,26 @@ export default async function ConfiguracionPage() {
                 servidores. No actives la IA si tu firm tiene cláusulas de
                 confidencialidad que lo prohíban.
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Presupuesto IA</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AiBudgetPanel
+                initial={{
+                  config: budgetStatus.config,
+                  monthSpendUsd: budgetStatus.monthSpendUsd,
+                  monthInputTokens: budgetStatus.monthInputTokens,
+                  monthOutputTokens: budgetStatus.monthOutputTokens,
+                  callCount: budgetStatus.callCount,
+                  pctUsed: budgetStatus.pctUsed,
+                  state: budgetStatus.state,
+                }}
+                canEdit={isAdmin}
+              />
             </CardContent>
           </Card>
         </TabsContent>

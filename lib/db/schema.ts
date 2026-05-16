@@ -145,6 +145,9 @@ export const users = pgTable(
     clientId: uuid("client_id"),
     status: userStatusEnum("status").notNull().default("active"),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    // F7 bloque 4: 2FA con better-auth. El flag se controla via auth plugin;
+    // el secret + backup codes viven en `two_factors`.
+    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -289,6 +292,14 @@ export const cases = pgTable(
     counterpartyTaxId: text("counterparty_tax_id"),
     tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
     visibility: caseVisibilityEnum("visibility").notNull().default("firm"),
+    // F7 bloque 4: tier de confidencialidad. 'ultra_confidential' activa el
+    // cifrado app-layer (lib/crypto/app-layer.ts) sobre los documentos del
+    // caso antes de subirlos al storage. 'confidential' loguea cada acceso
+    // de lectura no-lead en el audit log.
+    confidentialTier: text("confidential_tier")
+      .$type<"normal" | "confidential" | "ultra_confidential">()
+      .notNull()
+      .default("normal"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -948,6 +959,15 @@ export const documents = pgTable(
       .$type<"pending" | "approved" | "rejected">(),
     reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    // F7 bloque 4: cuando el caso parent es ultra_confidential, el archivo
+    // se cifra con AES-256-GCM antes de subir. Estos metadatos permiten
+    // descifrarlo (IV, AAD, versión del key).
+    encryptionMeta: jsonb("encryption_meta").$type<{
+      v: number;
+      iv: string;
+      aad: string;
+      keyId: string;
+    }>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -1554,3 +1574,83 @@ export const matterContexts = pgTable(
 );
 
 export type MatterContext = typeof matterContexts.$inferSelect;
+
+// =============================================================================
+// two_factors — TOTP secret + backup codes (F7 bloque 4, 2FA)
+// =============================================================================
+// Managed entirely by better-auth's twoFactor plugin. We declare the table
+// here so Drizzle's introspection sees it, but app code should NOT touch it
+// — go through auth.api.enableTwoFactor / verifyTotp / etc. The secret +
+// backup codes are encrypted at rest by better-auth before persisting.
+
+export const twoFactors = pgTable(
+  "two_factors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    verified: boolean("verified").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("two_factors_user_unique").on(t.userId),
+    index("two_factors_secret_idx").on(t.secret),
+  ],
+);
+
+export type TwoFactor = typeof twoFactors.$inferSelect;
+
+// =============================================================================
+// ai_suggestions — bandeja proactiva de sugerencias generadas por la IA
+// =============================================================================
+// El worker NLP (lib/ai/suggestions.ts) escanea periódicamente cada firm y
+// produce sugerencias accionables ("caso sin movimiento 21 días", "borrador
+// pendiente revisión", "plazo próximo sin doc"). El destinatario (lead
+// lawyer o admin) las ve en el dashboard como tarjetas; al clickear se
+// marcan `acted`, al descartar `dismissed`.
+
+export const aiSuggestions = pgTable(
+  "ai_suggestions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    // Discriminador para el frontend: "stale_case", "pending_review",
+    // "deadline_soon", "ai_budget_warn"...
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    // Where clicking the suggestion takes the user.
+    href: text("href"),
+    severity: text("severity").$type<"info" | "warn" | "critical">().notNull().default("info"),
+    status: text("status").$type<"pending" | "dismissed" | "acted">().notNull().default("pending"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    // Sugerencias auto-expiran (e.g. "plazo en 3 días" deja de ser útil
+    // pasada la fecha). El worker no las re-genera si ya hay una pending
+    // del mismo kind+caseId vigente.
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    actedAt: timestamp("acted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("ai_suggestions_firm_user_idx").on(t.firmId, t.userId, t.status),
+    index("ai_suggestions_firm_pending_idx")
+      .on(t.firmId, t.createdAt)
+      .where(sql`${t.status} = 'pending'`),
+    index("ai_suggestions_case_idx")
+      .on(t.caseId)
+      .where(sql`${t.caseId} IS NOT NULL`),
+  ],
+);
+
+export type AiSuggestion = typeof aiSuggestions.$inferSelect;
+export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;

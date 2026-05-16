@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { and, eq, isNull } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import * as schema from "@/lib/db/schema";
@@ -100,6 +101,13 @@ export const auth = betterAuth({
       generateId: () => crypto.randomUUID(),
     },
   },
+  // F7 bloque 4: optional 2FA via TOTP (Google Authenticator, 1Password,
+  // Authy). El plugin añade endpoints /api/auth/two-factor/{enable,verify-totp,
+  // disable,verify-backup-code}. El secret + backup codes los persiste
+  // better-auth en la tabla two_factors (declarada en schema.ts, creada
+  // por la migración 0017).
+  // SMS deliberadamente NO se habilita: TOTP es más seguro y barato.
+  // backupCodes: 8 códigos one-time que el usuario imprime al activar.
   databaseHooks: {
     user: {
       create: {
@@ -183,7 +191,15 @@ export const auth = betterAuth({
   // earlier plugins. Without it, server actions (signUp, signOut) can't set
   // or clear the session cookie, which causes ERR_TOO_MANY_REDIRECTS on
   // logout (cookie persists → middleware redirects /login → /dashboard → ...).
-  plugins: [nextCookies()],
+  plugins: [
+    twoFactor({
+      issuer: "LDP Legal Suite",
+      // Backup codes en cantidad razonable; el usuario los descarga al
+      // activar 2FA y los guarda offline.
+      backupCodeOptions: { amount: 8, length: 10 },
+    }),
+    nextCookies(),
+  ],
 });
 
 export type Auth = typeof auth;

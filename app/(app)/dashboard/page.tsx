@@ -21,9 +21,11 @@ import {
 } from "@/lib/db/queries/audit";
 import { listEventsInRange } from "@/lib/db/queries/events";
 import { listMyOpenTasks } from "@/lib/db/queries/tasks";
+import { listPendingSuggestions } from "@/lib/db/queries/ai-suggestions";
 import { requireUser } from "@/lib/auth/session";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
+import { SuggestionsWidget } from "./_components/suggestions-widget";
 
 export const metadata = { title: "Dashboard · LDP Legal Suite" };
 
@@ -60,6 +62,7 @@ export default async function DashboardPage() {
     misTareas,
     proximosEventos,
     actividad,
+    sugerencias,
   ] = await Promise.all([
     listCases(user.firmId, user.userId, { limit: 1 }),
     listCases(user.firmId, user.userId, { status: "open", limit: 1 }),
@@ -72,6 +75,7 @@ export default async function DashboardPage() {
     listMyOpenTasks(user.firmId, user.userId),
     listEventsInRange(user.firmId, user.userId, { start: now, end: next7 }),
     listFirmRecentAudit(user.firmId, user.userId, 12),
+    listPendingSuggestions(user.firmId, user.userId, { limit: 10 }),
   ]);
 
   const myHoursRow = hoursByUser.find((u) => u.user_id === user.userId);
@@ -150,6 +154,20 @@ export default async function DashboardPage() {
           );
         })}
       </div>
+
+      {sugerencias.length > 0 ? (
+        <SuggestionsWidget
+          initial={sugerencias.map((s) => ({
+            id: s.id,
+            kind: s.kind,
+            title: s.title,
+            body: s.body,
+            href: s.href,
+            severity: s.severity,
+            createdAt: s.createdAt,
+          }))}
+        />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

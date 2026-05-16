@@ -18,6 +18,17 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { adminDb } from "@/lib/db/admin";
 import { aiUsage } from "@/lib/db/schema";
+import { preflightBudget, recordSpendAndMaybeWarn } from "./budget";
+
+// Thrown when preflightBudget says the firm has hit a hard-cap. Callers
+// (matter chat, doc generate, etc.) deben capturar y mostrar el reason
+// al usuario en lugar de mostrarlo como error genérico.
+export class AiBudgetExceededError extends Error {
+  constructor(public readonly reason: string) {
+    super(reason);
+    this.name = "AiBudgetExceededError";
+  }
+}
 
 // Anthropic pricing per million tokens. Source: https://www.anthropic.com/pricing
 // Updated when models change. Used to compute cost_usd per call.
@@ -148,6 +159,17 @@ export async function runPrompt(
   opts: RunPromptAdvanced = {},
 ): Promise<RunPromptResult> {
   const client = getClient();
+
+  // Budget preflight: if the firm hit the hard-cap, refuse before paying
+  // for the API call. We only enforce when tracking is set (every chat /
+  // doc-gen / event-parse call sets it); untracked ad-hoc calls bypass.
+  if (opts.tracking?.firmId) {
+    const pre = await preflightBudget(opts.tracking.firmId);
+    if (!pre.allowed) {
+      throw new AiBudgetExceededError(pre.reason);
+    }
+  }
+
   const systemText =
     LEGAL_SYSTEM_PREAMBLE +
     (opts.systemAddendum ? `\n\n${opts.systemAddendum}` : "");
@@ -229,6 +251,10 @@ export async function runPrompt(
         outputTokens,
         costUsd: cost,
       });
+      // Después de registrar el gasto, evalúa si cruzamos algún umbral
+      // (70/90/100%) por primera vez este mes y dispara la sugerencia
+      // hacia admins. Idempotente, no bloquea.
+      await recordSpendAndMaybeWarn(opts.tracking.firmId);
     } catch {
       // Don't fail the user-facing prompt over a tracking write.
     }
