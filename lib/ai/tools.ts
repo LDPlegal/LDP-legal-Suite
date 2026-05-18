@@ -89,6 +89,94 @@ export const createEventTool: AiTool = {
   },
 };
 
+// Lee el contenido OCR/texto completo de un documento del expediente. La
+// IA invoca esta tool cuando necesita citar literalmente un documento o
+// extraer datos específicos (e.g. nombre de socios desde una nómina,
+// cláusulas de un contrato previo). El servidor valida que el documento
+// pertenece al firm + caso actual.
+export const readDocumentTool: AiTool = {
+  name: "read_document",
+  description:
+    "Lee el contenido completo (OCR) de un documento ya cargado en este expediente. Úsalo cuando necesites datos literales: nombres de socios, cláusulas previas, fechas exactas, números de cédula/RNC, etc. NO inventes — si el documento no existe o no tiene OCR, te lo decimos para que marques [DATO PENDIENTE].",
+  input_schema: {
+    type: "object",
+    properties: {
+      documentId: {
+        type: "string",
+        description: "UUID del documento. Lo obtienes del listado en el contexto del expediente.",
+      },
+      reason: {
+        type: "string",
+        description:
+          "Razón breve por la que necesitás leerlo (queda en el audit log). Ej: 'Sacar nombres de socios para acta'.",
+      },
+    },
+    required: ["documentId"],
+  },
+};
+
+// Reagenda un evento existente (mueve fecha, cambia duración, cambia
+// ubicación). Sólo eventos del caso actual. Requiere confirmación humana
+// igual que create_event.
+export const updateEventTool: AiTool = {
+  name: "update_event",
+  description:
+    "Reagenda o edita un evento existente del expediente (audiencia, plazo, reunión). SIEMPRE muestra el cambio propuesto al usuario antes de invocar y espera su 'sí'. Mantenete dentro del mismo caso.",
+  input_schema: {
+    type: "object",
+    properties: {
+      eventId: {
+        type: "string",
+        description: "UUID del evento a modificar. Lo sacás del listado de eventos del expediente.",
+      },
+      startAtIso: {
+        type: "string",
+        description: "Nueva fecha/hora en ISO 8601 con zona horaria. Omitir si no cambia.",
+      },
+      durationMinutes: {
+        type: "integer",
+        minimum: 0,
+        maximum: 480,
+        description: "Nueva duración en minutos. Omitir si no cambia.",
+      },
+      title: { type: "string", description: "Nuevo título. Omitir si no cambia." },
+      location: { type: "string", description: "Nueva ubicación. Omitir si no cambia." },
+      reason: {
+        type: "string",
+        description: "Razón del cambio (queda en audit log). Ej: 'Tribunal pospuso audiencia'.",
+      },
+    },
+    required: ["eventId"],
+  },
+};
+
+// Cancela un evento existente. Sigue el mismo modelo de confirmación.
+export const cancelEventTool: AiTool = {
+  name: "cancel_event",
+  description:
+    "Cancela un evento existente del expediente. SIEMPRE confirmá con el usuario antes. Las alertas pendientes asociadas también se cancelan.",
+  input_schema: {
+    type: "object",
+    properties: {
+      eventId: {
+        type: "string",
+        description: "UUID del evento a cancelar.",
+      },
+      reason: {
+        type: "string",
+        description: "Por qué se cancela (queda en audit log). Ej: 'Cliente desistió'.",
+      },
+    },
+    required: ["eventId", "reason"],
+  },
+};
+
 // Convenience: tools enabled for the matter chat. Other entry points (e.g.
 // the global palette) may expose a different subset.
-export const matterChatTools: AiTool[] = [generateDocumentTool, createEventTool];
+export const matterChatTools: AiTool[] = [
+  generateDocumentTool,
+  createEventTool,
+  readDocumentTool,
+  updateEventTool,
+  cancelEventTool,
+];

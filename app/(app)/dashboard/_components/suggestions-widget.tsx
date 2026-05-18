@@ -13,12 +13,23 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Info, AlertCircle, X, ArrowRight, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Info,
+  AlertCircle,
+  X,
+  ArrowRight,
+  Sparkles,
+  ThumbsUp,
+  BellOff,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   aceptarSugerenciaAction,
   descartarSugerenciaAction,
+  feedbackSugerenciaAction,
 } from "@/app/_actions/sugerencias";
 
 type Suggestion = {
@@ -72,6 +83,27 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
     });
   }
 
+  function onFeedback(id: string, feedback: "useful" | "not_relevant" | "mute_kind") {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("suggestionId", id);
+      fd.set("feedback", feedback);
+      const r = await feedbackSugerenciaAction(fd);
+      if (!r.ok) {
+        toast.error(r.error ?? "No se pudo guardar el feedback.");
+        return;
+      }
+      toast.success(
+        feedback === "mute_kind"
+          ? "No volverás a ver sugerencias de este tipo."
+          : feedback === "useful"
+            ? "Gracias por el feedback."
+            : "Marcada como no relevante.",
+      );
+      router.refresh();
+    });
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -105,7 +137,7 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{s.title}</p>
                   <p className="text-xs text-muted-foreground">{s.body}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {s.href ? (
                       <Link
                         href={s.href}
@@ -117,11 +149,29 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                     ) : null}
                     <button
                       type="button"
+                      onClick={() => onFeedback(s.id, "useful")}
+                      disabled={pending}
+                      title="Esta sugerencia me sirvió"
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      <ThumbsUp className="h-3 w-3" /> Útil
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => onDismiss(s.id)}
                       disabled={pending}
                       className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-3 w-3" /> Descartar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onFeedback(s.id, "mute_kind")}
+                      disabled={pending}
+                      title="No me muestres más sugerencias de este tipo"
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      <BellOff className="h-3 w-3" /> Silenciar tipo
                     </button>
                   </div>
                 </div>

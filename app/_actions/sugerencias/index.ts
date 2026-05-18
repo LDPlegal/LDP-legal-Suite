@@ -10,6 +10,7 @@ import {
   countPendingSuggestions,
   dismissSuggestion,
   listPendingSuggestions,
+  setSuggestionFeedback,
 } from "@/lib/db/queries/ai-suggestions";
 
 export async function fetchSuggestions() {
@@ -35,4 +36,18 @@ export async function aceptarSugerenciaAction(formData: FormData): Promise<void>
   const id = IdSchema.parse(formData.get("suggestionId"));
   await ackSuggestion(user.firmId, user.userId, id);
   revalidatePath("/dashboard");
+}
+
+const FeedbackSchema = z.enum(["useful", "not_relevant", "mute_kind"]);
+
+export async function feedbackSugerenciaAction(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const id = IdSchema.parse(formData.get("suggestionId"));
+  const feedback = FeedbackSchema.parse(formData.get("feedback"));
+  const r = await setSuggestionFeedback(user.firmId, user.userId, id, feedback);
+  revalidatePath("/dashboard");
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true };
 }

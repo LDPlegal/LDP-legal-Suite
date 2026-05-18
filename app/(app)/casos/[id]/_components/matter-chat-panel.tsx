@@ -39,6 +39,10 @@ import {
 } from "@/app/_actions/matter-chat/send";
 import { generateDocFromChatAction } from "@/app/_actions/matter-chat/generate-doc";
 import { createEventFromChatAction } from "@/app/_actions/matter-chat/create-event";
+import {
+  cancelEventFromChatAction,
+  updateEventFromChatAction,
+} from "@/app/_actions/matter-chat/update-event";
 
 type ToolUse = {
   id: string;
@@ -50,6 +54,8 @@ type ToolUse = {
   // Event creation state (after the user clicks "Crear evento").
   eventCreated?: { eventId: string; alertCount: number };
   creating?: boolean;
+  // update_event / cancel_event: one-shot success flag.
+  done?: boolean;
 };
 
 type ChatMessage = {
@@ -298,6 +304,115 @@ export function MatterChatPanel({
     }
   }
 
+  // Confirm "Reagendar" click on an update_event tool card.
+  async function handleUpdateEvent(messageId: string, toolUseId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const use = msg?.toolUses?.find((t) => t.id === toolUseId);
+    if (!msg || !use) return;
+    const inp = use.input as {
+      eventId?: string;
+      startAtIso?: string;
+      durationMinutes?: number;
+      title?: string;
+      location?: string;
+      reason?: string;
+    };
+    if (!inp.eventId) {
+      toast.error("Falta el ID del evento.");
+      return;
+    }
+    setMessages((cur) =>
+      cur.map((m) =>
+        m.id === messageId
+          ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: true } : t)) }
+          : m,
+      ),
+    );
+    try {
+      const r = await updateEventFromChatAction({
+        caseId,
+        chatMessageId: messageId.startsWith("user-") ? undefined : messageId,
+        eventId: inp.eventId,
+        startAtIso: inp.startAtIso,
+        durationMinutes: inp.durationMinutes,
+        title: inp.title,
+        location: inp.location,
+        reason: inp.reason,
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        setMessages((cur) =>
+          cur.map((m) =>
+            m.id === messageId
+              ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: false } : t)) }
+              : m,
+          ),
+        );
+        return;
+      }
+      setMessages((cur) =>
+        cur.map((m) =>
+          m.id === messageId
+            ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: false, done: true } : t)) }
+            : m,
+        ),
+      );
+      toast.success("Evento actualizado.");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error inesperado.");
+    }
+  }
+
+  // Confirm "Cancelar" click on a cancel_event tool card.
+  async function handleCancelEvent(messageId: string, toolUseId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const use = msg?.toolUses?.find((t) => t.id === toolUseId);
+    if (!msg || !use) return;
+    const inp = use.input as { eventId?: string; reason?: string };
+    if (!inp.eventId || !inp.reason) {
+      toast.error("La IA no proporcionó motivo de cancelación. Pedí que vuelva a intentar.");
+      return;
+    }
+    setMessages((cur) =>
+      cur.map((m) =>
+        m.id === messageId
+          ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: true } : t)) }
+          : m,
+      ),
+    );
+    try {
+      const r = await cancelEventFromChatAction({
+        caseId,
+        chatMessageId: messageId.startsWith("user-") ? undefined : messageId,
+        eventId: inp.eventId,
+        reason: inp.reason,
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        setMessages((cur) =>
+          cur.map((m) =>
+            m.id === messageId
+              ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: false } : t)) }
+              : m,
+          ),
+        );
+        return;
+      }
+      setMessages((cur) =>
+        cur.map((m) =>
+          m.id === messageId
+            ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: false, done: true } : t)) }
+            : m,
+        ),
+      );
+      toast.success("Evento cancelado.");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error inesperado.");
+    }
+  }
+
   // Confirm "Generate" click on a generate_document tool card.
   async function handleGenerateDoc(messageId: string, toolUseId: string) {
     const msg = messages.find((m) => m.id === messageId);
@@ -431,6 +546,8 @@ export function MatterChatPanel({
                   message={m}
                   onGenerate={handleGenerateDoc}
                   onCreateEvent={handleCreateEvent}
+                  onUpdateEvent={handleUpdateEvent}
+                  onCancelEvent={handleCancelEvent}
                 />
               ))}
               {sending ? (
@@ -489,10 +606,14 @@ function ChatBubble({
   message,
   onGenerate,
   onCreateEvent,
+  onUpdateEvent,
+  onCancelEvent,
 }: {
   message: ChatMessage;
   onGenerate?: (messageId: string, toolUseId: string) => void;
   onCreateEvent?: (messageId: string, toolUseId: string) => void;
+  onUpdateEvent?: (messageId: string, toolUseId: string) => void;
+  onCancelEvent?: (messageId: string, toolUseId: string) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -532,6 +653,8 @@ function ChatBubble({
             use={tu}
             onGenerate={onGenerate}
             onCreateEvent={onCreateEvent}
+            onUpdateEvent={onUpdateEvent}
+            onCancelEvent={onCancelEvent}
           />
         ))}
         {isAssistant ? (
@@ -560,11 +683,15 @@ function ToolUseCard({
   use,
   onGenerate,
   onCreateEvent,
+  onUpdateEvent,
+  onCancelEvent,
 }: {
   messageId: string;
   use: ToolUse;
   onGenerate?: (messageId: string, toolUseId: string) => void;
   onCreateEvent?: (messageId: string, toolUseId: string) => void;
+  onUpdateEvent?: (messageId: string, toolUseId: string) => void;
+  onCancelEvent?: (messageId: string, toolUseId: string) => void;
 }) {
   if (use.name === "generate_document") {
     const inp = use.input as {
@@ -667,6 +794,98 @@ function ToolUseCard({
             </Button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // update_event card — la IA propuso mover/editar un evento existente.
+  if (use.name === "update_event") {
+    const inp = use.input as {
+      eventId?: string;
+      startAtIso?: string;
+      durationMinutes?: number;
+      title?: string;
+      location?: string;
+      reason?: string;
+    };
+    return (
+      <div className="mt-3 rounded-md border bg-background p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 font-medium text-blue-700 dark:text-blue-300">
+            ✏️ Reagendar evento
+          </span>
+          {inp.reason ? <span className="truncate">{inp.reason}</span> : null}
+        </div>
+        <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+          {inp.title ? <li>📝 Nuevo título: {inp.title}</li> : null}
+          {inp.startAtIso ? (
+            <li>📆 Nueva fecha: {new Date(inp.startAtIso).toLocaleString("es-DO")}</li>
+          ) : null}
+          {typeof inp.durationMinutes === "number" ? (
+            <li>⏱ Nueva duración: {inp.durationMinutes} min</li>
+          ) : null}
+          {inp.location ? <li>📍 Nueva ubicación: {inp.location}</li> : null}
+        </ul>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {use.done ? (
+            <span className="text-[11px] text-emerald-600">✓ Evento actualizado</span>
+          ) : use.creating ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Actualizando…
+            </div>
+          ) : (
+            <Button type="button" size="sm" onClick={() => onUpdateEvent?.(messageId, use.id)}>
+              Confirmar cambio
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // cancel_event card — la IA propuso cancelar un evento.
+  if (use.name === "cancel_event") {
+    const inp = use.input as { eventId?: string; reason?: string };
+    return (
+      <div className="mt-3 rounded-md border bg-background p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded bg-red-500/10 px-1.5 py-0.5 font-medium text-red-700 dark:text-red-300">
+            ❌ Cancelar evento
+          </span>
+        </div>
+        {inp.reason ? (
+          <p className="mt-2 text-sm">Motivo: {inp.reason}</p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {use.done ? (
+            <span className="text-[11px] text-emerald-600">✓ Evento cancelado</span>
+          ) : use.creating ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Cancelando…
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              onClick={() => onCancelEvent?.(messageId, use.id)}
+            >
+              Confirmar cancelación
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // read_document is auto-resolved server-side; if it reaches the UI it
+  // means the model emitted it but we exited the loop. Show a passive note.
+  if (use.name === "read_document") {
+    const inp = use.input as { documentId?: string; reason?: string };
+    return (
+      <div className="mt-3 rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">
+        📖 Leyó documento {inp.documentId ? <code>{inp.documentId.slice(0, 8)}</code> : ""}
+        {inp.reason ? ` — ${inp.reason}` : ""}
       </div>
     );
   }

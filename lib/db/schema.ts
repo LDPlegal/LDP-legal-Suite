@@ -6,6 +6,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -148,6 +149,10 @@ export const users = pgTable(
     // F7 bloque 4: 2FA con better-auth. El flag se controla via auth plugin;
     // el secret + backup codes viven en `two_factors`.
     twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+    // F7+ Bloque 5 (correos): firma profesional que se anexa a cada correo
+    // saliente generado por la IA o redactado manualmente. Puede contener
+    // saltos de línea y HTML básico.
+    emailSignature: text("email_signature"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -1265,6 +1270,7 @@ export const auditActionEnum = pgEnum("audit_action", [
   "timer_started",
   "timer_stopped",
   "ncf_assigned",
+  "viewed",
 ]);
 
 export const auditLog = pgTable(
@@ -1637,6 +1643,11 @@ export const aiSuggestions = pgTable(
     // pasada la fecha). El worker no las re-genera si ya hay una pending
     // del mismo kind+caseId vigente.
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    // F7+ feedback loop: el usuario clickea "útil / no relevante / no quiero
+    // ver más de este tipo". Si feedback='mute_kind', el worker añade el kind
+    // al user_muted_suggestion_kinds y no vuelve a crearlo para ese user.
+    feedback: text("feedback").$type<"useful" | "not_relevant" | "mute_kind">(),
+    feedbackAt: timestamp("feedback_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
     actedAt: timestamp("acted_at", { withTimezone: true }),
@@ -1654,3 +1665,154 @@ export const aiSuggestions = pgTable(
 
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;
+
+// =============================================================================
+// user_muted_suggestion_kinds — el usuario silenció un tipo de sugerencia
+// =============================================================================
+
+export const userMutedSuggestionKinds = pgTable(
+  "user_muted_suggestion_kinds",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kindPattern: text("kind_pattern").notNull(),
+    mutedAt: timestamp("muted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.userId, t.kindPattern],
+      name: "user_muted_suggestion_kinds_pkey",
+    }),
+  ],
+);
+
+// =============================================================================
+// calendar_integrations — OAuth tokens (Google/Microsoft) por usuario
+// =============================================================================
+// Conectar el calendario personal del socio para sync bidireccional. También
+// usado para correos (mismo OAuth, scopes adicionales). access_token y
+// refresh_token se cifran con APP_CRYPTO_MASTER_KEY antes de persistir.
+
+export const calendarIntegrations = pgTable(
+  "calendar_integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<"google" | "microsoft">().notNull(),
+    externalAccountId: text("external_account_id").notNull(),
+    accessTokenCipher: text("access_token_cipher").notNull(),
+    refreshTokenCipher: text("refresh_token_cipher"),
+    tokenMeta: jsonb("token_meta")
+      .$type<{ iv: string; aad: string; keyId: string; expiresAt: string }>()
+      .notNull(),
+    scopes: text("scopes").array().notNull().default(sql`ARRAY[]::text[]`),
+    inboxLabel: text("inbox_label"),
+    suggestionAggressiveness: text("suggestion_aggressiveness")
+      .$type<"conservative" | "moderate" | "aggressive">()
+      .notNull()
+      .default("moderate"),
+    lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    disconnectedAt: timestamp("disconnected_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("calendar_integrations_user_provider_unique")
+      .on(t.userId, t.provider)
+      .where(sql`${t.disconnectedAt} IS NULL`),
+    index("calendar_integrations_firm_idx").on(t.firmId),
+  ],
+);
+
+export type CalendarIntegration = typeof calendarIntegrations.$inferSelect;
+
+// =============================================================================
+// sent_emails — correos salientes desde el chat con audit trail completo
+// =============================================================================
+
+export const sentEmails = pgTable(
+  "sent_emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "set null" }),
+    provider: text("provider").$type<"google" | "microsoft" | "system">().notNull(),
+    externalMessageId: text("external_message_id"),
+    fromAddress: text("from_address").notNull(),
+    toAddresses: text("to_addresses").array().notNull(),
+    ccAddresses: text("cc_addresses").array().notNull().default(sql`ARRAY[]::text[]`),
+    bccAddresses: text("bcc_addresses").array().notNull().default(sql`ARRAY[]::text[]`),
+    subject: text("subject").notNull(),
+    bodyHtml: text("body_html").notNull(),
+    bodyText: text("body_text"),
+    attachmentDocumentIds: uuid("attachment_document_ids")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::uuid[]`),
+    aiGenerated: boolean("ai_generated").notNull().default(false),
+    aiOriginalPrompt: text("ai_original_prompt"),
+    aiChatMessageId: uuid("ai_chat_message_id"),
+    aiDraftBody: text("ai_draft_body"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("sent_emails_firm_case_idx").on(t.firmId, t.caseId),
+    index("sent_emails_firm_sent_idx").on(t.firmId, t.sentAt),
+  ],
+);
+
+export type SentEmail = typeof sentEmails.$inferSelect;
+
+// =============================================================================
+// inbox_processed — correos entrantes analizados (dedupe + clasificación)
+// =============================================================================
+// El cuerpo del correo NO se persiste aquí. Sólo metadata + decisión. El
+// contenido completo se mantiene en el provider y se recupera vía API
+// cuando hace falta mostrarlo.
+
+export const inboxProcessed = pgTable(
+  "inbox_processed",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<"google" | "microsoft">().notNull(),
+    externalMessageId: text("external_message_id").notNull(),
+    fromAddress: text("from_address").notNull(),
+    subject: text("subject"),
+    receivedAt: timestamp("received_at", { withTimezone: true }),
+    classification: text("classification")
+      .$type<"relevant" | "irrelevant" | "uncertain">()
+      .notNull(),
+    matchedCaseId: uuid("matched_case_id").references(() => cases.id, { onDelete: "set null" }),
+    matchConfidence: decimal("match_confidence", { precision: 4, scale: 3 }),
+    suggestionId: uuid("suggestion_id"),
+    tokensUsed: integer("tokens_used").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("inbox_processed_provider_msg_unique").on(t.provider, t.externalMessageId),
+    index("inbox_processed_firm_user_idx").on(t.firmId, t.userId, t.receivedAt),
+    index("inbox_processed_case_idx")
+      .on(t.matchedCaseId)
+      .where(sql`${t.matchedCaseId} IS NOT NULL`),
+  ],
+);
+
+export type InboxProcessed = typeof inboxProcessed.$inferSelect;

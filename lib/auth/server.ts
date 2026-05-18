@@ -86,7 +86,13 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    // F7+ Bloque 5: la spec de Gabriel pide timeout por inactividad de
+    // 30 min. better-auth no expone "idle timeout" como tal, pero podemos
+    // aproximar con un expiresIn corto + updateAge que renueva la sesión
+    // mientras haya tráfico. 30 min de cookie + renovación cada 5 min de
+    // actividad = idle de hasta 30 min equivalente.
+    expiresIn: 60 * 30, // 30 minutos
+    updateAge: 60 * 5, // renovar cada 5 min de tráfico
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60,

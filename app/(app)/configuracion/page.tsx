@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,12 @@ import { requireUser } from "@/lib/auth/session";
 import { isAiEnabled } from "@/lib/ai";
 import { adminDb } from "@/lib/db/admin";
 import { users } from "@/lib/db/schema";
-import { getBudgetStatus } from "@/lib/ai/budget";
+import {
+  getBudgetStatus,
+  getRoiSummary,
+  getSpendByFeature,
+  getSpendByUser,
+} from "@/lib/ai/budget";
 import { NcfRangesPanel } from "./_components/ncf-ranges-panel";
 import { FirmForm } from "./_components/firm-form";
 import { TemplatesPanel } from "./_components/templates-panel";
@@ -22,12 +27,28 @@ import { RatesPanel } from "./_components/rates-panel";
 import { TeamPanel } from "./_components/team-panel";
 import { TwoFactorPanel } from "./_components/two-factor-panel";
 import { AiBudgetPanel } from "./_components/ai-budget-panel";
+import { OAuthIntegrationsPanel } from "./_components/oauth-integrations-panel";
+import { calendarIntegrations } from "@/lib/db/schema";
+import { isNull } from "drizzle-orm";
+import { isProviderConfigured } from "@/lib/oauth";
 
 export const metadata = { title: "Configuración · LDP Legal Suite" };
 
 export default async function ConfiguracionPage() {
   const user = await requireUser();
-  const [ranges, firm, templates, ratesRows, firmUsers, clientsRes, budgetStatus, twoFactorRow] = await Promise.all([
+  const [
+    ranges,
+    firm,
+    templates,
+    ratesRows,
+    firmUsers,
+    clientsRes,
+    budgetStatus,
+    twoFactorRow,
+    spendByUser,
+    spendByFeature,
+    roi,
+  ] = await Promise.all([
     listNcfRanges(user.firmId, user.userId),
     getCurrentFirm(user.firmId, user.userId),
     listMatterTemplates(user.firmId, user.userId),
@@ -40,7 +61,26 @@ export default async function ConfiguracionPage() {
       .from(users)
       .where(eq(users.id, user.userId))
       .limit(1),
+    getSpendByUser(user.firmId),
+    getSpendByFeature(user.firmId),
+    getRoiSummary(user.firmId),
   ]);
+  // OAuth: traemos las integraciones del usuario actual (no las del firm
+  // completo — cada socio ve solo las suyas).
+  const oauthConnections = await adminDb
+    .select({
+      provider: calendarIntegrations.provider,
+      externalAccountId: calendarIntegrations.externalAccountId,
+      scopes: calendarIntegrations.scopes,
+      lastSyncAt: calendarIntegrations.lastSyncAt,
+    })
+    .from(calendarIntegrations)
+    .where(
+      and(
+        eq(calendarIntegrations.userId, user.userId),
+        isNull(calendarIntegrations.disconnectedAt),
+      ),
+    );
   const isAdmin = user.role === "admin" || user.role === "partner";
   const aiEnabled = isAiEnabled();
   const aiModel = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
@@ -177,6 +217,24 @@ export default async function ConfiguracionPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Integraciones (Google / Microsoft)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OAuthIntegrationsPanel
+                googleConfigured={isProviderConfigured("google")}
+                microsoftConfigured={isProviderConfigured("microsoft")}
+                connections={oauthConnections.map((c) => ({
+                  provider: c.provider,
+                  externalAccountId: c.externalAccountId,
+                  scopes: c.scopes ?? [],
+                  lastSyncAt: c.lastSyncAt ? c.lastSyncAt.toISOString() : null,
+                }))}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Casos confidenciales</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
@@ -299,6 +357,108 @@ export default async function ConfiguracionPage() {
                 }}
                 canEdit={isAdmin}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Consumo por socio (mes en curso)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {spendByUser.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aún no hay actividad IA este mes.
+                </p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {spendByUser.map((u) => (
+                    <li
+                      key={u.userId}
+                      className="flex items-center justify-between border-b pb-1.5 last:border-b-0 last:pb-0"
+                    >
+                      <span className="truncate">{u.userName ?? "Sin nombre"}</span>
+                      <span className="ml-3 flex shrink-0 items-baseline gap-3 font-mono text-xs tabular-nums text-muted-foreground">
+                        <span>{u.callCount} llamadas</span>
+                        <span className="text-foreground">US${u.spendUsd.toFixed(2)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Consumo por feature (mes en curso)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {spendByFeature.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aún no hay actividad IA este mes.
+                </p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {spendByFeature.map((f) => (
+                    <li
+                      key={f.feature}
+                      className="flex items-center justify-between border-b pb-1.5 last:border-b-0 last:pb-0"
+                    >
+                      <code className="text-xs">{f.feature}</code>
+                      <span className="ml-3 flex shrink-0 items-baseline gap-3 font-mono text-xs tabular-nums text-muted-foreground">
+                        <span>{f.callCount} llamadas</span>
+                        <span className="text-foreground">US${f.spendUsd.toFixed(2)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Retorno estimado (mes en curso)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-md border p-3">
+                  <p className="text-xs text-muted-foreground">Documentos generados</p>
+                  <p className="font-mono text-2xl tabular-nums">{roi.docsGenerated}</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-xs text-muted-foreground">Eventos parseados desde chat</p>
+                  <p className="font-mono text-2xl tabular-nums">{roi.eventsParsed}</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-xs text-muted-foreground">Horas ahorradas (estim.)</p>
+                  <p className="font-mono text-2xl tabular-nums">{roi.estimatedHoursSaved.toFixed(1)}h</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <p className="text-xs text-muted-foreground">Valor estim. liberado</p>
+                  <p className="font-mono text-2xl tabular-nums">US${roi.estimatedSavedUsd.toFixed(0)}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Aproximación: 25 min por documento, 5 min por evento, tarifa promedio
+                US$80/hora. Ajustá la tarifa real conversándolo con tus socios.
+              </p>
+              <p className="mt-1 text-xs">
+                <strong>Neto del mes:</strong>{" "}
+                <span
+                  className={
+                    roi.netSavingUsd >= 0
+                      ? "font-mono tabular-nums text-emerald-600"
+                      : "font-mono tabular-nums text-red-600"
+                  }
+                >
+                  {roi.netSavingUsd >= 0 ? "+" : ""}
+                  US${roi.netSavingUsd.toFixed(2)}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  (ahorro estimado − consumo de API)
+                </span>
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

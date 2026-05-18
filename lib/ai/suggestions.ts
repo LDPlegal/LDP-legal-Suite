@@ -27,6 +27,7 @@ import {
   events,
   notes,
   timeEntries,
+  userMutedSuggestionKinds,
   users,
   type NewAiSuggestion,
 } from "@/lib/db/schema";
@@ -221,12 +222,27 @@ export async function runSuggestionsForFirm(firmId: string): Promise<SuggestionR
   return result;
 }
 
-// Insert if (kind, caseId, userId) doesn't already have a pending row.
-// Returns true when inserted.
+// Insert if (kind, caseId, userId) doesn't already have a pending row,
+// and the user hasn't muted this kind via feedback.
 async function maybeEnqueue(
   firmId: string,
   row: NewAiSuggestion,
 ): Promise<boolean> {
+  // 1) Respect mute list.
+  const root = row.kind.split(":")[0] ?? row.kind;
+  const [muted] = await adminDb
+    .select({ kindPattern: userMutedSuggestionKinds.kindPattern })
+    .from(userMutedSuggestionKinds)
+    .where(
+      and(
+        eq(userMutedSuggestionKinds.userId, row.userId),
+        eq(userMutedSuggestionKinds.kindPattern, root),
+      ),
+    )
+    .limit(1);
+  if (muted) return false;
+
+  // 2) Dedupe pending.
   const existing = await adminDb
     .select({ id: aiSuggestions.id })
     .from(aiSuggestions)

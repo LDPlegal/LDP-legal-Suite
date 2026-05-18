@@ -8,7 +8,11 @@ import "server-only";
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { adminDb } from "../admin";
 import { withFirm } from "../with-firm";
-import { aiSuggestions, type AiSuggestion } from "../schema";
+import {
+  aiSuggestions,
+  userMutedSuggestionKinds,
+  type AiSuggestion,
+} from "../schema";
 
 export async function listPendingSuggestions(
   firmId: string,
@@ -94,6 +98,66 @@ export async function ackSuggestion(
           eq(aiSuggestions.status, "pending"),
         ),
       );
+  });
+}
+
+// F7+ feedback loop. El usuario marca una sugerencia como útil, no
+// relevante, o "no me muestres más de este tipo". Si elige mute_kind,
+// se inserta una fila en user_muted_suggestion_kinds y el worker no
+// vuelve a generar ese kind para este usuario.
+export async function setSuggestionFeedback(
+  firmId: string,
+  userId: string,
+  suggestionId: string,
+  feedback: "useful" | "not_relevant" | "mute_kind",
+): Promise<{ ok: true; mutedKind?: string } | { ok: false; error: string }> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .select({ id: aiSuggestions.id, kind: aiSuggestions.kind })
+      .from(aiSuggestions)
+      .where(
+        and(
+          eq(aiSuggestions.id, suggestionId),
+          eq(aiSuggestions.userId, userId),
+        ),
+      )
+      .limit(1);
+    if (!row) return { ok: false, error: "Sugerencia no encontrada." };
+
+    await tx
+      .update(aiSuggestions)
+      .set({ feedback, feedbackAt: new Date() })
+      .where(eq(aiSuggestions.id, suggestionId));
+
+    // Si silenció el tipo: registralo. El kind a guardar es la "raíz"
+    // (sin sufijos como `:2026-05` que usamos para budget warns); pero
+    // como guardamos el kind con sufijo en algunos casos, igualar exacto
+    // es la opción más conservadora. El worker hace ILIKE para los
+    // patrones con `*`.
+    let mutedKind: string | undefined;
+    if (feedback === "mute_kind") {
+      // Use the prefix before ":" so budget warn-70:2026-05 mutes future
+      // budget warn-70 (cualquier mes).
+      const root = row.kind.split(":")[0] ?? row.kind;
+      mutedKind = root;
+      await tx
+        .insert(userMutedSuggestionKinds)
+        .values({ userId, kindPattern: root })
+        .onConflictDoNothing();
+      // Also dismiss this suggestion + cualquier otra pending del mismo
+      // root para que desaparezcan inmediatamente.
+      await tx
+        .update(aiSuggestions)
+        .set({ status: "dismissed", dismissedAt: new Date() })
+        .where(
+          and(
+            eq(aiSuggestions.userId, userId),
+            eq(aiSuggestions.status, "pending"),
+            sql`${aiSuggestions.kind} LIKE ${root + "%"}`,
+          ),
+        );
+    }
+    return { ok: true, mutedKind };
   });
 }
 

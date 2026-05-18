@@ -150,6 +150,115 @@ export async function preflightBudget(
   return { allowed: true };
 }
 
+// Breakdown del mes en curso por socio. Útil para el dashboard "consumo
+// por socio" que pide Gabriel — cada socio puede tener un sub-tope (de
+// momento sólo informativo: no bloqueamos).
+export type UserSpend = {
+  userId: string;
+  userName: string | null;
+  spendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  callCount: number;
+};
+
+export async function getSpendByUser(firmId: string): Promise<UserSpend[]> {
+  const since = monthStartUtc();
+  const rows = await adminDb
+    .select({
+      userId: aiUsage.userId,
+      userName: users.name,
+      cost: sql<string | null>`COALESCE(SUM(${aiUsage.costUsd}), 0)::text`,
+      inputTokens: sql<number>`COALESCE(SUM(${aiUsage.inputTokens}), 0)::int`,
+      outputTokens: sql<number>`COALESCE(SUM(${aiUsage.outputTokens}), 0)::int`,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(aiUsage)
+    .leftJoin(users, eq(users.id, aiUsage.userId))
+    .where(and(eq(aiUsage.firmId, firmId), gte(aiUsage.createdAt, since)))
+    .groupBy(aiUsage.userId, users.name);
+  return rows
+    .filter((r) => r.userId !== null)
+    .map((r) => ({
+      userId: r.userId as string,
+      userName: r.userName,
+      spendUsd: Number(r.cost ?? 0),
+      inputTokens: Number(r.inputTokens ?? 0),
+      outputTokens: Number(r.outputTokens ?? 0),
+      callCount: Number(r.count ?? 0),
+    }))
+    .sort((a, b) => b.spendUsd - a.spendUsd);
+}
+
+// Breakdown por feature (matter_chat, doc_generate, event_parse...). Útil
+// para el reporte mensual ROI: cuánto se gasta en cada categoría.
+export type FeatureSpend = {
+  feature: string;
+  spendUsd: number;
+  callCount: number;
+};
+
+export async function getSpendByFeature(firmId: string): Promise<FeatureSpend[]> {
+  const since = monthStartUtc();
+  const rows = await adminDb
+    .select({
+      feature: aiUsage.feature,
+      cost: sql<string | null>`COALESCE(SUM(${aiUsage.costUsd}), 0)::text`,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(aiUsage)
+    .where(and(eq(aiUsage.firmId, firmId), gte(aiUsage.createdAt, since)))
+    .groupBy(aiUsage.feature);
+  return rows
+    .map((r) => ({
+      feature: r.feature ?? "unknown",
+      spendUsd: Number(r.cost ?? 0),
+      callCount: Number(r.count ?? 0),
+    }))
+    .sort((a, b) => b.spendUsd - a.spendUsd);
+}
+
+// ROI rough estimate: 25 min ahorrados por documento generado, 5 min por
+// evento creado desde chat, 10 min por carta. Multiplicado por la tarifa
+// horaria promedio del firm para dar el "ahorro" en USD.
+// Es una aproximación — Gabriel lo pide explícito en la spec para
+// justificar el costo de la IA frente a Marc y Jorge.
+export type RoiSummary = {
+  monthSpendUsd: number;
+  docsGenerated: number;
+  eventsParsed: number;
+  estimatedHoursSaved: number;
+  estimatedSavedUsd: number;
+  netSavingUsd: number;
+};
+
+export async function getRoiSummary(
+  firmId: string,
+  avgHourlyRateUsd: number = 80,
+): Promise<RoiSummary> {
+  const since = monthStartUtc();
+  const status = await getBudgetStatus(firmId);
+  const [counts] = await adminDb
+    .select({
+      docs: sql<number>`COUNT(*) FILTER (WHERE ${aiUsage.feature} = 'doc_generate')::int`,
+      events: sql<number>`COUNT(*) FILTER (WHERE ${aiUsage.feature} = 'event_parse')::int`,
+    })
+    .from(aiUsage)
+    .where(and(eq(aiUsage.firmId, firmId), gte(aiUsage.createdAt, since)));
+  const docsGenerated = Number(counts?.docs ?? 0);
+  const eventsParsed = Number(counts?.events ?? 0);
+  const estimatedHoursSaved = (docsGenerated * 25 + eventsParsed * 5) / 60;
+  const estimatedSavedUsd = estimatedHoursSaved * avgHourlyRateUsd;
+  return {
+    monthSpendUsd: status.monthSpendUsd,
+    docsGenerated,
+    eventsParsed,
+    estimatedHoursSaved,
+    estimatedSavedUsd,
+    netSavingUsd: estimatedSavedUsd - status.monthSpendUsd,
+  };
+}
+
 // Post-call hook. Compara umbrales antes/después de la última call y, si
 // se cruzó alguno por primera vez este mes, crea una sugerencia pending
 // dirigida a todos los admins del firm. Idempotente: si ya hay una
