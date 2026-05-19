@@ -12,6 +12,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Bot,
   Copy,
@@ -644,7 +646,15 @@ function ChatBubble({
         }`}
       >
         {message.content ? (
-          <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+          isUser ? (
+            <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-2 prose-headings:mt-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-table:text-xs prose-code:before:hidden prose-code:after:hidden prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.85em]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )
         ) : null}
         {message.toolUses?.map((tu) => (
           <ToolUseCard
