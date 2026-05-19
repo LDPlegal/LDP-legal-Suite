@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ShortcutsHelp } from "@/components/layout/shortcuts-help";
+import { IdleLogout } from "@/components/layout/idle-logout";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
       <ShortcutsHelp />
+      <IdleLogout />
     </TooltipProvider>
   );
 }
