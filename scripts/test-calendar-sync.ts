@@ -107,23 +107,42 @@ async function main() {
         oauthIntegrationId: integration.id,
         externalUid: e.restId,
         createdBy: user.id,
+        visibility: "private", // privacidad por default
       });
     }
     console.log("[test] ✅ los 4 eventos insertados sin constraint violation");
 
-    // Verificá que estén las 4 filas.
+    // Verificá que estén las 4 filas + sean privadas.
     const rows = await db
       .select({
         id: schema.events.id,
         title: schema.events.title,
         externalUid: schema.events.externalUid,
+        visibility: schema.events.visibility,
+        createdBy: schema.events.createdBy,
       })
       .from(schema.events)
       .where(eq(schema.events.oauthIntegrationId, integration.id));
     console.log(`[test] filas en DB: ${rows.length}`);
-    for (const r of rows) console.log(`  - ${r.externalUid}: ${r.title}`);
+    for (const r of rows) {
+      console.log(`  - ${r.externalUid}: ${r.title} [${r.visibility}]`);
+    }
     if (rows.length !== 4) {
       console.error(`[test] ❌ esperaba 4 filas, hay ${rows.length}`);
+      ok = false;
+    }
+    const allPrivate = rows.every((r) => r.visibility === "private");
+    if (allPrivate) {
+      console.log("[test] ✅ todas las filas son visibility='private'");
+    } else {
+      console.error("[test] ❌ alguna fila no quedó como private");
+      ok = false;
+    }
+    const allOwnedByUser = rows.every((r) => r.createdBy === user.id);
+    if (allOwnedByUser) {
+      console.log("[test] ✅ todas las filas tienen created_by = el usuario");
+    } else {
+      console.error("[test] ❌ alguna fila no tiene created_by correcto");
       ok = false;
     }
 

@@ -653,6 +653,10 @@ export const events = pgTable(
     // OAuth-synced events (Microsoft/Google via calendar_integrations).
     // Separado de externalSubscriptionId (que apunta a iCal feeds).
     oauthIntegrationId: uuid("oauth_integration_id"),
+    // F7+ Bloque 5: privacidad. 'private' = solo el created_by lo ve.
+    // 'firm' = visible a todos los del firm. Events sincronizados desde
+    // OAuth se insertan como 'private' por default.
+    visibility: text("visibility").$type<"firm" | "private">().notNull().default("firm"),
     // F7 bloque 3: event typology + AI audit trail. Drives the alert policy
     // (audiencia → aggressive, recordatorio → light) and the chat history
     // for events created from natural language ("audiencia el 25 de marzo").

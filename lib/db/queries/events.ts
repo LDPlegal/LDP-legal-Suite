@@ -1,6 +1,16 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { cases, events, type Event, type NewEvent } from "../schema";
+
+// F7+ Bloque 5: filtro de visibilidad. Un evento es visible para un usuario si:
+//   - visibility='firm' (todos los del firm lo ven, comportamiento default), O
+//   - visibility='private' AND created_by = el usuario actual (es suyo).
+function visibilityFilter(userId: string) {
+  return or(
+    eq(events.visibility, "firm"),
+    and(eq(events.visibility, "private"), eq(events.createdBy, userId)),
+  );
+}
 
 export async function listEventsInRange(
   firmId: string,
@@ -21,6 +31,8 @@ export async function listEventsInRange(
         caseId: events.caseId,
         caseCode: cases.code,
         caseTitle: cases.title,
+        visibility: events.visibility,
+        createdBy: events.createdBy,
       })
       .from(events)
       .leftJoin(cases, eq(cases.id, events.caseId))
@@ -30,6 +42,7 @@ export async function listEventsInRange(
           // Overlap with the range: event.endAt >= range.start AND event.startAt < range.end
           sql`${events.endAt} >= ${range.start}`,
           sql`${events.startAt} < ${range.end}`,
+          visibilityFilter(userId),
         ),
       )
       .orderBy(asc(events.startAt));
@@ -49,6 +62,7 @@ export async function listEventsForCase(
         and(
           eq(events.caseId, caseId),
           isNull(events.deletedAt),
+          visibilityFilter(userId),
         ),
       )
       .orderBy(asc(events.startAt));

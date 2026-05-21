@@ -162,6 +162,10 @@ export async function pullCalendarFromProvider(
           oauthIntegrationId: integration.id,
           externalUid: e.id,
           createdBy: userId,
+          // Privado por default: solo el dueño del calendario los ve.
+          // Si el socio quiere compartir alguno con el firm puede editar
+          // visibility a 'firm' desde el detalle del evento.
+          visibility: "private",
         });
         summary.pulled++;
       }
