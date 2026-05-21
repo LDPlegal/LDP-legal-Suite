@@ -134,6 +134,13 @@
       "when": 1780200000000,
       "tag": "0018_oauth_emails_audit_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780300000000,
+      "tag": "0019_oauth_event_source",
+      "breakpoints": true
     }
   ]
 }

@@ -650,6 +650,9 @@ export const events = pgTable(
     // re-imports). Both NULL for events created inside the app.
     externalSubscriptionId: uuid("external_subscription_id"),
     externalUid: text("external_uid"),
+    // OAuth-synced events (Microsoft/Google via calendar_integrations).
+    // Separado de externalSubscriptionId (que apunta a iCal feeds).
+    oauthIntegrationId: uuid("oauth_integration_id"),
     // F7 bloque 3: event typology + AI audit trail. Drives the alert policy
     // (audiencia → aggressive, recordatorio → light) and the chat history
     // for events created from natural language ("audiencia el 25 de marzo").

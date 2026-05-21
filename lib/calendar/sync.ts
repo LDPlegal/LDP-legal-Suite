@@ -97,7 +97,7 @@ export async function pullCalendarFromProvider(
           .set({ deletedAt: new Date(), updatedAt: new Date() })
           .where(
             and(
-              eq(events.externalSubscriptionId, integration.id),
+              eq(events.oauthIntegrationId, integration.id),
               eq(events.externalUid, e.id),
               isNull(events.deletedAt),
             ),
@@ -126,7 +126,7 @@ export async function pullCalendarFromProvider(
         .from(events)
         .where(
           and(
-            eq(events.externalSubscriptionId, integration.id),
+            eq(events.oauthIntegrationId, integration.id),
             eq(events.externalUid, e.id),
           ),
         )
@@ -159,7 +159,7 @@ export async function pullCalendarFromProvider(
           allDay,
           // icalUid local generado por nosotros (único por fila).
           icalUid: `${randomUUID()}@sync-microsoft`,
-          externalSubscriptionId: integration.id,
+          oauthIntegrationId: integration.id,
           externalUid: e.id,
           createdBy: userId,
         });
@@ -229,12 +229,13 @@ export async function pushEventToProvider(
     } satisfies CreateEventInput);
 
     // Marcar el evento local con su referencia al provider para poder
-    // hacer update/delete después.
+    // hacer update/delete después. Usamos el id REST (único por instancia)
+    // como externalUid — mismo criterio que el pull.
     await adminDb
       .update(events)
       .set({
-        externalSubscriptionId: integration.id,
-        externalUid: created.iCalUId,
+        oauthIntegrationId: integration.id,
+        externalUid: created.id,
         updatedAt: new Date(),
       })
       .where(eq(events.id, eventId));
@@ -263,27 +264,17 @@ export async function pushEventUpdateToProvider(
     const [row] = await adminDb
       .select({
         externalUid: events.externalUid,
-        externalSubscriptionId: events.externalSubscriptionId,
+        oauthIntegrationId: events.oauthIntegrationId,
       })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
-    if (!row?.externalUid) return { ok: false, error: "not_synced" };
-
-    // Resolver el id remoto. Graph usa el `id` REST, no el iCalUId, para
-    // PATCH/DELETE. Como guardamos iCalUId como `externalUid`, tenemos que
-    // hacer un lookup adicional. Simpler: re-find el evento.
-    // En la práctica esto agrega 1 call a Graph; aceptable.
-    const { listCalendarEvents } = await import("@/lib/oauth/microsoft-graph");
-    const around = patch.startAt ?? new Date();
-    const found = await listCalendarEvents(userId, {
-      from: new Date(around.getTime() - 7 * 24 * 60 * 60 * 1000),
-      to: new Date(around.getTime() + 7 * 24 * 60 * 60 * 1000),
-    });
-    const match = found.find((e) => e.iCalUId === row.externalUid);
-    if (!match) return { ok: false, error: "remote_not_found" };
-
-    await updateCalendarEvent(userId, match.id, {
+    if (!row?.externalUid || !row.oauthIntegrationId) {
+      return { ok: false, error: "not_synced" };
+    }
+    // El externalUid es el id REST del Graph (no el iCalUId) — podemos
+    // usarlo directamente en PATCH/DELETE.
+    await updateCalendarEvent(userId, row.externalUid, {
       subject: patch.title,
       body: patch.description ?? undefined,
       location: patch.location ?? undefined,
@@ -303,20 +294,17 @@ export async function pushEventDeleteToProvider(
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const [row] = await adminDb
-      .select({ externalUid: events.externalUid, startAt: events.startAt })
+      .select({
+        externalUid: events.externalUid,
+        oauthIntegrationId: events.oauthIntegrationId,
+      })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
-    if (!row?.externalUid) return { ok: false, error: "not_synced" };
-    const { listCalendarEvents } = await import("@/lib/oauth/microsoft-graph");
-    const around = row.startAt;
-    const found = await listCalendarEvents(userId, {
-      from: new Date(around.getTime() - 7 * 24 * 60 * 60 * 1000),
-      to: new Date(around.getTime() + 7 * 24 * 60 * 60 * 1000),
-    });
-    const match = found.find((e) => e.iCalUId === row.externalUid);
-    if (!match) return { ok: false, error: "remote_not_found" };
-    await deleteCalendarEvent(userId, match.id);
+    if (!row?.externalUid || !row.oauthIntegrationId) {
+      return { ok: false, error: "not_synced" };
+    }
+    await deleteCalendarEvent(userId, row.externalUid);
     return { ok: true };
   } catch (err) {
     console.error("[calendar-sync] delete push failed:", err);
