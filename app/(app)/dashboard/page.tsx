@@ -113,20 +113,36 @@ export default async function DashboardPage() {
     },
   ];
 
+  const hour = now.getHours();
+  const greeting =
+    hour < 5
+      ? "Buenas noches"
+      : hour < 12
+        ? "Buen día"
+        : hour < 19
+          ? "Buenas tardes"
+          : "Buenas noches";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Buen día, {user.name.split(" ")[0]}.
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Resumen de la firma ·{" "}
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/80">
             {now.toLocaleDateString("es-DO", {
               weekday: "long",
               day: "numeric",
               month: "long",
+              year: "numeric",
             })}
+          </p>
+          <h1 className="text-[28px] font-semibold leading-tight tracking-tight">
+            {greeting},{" "}
+            <span className="text-gradient-brand">
+              {user.name.split(" ")[0]}
+            </span>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Acá está lo importante de tu firma hoy.
           </p>
         </div>
       </div>
@@ -136,15 +152,17 @@ export default async function DashboardPage() {
           const Icon = k.icon;
           return (
             <Link key={k.label} href={k.href} className="group block">
-              <Card className="transition-colors hover:border-primary/40">
+              <Card className="lift transition-all hover:border-primary/30">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <CardTitle className="text-[13px] font-medium text-muted-foreground">
                     {k.label}
                   </CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                    <Icon className="h-3.5 w-3.5" />
+                  </span>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-mono text-2xl font-semibold tabular-nums">
+                  <p className="stat-number text-3xl text-foreground">
                     {k.value}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{k.hint}</p>

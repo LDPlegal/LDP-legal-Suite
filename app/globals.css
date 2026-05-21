@@ -4,6 +4,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =============================================================================
+   LDP Legal Suite — Liquid Glass Design System
+   =============================================================================
+   Brand: LDP navy (#0F4C81 → #1E6FBA) con acento teal (#14B8A6).
+   Filosofía:
+     - Superficies translúcidas con backdrop-blur (vidrio líquido).
+     - Profundidad por capas (shadows soft + glass tinting).
+     - Tipografía generosa (Inter con jerarquía clara).
+     - Animaciones sutiles (no decorativas — funcionales).
+     - Bordes con luz catch (1px gradient en cards y botones).
+     - Modo claro: ambiente blanco con tinte azul muy sutil.
+     - Modo oscuro: navy profundo con highlights translúcidos.
+   ============================================================================= */
+
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
@@ -51,124 +65,338 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --color-brand-50: #E8F1FA;
+  /* Brand spectrum (LDP navy + accent teal) */
+  --color-brand-50: #EEF5FB;
+  --color-brand-100: #DCEBF7;
+  --color-brand-200: #B5D5EE;
+  --color-brand-300: #88B8DD;
+  --color-brand-400: #4D93C7;
   --color-brand-500: #1E6FBA;
   --color-brand-600: #0F4C81;
   --color-brand-700: #0A3A63;
-  --color-accent-500: #14B8A6;
+  --color-brand-800: #072A48;
+  --color-brand-900: #051D33;
 
+  --color-accent-500: #14B8A6;
+  --color-accent-600: #0D9488;
+
+  /* Radius scale (slightly more generous para soft Apple feel) */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
 :root {
-  --radius: 0.625rem;
+  /* Radius base ligeramente más generoso (Apple Glass tiende a ~14-16px) */
+  --radius: 0.875rem;
 
-  --background: #FFFFFF;
-  --foreground: #0F172A;
+  /* Light mode — fondo blanco con tinte azul sutil */
+  --background: #FAFBFD;
+  --foreground: #0B1929;
 
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-foreground: #0B1929;
 
-  --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover: rgba(255, 255, 255, 0.92);
+  --popover-foreground: #0B1929;
 
   --primary: #0F4C81;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F1F5F9;
-  --secondary-foreground: #0F172A;
+  --secondary: rgba(241, 245, 249, 0.7);
+  --secondary-foreground: #0B1929;
 
-  --muted: #F7F9FC;
-  --muted-foreground: #64748B;
+  --muted: rgba(241, 245, 249, 0.6);
+  --muted-foreground: #5B6B82;
 
-  --accent: #E8F1FA;
+  --accent: rgba(232, 241, 250, 0.8);
   --accent-foreground: #0F4C81;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  --warning: #F59E0B;
+  --warning: #D97706;
   --warning-foreground: #FFFFFF;
 
-  --success: #14B8A6;
+  --success: #0D9488;
   --success-foreground: #FFFFFF;
 
-  --border: #E2E8F0;
-  --input: #E2E8F0;
+  --border: rgba(15, 76, 129, 0.10);
+  --input: rgba(15, 76, 129, 0.14);
   --ring: #1E6FBA;
 
-  --sidebar: #F7F9FC;
-  --sidebar-foreground: #0F172A;
+  --sidebar: rgba(247, 249, 252, 0.65);
+  --sidebar-foreground: #0B1929;
   --sidebar-primary: #0F4C81;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E8F1FA;
+  --sidebar-accent: rgba(232, 241, 250, 0.8);
   --sidebar-accent-foreground: #0F4C81;
-  --sidebar-border: #E2E8F0;
+  --sidebar-border: rgba(15, 76, 129, 0.08);
   --sidebar-ring: #1E6FBA;
+
+  /* Glass system tokens */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.88);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-border-inner: rgba(15, 76, 129, 0.08);
+  --glass-shadow:
+    0 1px 2px rgba(11, 25, 41, 0.04),
+    0 4px 16px -4px rgba(11, 25, 41, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --glass-shadow-lg:
+    0 1px 2px rgba(11, 25, 41, 0.06),
+    0 8px 24px -8px rgba(11, 25, 41, 0.12),
+    0 24px 48px -16px rgba(11, 25, 41, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-blur: saturate(140%) blur(12px);
+  --glass-blur-strong: saturate(160%) blur(20px);
+
+  /* Ambient gradient — usado en el body */
+  --ambient-gradient:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(30, 111, 186, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(20, 184, 166, 0.05), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(15, 76, 129, 0.04), transparent 50%);
 }
 
 .dark {
-  --background: #0B1220;
-  --foreground: #F1F5F9;
+  /* Dark mode — navy profundo con highlights translúcidos */
+  --background: #050D1A;
+  --foreground: #E6EEF8;
 
-  --card: #111827;
-  --card-foreground: #F1F5F9;
+  --card: rgba(15, 23, 42, 0.55);
+  --card-foreground: #E6EEF8;
 
-  --popover: #111827;
-  --popover-foreground: #F1F5F9;
+  --popover: rgba(15, 23, 42, 0.92);
+  --popover-foreground: #E6EEF8;
 
-  --primary: #1E6FBA;
-  --primary-foreground: #FFFFFF;
+  --primary: #4D93C7;
+  --primary-foreground: #050D1A;
 
-  --secondary: #1F2937;
-  --secondary-foreground: #F1F5F9;
+  --secondary: rgba(31, 41, 55, 0.6);
+  --secondary-foreground: #E6EEF8;
 
-  --muted: #1F2937;
+  --muted: rgba(31, 41, 55, 0.5);
   --muted-foreground: #94A3B8;
 
-  --accent: #1E3A5F;
+  --accent: rgba(30, 58, 95, 0.65);
   --accent-foreground: #BFDBFE;
 
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #F87171;
+  --destructive-foreground: #050D1A;
 
-  --warning: #F59E0B;
-  --warning-foreground: #FFFFFF;
+  --warning: #FBBF24;
+  --warning-foreground: #050D1A;
 
-  --success: #14B8A6;
-  --success-foreground: #FFFFFF;
+  --success: #2DD4BF;
+  --success-foreground: #050D1A;
 
-  --border: #1F2937;
-  --input: #1F2937;
-  --ring: #1E6FBA;
+  --border: rgba(148, 163, 184, 0.12);
+  --input: rgba(148, 163, 184, 0.16);
+  --ring: #4D93C7;
 
-  --sidebar: #0F172A;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #1E6FBA;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1F2937;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: #1F2937;
-  --sidebar-ring: #1E6FBA;
+  --sidebar: rgba(7, 15, 28, 0.6);
+  --sidebar-foreground: #E6EEF8;
+  --sidebar-primary: #4D93C7;
+  --sidebar-primary-foreground: #050D1A;
+  --sidebar-accent: rgba(30, 58, 95, 0.5);
+  --sidebar-accent-foreground: #BFDBFE;
+  --sidebar-border: rgba(148, 163, 184, 0.10);
+  --sidebar-ring: #4D93C7;
+
+  /* Glass system — dark variant */
+  --glass-bg: rgba(15, 23, 42, 0.55);
+  --glass-bg-strong: rgba(15, 23, 42, 0.82);
+  --glass-bg-subtle: rgba(15, 23, 42, 0.40);
+  --glass-border: rgba(148, 163, 184, 0.18);
+  --glass-border-inner: rgba(255, 255, 255, 0.04);
+  --glass-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 4px 16px -4px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --glass-shadow-lg:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px -8px rgba(0, 0, 0, 0.5),
+    0 24px 48px -16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --ambient-gradient:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(30, 111, 186, 0.18), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(15, 76, 129, 0.20), transparent 50%);
 }
 
 @layer base {
   * {
     border-color: var(--border);
   }
+
+  html {
+    background-color: var(--background);
+  }
+
   body {
     background-color: var(--background);
+    background-image: var(--ambient-gradient);
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter ligature features */
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+  /* Typography hierarchy refinada */
+  h1 {
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  h2 {
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  h3 {
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+
   code,
   pre,
   .font-mono {
     font-family: var(--font-mono);
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  /* Smooth scrolling sin overshoot */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+
+  /* Focus rings refinados — sutiles pero presentes */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@layer utilities {
+  /* Glass surface — el bloque base de toda la UI */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-inner);
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-strong {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur-strong);
+    -webkit-backdrop-filter: var(--glass-blur-strong);
+    border: 1px solid var(--glass-border-inner);
+    box-shadow: var(--glass-shadow-lg);
+  }
+  .glass-subtle {
+    background: var(--glass-bg-subtle);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border-inner);
+  }
+
+  /* Highlight border — gradient sutil tipo "luz pegando" */
+  .glass-highlight {
+    position: relative;
+  }
+  .glass-highlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0.15) 30%,
+      transparent 60%,
+      rgba(15, 76, 129, 0.10) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .dark .glass-highlight::before {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.04) 30%,
+      transparent 60%,
+      rgba(77, 147, 199, 0.15) 100%
+    );
+  }
+
+  /* Press-down animation suave */
+  .press {
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms;
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* Hover lift sutil */
+  .lift {
+    transition:
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glass-shadow-lg);
+  }
+
+  /* Glow ring para elementos activos */
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px var(--ring),
+      0 0 0 4px color-mix(in srgb, var(--ring) 18%, transparent);
+  }
+
+  /* Brand gradient text (selectivo — para títulos hero) */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-500) 50%, var(--color-accent-500));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Number/stat display — para KPIs */
+  .stat-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+    font-weight: 600;
   }
 }

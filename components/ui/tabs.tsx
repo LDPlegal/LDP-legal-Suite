@@ -13,7 +13,9 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-start gap-1 border-b border-border text-muted-foreground",
+      // Glass pill bar — segmented control estilo Apple.
+      "inline-flex items-center justify-start gap-0.5 rounded-xl p-1",
+      "glass text-muted-foreground",
       className,
     )}
     {...props}
@@ -28,7 +30,13 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-primary data-[state=active]:text-foreground",
+      "relative inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium",
+      "transition-[color,background,box-shadow] duration-200",
+      "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "disabled:pointer-events-none disabled:opacity-50",
+      "data-[state=active]:bg-[var(--glass-bg-strong)] data-[state=active]:text-foreground",
+      "data-[state=active]:shadow-[0_1px_2px_rgba(11,25,41,0.06),inset_0_1px_0_rgba(255,255,255,0.5)]",
+      "dark:data-[state=active]:shadow-[0_1px_2px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)]",
       className,
     )}
     {...props}
