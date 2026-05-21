@@ -141,23 +141,32 @@ export type GraphCalendarEvent = {
   changeKey: string;
 };
 
-// Lista eventos del calendario primario entre start y end. Maneja paginación.
+// Lista eventos del calendario entre start y end. Usa /me/calendarView
+// en vez de /me/events porque:
+//   1. calendarView funciona igual en cuentas work y personal de
+//      Microsoft (events tiene quirks de filtro en personal).
+//   2. Expande series recurrentes (cada instancia se devuelve por
+//      separado), que es lo que un calendario espera mostrar.
+//   3. Maneja zona horaria via header Prefer.
 export async function listCalendarEvents(
   userId: string,
   range: { from: Date; to: Date },
 ): Promise<GraphCalendarEvent[]> {
   const params = new URLSearchParams({
-    $filter: `start/dateTime ge '${range.from.toISOString()}' and end/dateTime le '${range.to.toISOString()}'`,
+    startDateTime: range.from.toISOString(),
+    endDateTime: range.to.toISOString(),
     $orderby: "start/dateTime",
     $top: "100",
   });
   const events: GraphCalendarEvent[] = [];
-  let url: string | null = `/me/calendar/events?${params.toString()}`;
+  let url: string | null = `/me/calendarView?${params.toString()}`;
   while (url) {
     const page: {
       value: GraphCalendarEvent[];
       "@odata.nextLink"?: string;
-    } = await graphFetchJson(userId, url);
+    } = await graphFetchJson(userId, url, {
+      headers: { Prefer: 'outlook.timezone="UTC"' },
+    });
     events.push(...page.value);
     url = page["@odata.nextLink"] ?? null;
     if (events.length > 500) break; // safety cap

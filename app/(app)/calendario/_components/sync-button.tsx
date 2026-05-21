@@ -18,7 +18,11 @@ export function CalendarSyncButton() {
     try {
       const r = await fetch("/api/sync/calendar", { method: "POST" });
       const data = (await r.json()) as
-        | { ok: true; summary: { pulled: number; skipped: number; errors: number } }
+        | {
+            ok: true;
+            summary: { pulled: number; skipped: number; errors: number };
+            lastError: string | null;
+          }
         | { ok: false; error: string };
       if (!data.ok) {
         toast.error(data.error);
@@ -27,6 +31,13 @@ export function CalendarSyncButton() {
       const s = data.summary;
       if (s.pulled === 0 && s.skipped === 0 && s.errors === 0) {
         toast.info("No tenés Microsoft conectado. Conectalo en Configuración → Seguridad.");
+      } else if (s.errors > 0 && s.pulled === 0 && s.skipped === 0) {
+        // Sync falló sin traer nada — mostrá el error real para debug.
+        toast.error(
+          data.lastError
+            ? `Error sincronizando: ${data.lastError.slice(0, 200)}`
+            : "Sync falló sin detalle.",
+        );
       } else {
         toast.success(
           `Sincronizado · ${s.pulled} nuevos, ${s.skipped} actualizados${s.errors > 0 ? `, ${s.errors} errores` : ""}.`,
