@@ -200,7 +200,7 @@ async function main() {
     dueDaysFromNow: number;
     subtotal: number;
     itbisRate: number;
-    status: "draft" | "issued" | "sent" | "partial" | "paid" | "void";
+    status: "draft" | "sent" | "partial" | "paid" | "overdue" | "void";
     balance: number;
     paidDaysAgo?: number;
   }> = [
