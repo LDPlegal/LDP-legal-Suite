@@ -30,9 +30,13 @@ import {
 import {
   invitarStaffAction,
   actualizarRolStaffAction,
+  actualizarPerfilStaffAction,
   desactivarStaffAction,
+  resetearPasswordStaffAction,
   type InvitarStaffState,
   type UpdateRoleState,
+  type UpdateProfileState,
+  type ResetPasswordState,
 } from "@/app/_actions/configuracion/invitar-staff";
 
 type StaffMember = {
@@ -65,6 +69,8 @@ const ROLE_VARIANT: Record<StaffMember["role"], "default" | "secondary" | "outli
 
 const initialInvite: InvitarStaffState = { ok: true, userId: "" };
 const initialRole: UpdateRoleState = { ok: true };
+const initialProfile: UpdateProfileState = { ok: true };
+const initialPwd: ResetPasswordState = { ok: true };
 
 export function TeamPanel({
   members,
@@ -139,21 +145,21 @@ export function TeamPanel({
               <TableCell>
                 {canInvite && m.id !== currentUserId ? (
                   <div className="flex gap-1">
-                    {currentRole === "admin" ? (
-                      <RoleDrawer
-                        member={m}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            aria-label="Cambiar rol"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        }
-                      />
-                    ) : null}
+                    <EditMemberDrawer
+                      member={m}
+                      isAdmin={currentRole === "admin"}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label="Editar miembro"
+                          title="Editar nombre, email, tarifa, rol o contraseña"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
                     <ConfirmButton
                       action={desactivarStaffAction}
                       title={`¿Desactivar a ${m.name}?`}
@@ -288,21 +294,42 @@ function InviteDrawer({
   );
 }
 
-function RoleDrawer({
+function EditMemberDrawer({
   trigger,
   member,
+  isAdmin,
 }: {
   trigger: ReactNode;
   member: StaffMember;
+  isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const [state, action, pending] = useActionState<UpdateRoleState, FormData>(
+
+  // Form principal: nombre, email, hourlyRate.
+  const [profileState, profileAction, profilePending] = useActionState<
+    UpdateProfileState,
+    FormData
+  >(
+    async (prev, fd) => {
+      const r = await actualizarPerfilStaffAction(prev, fd);
+      if (r.ok) {
+        toast.success("Perfil actualizado");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+      return r;
+    },
+    initialProfile,
+  );
+
+  // Form de rol (separado porque solo admin puede tocarlo).
+  const [roleState, roleAction, rolePending] = useActionState<UpdateRoleState, FormData>(
     async (prev, fd) => {
       const r = await actualizarRolStaffAction(prev, fd);
       if (r.ok) {
         toast.success("Rol actualizado");
-        setOpen(false);
         router.refresh();
       } else {
         toast.error(r.error);
@@ -312,42 +339,158 @@ function RoleDrawer({
     initialRole,
   );
 
+  // Form de password reset.
+  const [pwdState, pwdAction, pwdPending] = useActionState<ResetPasswordState, FormData>(
+    async (prev, fd) => {
+      const r = await resetearPasswordStaffAction(prev, fd);
+      if (r.ok) {
+        toast.success("Contraseña actualizada", {
+          description:
+            "Las sesiones activas del usuario fueron cerradas. Pasale la nueva contraseña directamente.",
+        });
+        // El form se vacía automáticamente con el reset implícito de useActionState.
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+      return r;
+    },
+    initialPwd,
+  );
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent className="sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Cambiar rol de {member.name}</SheetTitle>
+          <SheetTitle>Editar a {member.name}</SheetTitle>
+          <SheetDescription className="text-xs">
+            Cambiá nombre, email, tarifa, rol o resetá la contraseña. Los cambios
+            quedan registrados en el audit log.
+          </SheetDescription>
         </SheetHeader>
-        <form action={action} className="flex flex-1 flex-col min-h-0">
-          <input type="hidden" name="targetId" value={member.id} />
-          <SheetBody className="space-y-3">
-            <Label>Nuevo rol</Label>
-            <select
-              name="role"
-              defaultValue={member.role === "client" ? "lawyer" : member.role}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="admin">Admin</option>
-              <option value="partner">Socio</option>
-              <option value="lawyer">Abogado/a</option>
-              <option value="paralegal">Paralegal</option>
-              <option value="tester">Tester informático</option>
-            </select>
-            {!state.ok ? (
-              <p className="text-sm text-destructive">{state.error}</p>
+        <SheetBody className="space-y-6 overflow-y-auto">
+          {/* ------------ Perfil básico ------------ */}
+          <form action={profileAction} className="space-y-3">
+            <input type="hidden" name="targetId" value={member.id} />
+            <div>
+              <Label htmlFor={`name-${member.id}`}>Nombre completo</Label>
+              <Input
+                id={`name-${member.id}`}
+                name="name"
+                defaultValue={member.name}
+                required
+                maxLength={120}
+              />
+            </div>
+            <div>
+              <Label htmlFor={`email-${member.id}`}>Email</Label>
+              <Input
+                id={`email-${member.id}`}
+                name="email"
+                type="email"
+                defaultValue={member.email}
+                required
+                maxLength={200}
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Cambiar el email cambia también la cuenta con la que el usuario hace login.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor={`rate-${member.id}`}>Tarifa por hora (DOP)</Label>
+              <Input
+                id={`rate-${member.id}`}
+                name="hourlyRate"
+                type="text"
+                inputMode="decimal"
+                pattern="\d+(\.\d{1,2})?"
+                defaultValue={member.hourlyRate ?? ""}
+                placeholder="3500.00"
+              />
+            </div>
+            {!profileState.ok ? (
+              <p className="text-sm text-destructive">{profileState.error}</p>
             ) : null}
-          </SheetBody>
-          <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+            <Button type="submit" disabled={profilePending} className="w-full">
+              {profilePending ? <Loader2 className="animate-spin" /> : null}
+              Guardar perfil
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="animate-spin" /> : null}
-              Guardar
-            </Button>
-          </SheetFooter>
-        </form>
+          </form>
+
+          {/* ------------ Rol (solo admin) ------------ */}
+          {isAdmin ? (
+            <div className="rounded-md border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-medium">Rol</p>
+              <form action={roleAction} className="space-y-2">
+                <input type="hidden" name="targetId" value={member.id} />
+                <select
+                  name="role"
+                  defaultValue={member.role === "client" ? "lawyer" : member.role}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="partner">Socio</option>
+                  <option value="lawyer">Abogado/a</option>
+                  <option value="paralegal">Paralegal</option>
+                  <option value="tester">Tester informático</option>
+                </select>
+                {!roleState.ok ? (
+                  <p className="text-xs text-destructive">{roleState.error}</p>
+                ) : null}
+                <Button
+                  type="submit"
+                  disabled={rolePending}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  {rolePending ? <Loader2 className="animate-spin h-3 w-3" /> : null}
+                  Cambiar rol
+                </Button>
+              </form>
+            </div>
+          ) : null}
+
+          {/* ------------ Reset password ------------ */}
+          <div className="rounded-md border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+            <p className="mb-1 text-xs font-medium">Resetear contraseña</p>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              Vas a definir una contraseña nueva manualmente. Las sesiones activas del
+              usuario se cierran. Compartile la nueva contraseña directamente.
+            </p>
+            <form action={pwdAction} className="space-y-2">
+              <input type="hidden" name="targetId" value={member.id} />
+              <Input
+                name="newPassword"
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                minLength={8}
+                maxLength={72}
+                required
+                autoComplete="new-password"
+              />
+              {!pwdState.ok ? (
+                <p className="text-xs text-destructive">{pwdState.error}</p>
+              ) : null}
+              <Button
+                type="submit"
+                disabled={pwdPending}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {pwdPending ? <Loader2 className="animate-spin h-3 w-3" /> : null}
+                Resetear contraseña
+              </Button>
+            </form>
+          </div>
+        </SheetBody>
+        <SheetFooter>
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            Cerrar
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

@@ -12,7 +12,7 @@ import { auth } from "@/lib/auth/server";
 import { adminDb } from "@/lib/db/admin";
 import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { logAuditStandalone } from "@/lib/audit/log";
-import { sessions, users } from "@/lib/db/schema";
+import { accounts, sessions, users } from "@/lib/db/schema";
 
 const InviteSchema = z.object({
   email: z.string().trim().email().max(200),
@@ -224,4 +224,204 @@ export async function desactivarStaffAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/configuracion");
+}
+
+// =============================================================================
+// Editar perfil de un miembro (nombre, email, hourlyRate) — admin/partner.
+// =============================================================================
+
+const UpdateProfileSchema = z.object({
+  targetId: z.string().uuid(),
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(200),
+  hourlyRate: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/u)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+
+export type UpdateProfileState =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function actualizarPerfilStaffAction(
+  _prev: UpdateProfileState | undefined,
+  formData: FormData,
+): Promise<UpdateProfileState> {
+  const user = await requireUser();
+  if (!hasAdminPowers(user.role)) {
+    return { ok: false, error: "Solo admin y socios pueden editar perfiles." };
+  }
+  const parsed = UpdateProfileSchema.safeParse({
+    targetId: formData.get("targetId"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    hourlyRate: formData.get("hourlyRate"),
+  });
+  if (!parsed.success) {
+    const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
+    return { ok: false, error: first ?? "Datos inválidos." };
+  }
+  const normalizedEmail = parsed.data.email.toLowerCase();
+
+  // Verificá que el target pertenece al firm.
+  const [target] = await adminDb
+    .select({
+      id: users.id,
+      currentEmail: users.email,
+      role: users.role,
+    })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, parsed.data.targetId),
+        eq(users.firmId, user.firmId),
+        isNull(users.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!target) return { ok: false, error: "Usuario no encontrado." };
+
+  // Partners no pueden editar a admins (asimetría jerárquica).
+  if (target.role === "admin" && user.role !== "admin") {
+    return { ok: false, error: "Solo otro admin puede editar a un admin." };
+  }
+
+  // Si el email cambia, verificá que no esté tomado por otro user del firm.
+  if (normalizedEmail !== target.currentEmail.toLowerCase()) {
+    const [conflict] = await adminDb
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.firmId, user.firmId),
+          eq(users.email, normalizedEmail),
+          isNull(users.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (conflict && conflict.id !== parsed.data.targetId) {
+      return { ok: false, error: "Ese email ya está en uso por otro miembro." };
+    }
+  }
+
+  await adminDb
+    .update(users)
+    .set({
+      name: parsed.data.name,
+      email: normalizedEmail,
+      hourlyRate: parsed.data.hourlyRate ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, parsed.data.targetId));
+
+  await logAuditStandalone({
+    firmId: user.firmId,
+    userId: user.userId,
+    entityType: "user",
+    entityId: parsed.data.targetId,
+    action: "updated",
+    summary: `Editó perfil de ${parsed.data.name}`,
+    diff: {
+      name: parsed.data.name,
+      email: normalizedEmail,
+      hourlyRate: parsed.data.hourlyRate ?? null,
+    },
+  });
+
+  revalidatePath("/configuracion");
+  return { ok: true };
+}
+
+// =============================================================================
+// Resetear contraseña de un miembro — admin/partner.
+// =============================================================================
+// El admin elige una nueva password (no se envía link por email, se le
+// dicta al usuario directamente). El usuario puede cambiarla luego desde
+// reset-password si querés. Las sesiones activas del target se invalidan
+// para forzar re-login con la nueva password.
+
+const ResetPasswordSchema = z.object({
+  targetId: z.string().uuid(),
+  newPassword: z.string().min(8).max(72),
+});
+
+export type ResetPasswordState =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function resetearPasswordStaffAction(
+  _prev: ResetPasswordState | undefined,
+  formData: FormData,
+): Promise<ResetPasswordState> {
+  const user = await requireUser();
+  if (!hasAdminPowers(user.role)) {
+    return { ok: false, error: "Solo admin y socios pueden resetear contraseñas." };
+  }
+  const parsed = ResetPasswordSchema.safeParse({
+    targetId: formData.get("targetId"),
+    newPassword: formData.get("newPassword"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "La contraseña debe tener entre 8 y 72 caracteres.",
+    };
+  }
+
+  // Verifica que el target sea del mismo firm.
+  const [target] = await adminDb
+    .select({ id: users.id, name: users.name, email: users.email, role: users.role })
+    .from(users)
+    .where(
+      and(
+        eq(users.id, parsed.data.targetId),
+        eq(users.firmId, user.firmId),
+        isNull(users.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!target) return { ok: false, error: "Usuario no encontrado." };
+
+  // Partners no pueden resetear contraseña de admins.
+  if (target.role === "admin" && user.role !== "admin") {
+    return {
+      ok: false,
+      error: "Solo otro admin puede resetear la contraseña de un admin.",
+    };
+  }
+
+  // Hashear via better-auth para que el formato coincida con el que usa
+  // en signin. La password hasher de better-auth está disponible via el
+  // contexto del auth instance.
+  const ctx = await auth.$context;
+  const hash = await ctx.password.hash(parsed.data.newPassword);
+
+  // Update el password del account de credential del target.
+  await adminDb
+    .update(accounts)
+    .set({ password: hash, updatedAt: new Date() })
+    .where(
+      and(
+        eq(accounts.userId, parsed.data.targetId),
+        eq(accounts.providerId, "credential"),
+      ),
+    );
+
+  // Mata las sesiones activas del target — fuerza re-login con la nueva.
+  await adminDb.delete(sessions).where(eq(sessions.userId, parsed.data.targetId));
+
+  await logAuditStandalone({
+    firmId: user.firmId,
+    userId: user.userId,
+    entityType: "user",
+    entityId: parsed.data.targetId,
+    action: "updated",
+    summary: `Reseteó contraseña de ${target.name}`,
+  });
+
+  revalidatePath("/configuracion");
+  return { ok: true };
 }
