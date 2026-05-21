@@ -57,6 +57,7 @@ import { StartTimerButton } from "./_components/start-timer-button";
 import { GastoFormDrawer } from "./_components/gasto-form-drawer";
 import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
 import { MatterChatPanel } from "./_components/matter-chat-panel";
+import { ConfidentialTierSwitch } from "./_components/confidential-tier-switch";
 
 export const metadata = { title: "Caso · LDP Legal Suite" };
 
@@ -140,6 +141,11 @@ export default async function CasoDetailPage({
                   Restringido
                 </Badge>
               ) : null}
+              <ConfidentialTierSwitch
+                caseId={c.id}
+                currentTier={(c.confidentialTier ?? "normal") as "normal" | "confidential" | "ultra_confidential"}
+                canEdit={user.role === "admin" || user.role === "partner"}
+              />
             </div>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">{c.title}</h1>
             <p className="text-sm text-muted-foreground">

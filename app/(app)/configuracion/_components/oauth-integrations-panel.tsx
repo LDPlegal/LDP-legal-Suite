@@ -1,17 +1,20 @@
 "use client";
 
-// F7+ Bloque 5 — Conectar/desconectar Google y Microsoft (calendario + correo).
+// F7+ Bloque 5 — Conectar/desconectar Microsoft (calendario + correo).
 //
-// Sólo muestra los providers que tienen credenciales configuradas en el
-// servidor (GOOGLE_OAUTH_CLIENT_ID, MICROSOFT_OAUTH_CLIENT_ID). El estado
-// "conectado" se renderiza si el usuario ya tiene una fila no-disconnected
-// en calendar_integrations.
+// Gabriel decidió que la firma usa exclusivamente Microsoft (Outlook +
+// Calendar). El código Google sigue presente en el backend por si más
+// adelante cambia la decisión — para reactivarlo basta con cambiar
+// SHOW_GOOGLE a true abajo.
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Calendar, Mail, Link2, Link2Off, Loader2 } from "lucide-react";
+import { Mail, Link2, Link2Off, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+// Toggle si en algún momento se reactiva Google.
+const SHOW_GOOGLE = false;
 
 type Connection = {
   provider: "google" | "microsoft";
@@ -118,12 +121,14 @@ export function OAuthIntegrationsPanel({
 
   return (
     <div className="space-y-3">
-      <ConnectionRow
-        provider="google"
-        label="Google (Gmail + Calendar)"
-        icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
-        configured={googleConfigured}
-      />
+      {SHOW_GOOGLE ? (
+        <ConnectionRow
+          provider="google"
+          label="Google (Gmail + Calendar)"
+          icon={<Mail className="h-5 w-5 text-muted-foreground" />}
+          configured={googleConfigured}
+        />
+      ) : null}
       <ConnectionRow
         provider="microsoft"
         label="Microsoft (Outlook + Calendar)"

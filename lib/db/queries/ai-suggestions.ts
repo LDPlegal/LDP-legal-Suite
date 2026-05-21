@@ -161,6 +161,41 @@ export async function setSuggestionFeedback(
   });
 }
 
+// F7+ feedback loop: lista los tipos silenciados por el usuario para
+// que pueda re-activarlos desde /configuracion → IA.
+export async function listMutedKinds(
+  firmId: string,
+  userId: string,
+): Promise<Array<{ kindPattern: string; mutedAt: Date }>> {
+  return withFirm(firmId, userId, async (tx) => {
+    const rows = await tx
+      .select({
+        kindPattern: userMutedSuggestionKinds.kindPattern,
+        mutedAt: userMutedSuggestionKinds.mutedAt,
+      })
+      .from(userMutedSuggestionKinds)
+      .where(eq(userMutedSuggestionKinds.userId, userId));
+    return rows;
+  });
+}
+
+export async function unmuteKind(
+  firmId: string,
+  userId: string,
+  kindPattern: string,
+): Promise<void> {
+  await withFirm(firmId, userId, async (tx) => {
+    await tx
+      .delete(userMutedSuggestionKinds)
+      .where(
+        and(
+          eq(userMutedSuggestionKinds.userId, userId),
+          eq(userMutedSuggestionKinds.kindPattern, kindPattern),
+        ),
+      );
+  });
+}
+
 // Worker-side helper: cleans up suggestions whose expiresAt has passed.
 // Idempotent. Called from the cron sweeper.
 export async function purgeExpiredSuggestions(): Promise<number> {

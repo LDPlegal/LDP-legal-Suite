@@ -335,7 +335,108 @@ export const AI_FEATURE_LABEL: Record<string, string> = {
   doc_summary: "Resumen de documento",
   chat: "Chat IA",
   scan_classify: "Clasificación de escaneo",
+  matter_chat: "Chat por expediente",
+  matter_context: "Contexto expediente",
+  doc_generate: "Generación de documento",
+  event_parse: "Parseo de evento",
 };
+
+// F7+ Bloque 4: trazabilidad de documentos generados por IA. Lista los
+// últimos N docs con ai_generated=true, su estado de revisión, quién
+// hizo el prompt original, y el caso al que pertenecen. Datos clave que
+// Gabriel pide en la spec como "auditoría completa de IA".
+export async function aiGeneratedDocsReport(
+  firmId: string,
+  userId: string,
+  limit: number = 50,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const rows = await tx.execute(sql`
+      SELECT
+        d.id,
+        d.name,
+        d.created_at,
+        d.review_status,
+        d.reviewed_at,
+        d.ai_original_prompt,
+        d.case_id,
+        c.code AS case_code,
+        c.title AS case_title,
+        u.id AS uploader_id,
+        u.name AS uploader_name,
+        r.name AS reviewer_name
+      FROM documents d
+      LEFT JOIN cases c ON c.id = d.case_id
+      LEFT JOIN users u ON u.id = d.uploaded_by
+      LEFT JOIN users r ON r.id = d.reviewed_by
+      WHERE d.ai_generated = true
+        AND d.deleted_at IS NULL
+      ORDER BY d.created_at DESC
+      LIMIT ${limit}
+    `);
+    return rows.rows as Array<{
+      id: string;
+      name: string;
+      created_at: Date;
+      review_status: string | null;
+      reviewed_at: Date | null;
+      ai_original_prompt: string | null;
+      case_id: string | null;
+      case_code: string | null;
+      case_title: string | null;
+      uploader_id: string | null;
+      uploader_name: string | null;
+      reviewer_name: string | null;
+    }>;
+  });
+}
+
+// F7+ Bloque 4: trazabilidad de eventos creados por IA. Mismo concepto
+// que aiGeneratedDocsReport pero para eventos. Útil para que el partner
+// vea qué eventos fueron sugeridos por la IA vs creados a mano.
+export async function aiCreatedEventsReport(
+  firmId: string,
+  userId: string,
+  limit: number = 50,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const rows = await tx.execute(sql`
+      SELECT
+        e.id,
+        e.title,
+        e.event_type,
+        e.start_at,
+        e.original_prompt,
+        e.case_id,
+        c.code AS case_code,
+        c.title AS case_title,
+        u.id AS creator_id,
+        u.name AS creator_name,
+        e.created_at,
+        e.deleted_at
+      FROM events e
+      LEFT JOIN cases c ON c.id = e.case_id
+      LEFT JOIN users u ON u.id = e.created_by
+      WHERE e.created_by_ai = true
+      ORDER BY e.created_at DESC
+      LIMIT ${limit}
+    `);
+    return rows.rows as Array<{
+      id: string;
+      title: string;
+      event_type: string | null;
+      start_at: Date;
+      original_prompt: string | null;
+      case_id: string | null;
+      case_code: string | null;
+      case_title: string | null;
+      creator_id: string | null;
+      creator_name: string | null;
+      created_at: Date;
+      deleted_at: Date | null;
+    }>;
+  });
+}
 
 // =============================================================================
 // DGII Reporte 607 — ventas con NCF del período (Fase 6.2)

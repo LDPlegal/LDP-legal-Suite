@@ -9,8 +9,10 @@ import {
   ackSuggestion,
   countPendingSuggestions,
   dismissSuggestion,
+  listMutedKinds,
   listPendingSuggestions,
   setSuggestionFeedback,
+  unmuteKind,
 } from "@/lib/db/queries/ai-suggestions";
 
 export async function fetchSuggestions() {
@@ -49,5 +51,26 @@ export async function feedbackSugerenciaAction(
   const r = await setSuggestionFeedback(user.firmId, user.userId, id, feedback);
   revalidatePath("/dashboard");
   if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true };
+}
+
+const KindSchema = z.string().trim().min(1).max(80);
+
+export async function listMutedKindsAction(): Promise<
+  Array<{ kindPattern: string; mutedAt: string }>
+> {
+  const user = await requireUser();
+  const rows = await listMutedKinds(user.firmId, user.userId);
+  return rows.map((r) => ({ kindPattern: r.kindPattern, mutedAt: r.mutedAt.toISOString() }));
+}
+
+export async function unmuteKindAction(
+  formData: FormData,
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const kind = KindSchema.parse(formData.get("kindPattern"));
+  await unmuteKind(user.firmId, user.userId, kind);
+  revalidatePath("/configuracion");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

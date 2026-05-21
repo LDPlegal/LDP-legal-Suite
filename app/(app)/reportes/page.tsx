@@ -16,6 +16,8 @@ import {
   ACTION_LABEL,
   AGING_BUCKET_LABEL,
   AI_FEATURE_LABEL,
+  aiCreatedEventsReport,
+  aiGeneratedDocsReport,
   aiUsageSummary,
   arAgingReport,
   billingSummary,
@@ -49,18 +51,33 @@ export default async function ReportesPage() {
   const ytdEnd = new Date(now.getFullYear() + 1, 0, 1);
 
   const aiEnabled = isAiEnabled();
-  const [aging, hoursByUser, hoursByMonth, topCases, summary, recent, aiStats] =
-    await Promise.all([
-      arAgingReport(user.firmId, user.userId),
-      hoursByUserReport(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
-      hoursByMonthReport(user.firmId, user.userId, 6),
-      topCasesByHoursReport(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }, 10),
-      billingSummary(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }),
-      listFirmRecentAudit(user.firmId, user.userId, 50),
-      aiEnabled
-        ? aiUsageSummary(user.firmId, user.userId, { from: monthStart, to: monthEnd })
-        : Promise.resolve(null),
-    ]);
+  const [
+    aging,
+    hoursByUser,
+    hoursByMonth,
+    topCases,
+    summary,
+    recent,
+    aiStats,
+    aiDocs,
+    aiEvents,
+  ] = await Promise.all([
+    arAgingReport(user.firmId, user.userId),
+    hoursByUserReport(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
+    hoursByMonthReport(user.firmId, user.userId, 6),
+    topCasesByHoursReport(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }, 10),
+    billingSummary(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }),
+    listFirmRecentAudit(user.firmId, user.userId, 50),
+    aiEnabled
+      ? aiUsageSummary(user.firmId, user.userId, { from: monthStart, to: monthEnd })
+      : Promise.resolve(null),
+    aiEnabled
+      ? aiGeneratedDocsReport(user.firmId, user.userId, 50)
+      : Promise.resolve([]),
+    aiEnabled
+      ? aiCreatedEventsReport(user.firmId, user.userId, 50)
+      : Promise.resolve([]),
+  ]);
 
   // Period strings for the 607 download button (current month).
   const dgiiYear = now.getFullYear();
@@ -438,6 +455,151 @@ export default async function ReportesPage() {
                           </TableCell>
                           <TableCell className="text-right font-mono tabular-nums">
                             ${Number(r.cost_usd).toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Documentos generados por IA</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Documento</TableHead>
+                      <TableHead>Caso</TableHead>
+                      <TableHead>Pedido por</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aiDocs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">
+                          No hay documentos generados por IA todavía.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      aiDocs.map((d) => (
+                        <TableRow key={d.id}>
+                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                            {new Date(d.created_at).toLocaleDateString("es-DO", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Link
+                              href={d.case_id ? `/casos/${d.case_id}` : `/documentos`}
+                              className="hover:underline"
+                              title={d.ai_original_prompt ?? undefined}
+                            >
+                              {d.name}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {d.case_code ? (
+                              <span className="font-mono">{d.case_code}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {d.uploader_name ?? "—"}
+                          </TableCell>
+                          <TableCell>
+                            {d.review_status === "approved" ? (
+                              <Badge variant="success">Aprobado</Badge>
+                            ) : d.review_status === "rejected" ? (
+                              <Badge variant="destructive">Rechazado</Badge>
+                            ) : d.review_status === "pending" ? (
+                              <Badge variant="warning">Pendiente revisión</Badge>
+                            ) : (
+                              <Badge variant="secondary">—</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-base">Eventos creados por IA</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Creado</TableHead>
+                      <TableHead>Evento</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Fecha evento</TableHead>
+                      <TableHead>Caso</TableHead>
+                      <TableHead>Por</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aiEvents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                          No hay eventos creados por IA todavía.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      aiEvents.map((e) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                            {new Date(e.created_at).toLocaleDateString("es-DO", {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                          </TableCell>
+                          <TableCell title={e.original_prompt ?? undefined}>
+                            {e.title}
+                          </TableCell>
+                          <TableCell className="text-xs">{e.event_type ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {new Date(e.start_at).toLocaleString("es-DO", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {e.case_code ? (
+                              <Link
+                                href={`/casos/${e.case_id}`}
+                                className="font-mono hover:underline"
+                              >
+                                {e.case_code}
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {e.creator_name ?? "—"}
+                          </TableCell>
+                          <TableCell>
+                            {e.deleted_at ? (
+                              <Badge variant="destructive">Cancelado</Badge>
+                            ) : (
+                              <Badge variant="success">Activo</Badge>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))

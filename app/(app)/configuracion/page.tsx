@@ -28,6 +28,7 @@ import { TeamPanel } from "./_components/team-panel";
 import { TwoFactorPanel } from "./_components/two-factor-panel";
 import { AiBudgetPanel } from "./_components/ai-budget-panel";
 import { OAuthIntegrationsPanel } from "./_components/oauth-integrations-panel";
+import { MutedKindsPanel } from "./_components/muted-kinds-panel";
 import { calendarIntegrations } from "@/lib/db/schema";
 import { isNull } from "drizzle-orm";
 import { isProviderConfigured } from "@/lib/oauth";
@@ -459,6 +460,19 @@ export default async function ConfiguracionPage() {
                   (ahorro estimado − consumo de API)
                 </span>
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sugerencias silenciadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Tipos de sugerencias que marcaste como &ldquo;silenciar&rdquo; desde el
+                dashboard. Reactivar uno hace que volvás a recibirlas.
+              </p>
+              <MutedKindsPanel />
             </CardContent>
           </Card>
         </TabsContent>
