@@ -16,6 +16,7 @@
 // activa. Window: 30 días atrás y 90 días adelante.
 
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { and, eq, gte, isNull, isNotNull, lte } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import { calendarIntegrations, events } from "@/lib/db/schema";
@@ -82,7 +83,11 @@ export async function pullCalendarFromProvider(
 
   // 3. Para cada evento del provider, upsert en events.
   //    Identificador estable: external_subscription_id = integration.id,
-  //    external_uid = e.iCalUId. El unique index ya existe.
+  //    external_uid = e.id (Graph REST id, único por instancia incluyendo
+  //    eventos recurrentes — el iCalUId se comparte entre instancias).
+  //    El icalUid local lo generamos nosotros (no usamos el del provider)
+  //    para no chocar con events_ical_uid_unique que cuenta cada fila.
+  let firstEventError: string | null = null;
   for (const e of providerEvents) {
     try {
       // Si está cancelado en el provider, soft-delete acá.
@@ -93,7 +98,7 @@ export async function pullCalendarFromProvider(
           .where(
             and(
               eq(events.externalSubscriptionId, integration.id),
-              eq(events.externalUid, e.iCalUId),
+              eq(events.externalUid, e.id),
               isNull(events.deletedAt),
             ),
           );
@@ -101,25 +106,33 @@ export async function pullCalendarFromProvider(
         continue;
       }
 
-      const startAt = new Date(e.start.dateTime + "Z"); // Graph returns local-naive when timeZone='UTC'
+      // Defensive: algunos eventos (workflows raros) llegan sin dateTime
+      // o con valores vacíos. Skipeamos sin contar como error.
+      if (!e.start?.dateTime || !e.end?.dateTime) {
+        summary.skipped++;
+        continue;
+      }
+      const startAt = new Date(e.start.dateTime + "Z");
       const endAt = new Date(e.end.dateTime + "Z");
+      if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) {
+        summary.skipped++;
+        continue;
+      }
       const allDay = e.isAllDay;
 
-      // Buscar si ya existe.
+      // Buscar si ya existe (por subscription + provider event id).
       const [existing] = await adminDb
         .select({ id: events.id, updatedAt: events.updatedAt })
         .from(events)
         .where(
           and(
             eq(events.externalSubscriptionId, integration.id),
-            eq(events.externalUid, e.iCalUId),
+            eq(events.externalUid, e.id),
           ),
         )
         .limit(1);
 
       if (existing) {
-        // Actualizar campos editables. No tocamos eventType / alertPolicy
-        // (esos son nuestros, el provider no los conoce).
         await adminDb
           .update(events)
           .set({
@@ -135,35 +148,41 @@ export async function pullCalendarFromProvider(
           .where(eq(events.id, existing.id));
         summary.skipped++;
       } else {
-        // Insertar. eventType queda null (es un evento "importado", no
-        // tipificado por nosotros). El admin puede tipificarlo manualmente
-        // si quiere alertas.
         await adminDb.insert(events).values({
           firmId: integration.firmId,
-          caseId: null, // los eventos importados no van asociados a un caso por default
+          caseId: null,
           title: e.subject || "(sin título)",
           description: e.bodyPreview || null,
           location: e.location?.displayName ?? null,
           startAt,
           endAt,
           allDay,
-          icalUid: e.iCalUId,
+          // icalUid local generado por nosotros (único por fila).
+          icalUid: `${randomUUID()}@sync-microsoft`,
           externalSubscriptionId: integration.id,
-          externalUid: e.iCalUId,
+          externalUid: e.id,
           createdBy: userId,
         });
         summary.pulled++;
       }
     } catch (err) {
       summary.errors++;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!firstEventError) firstEventError = msg.slice(0, 500);
       console.error(`[calendar-sync] error syncing event ${e.id}:`, err);
     }
   }
 
-  // 4. Actualizar el timestamp.
+  // 4. Actualizar el timestamp + último error si hubo. NO limpiamos
+  //    lastError si hubo errores per-event — antes los borrábamos a null
+  //    y dejábamos al usuario sin pista de qué falló.
   await adminDb
     .update(calendarIntegrations)
-    .set({ lastSyncAt: new Date(), lastError: null, updatedAt: new Date() })
+    .set({
+      lastSyncAt: new Date(),
+      lastError: firstEventError,
+      updatedAt: new Date(),
+    })
     .where(eq(calendarIntegrations.id, integration.id));
 
   return summary;
