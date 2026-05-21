@@ -11,6 +11,7 @@ import { users } from "@/lib/db/schema";
 import { CalendarView } from "./_components/calendar-view";
 import { EventoFormDrawer } from "./_components/evento-form-drawer";
 import { CalendarSyncDrawer } from "./_components/sync-drawer";
+import { CalendarSyncButton } from "./_components/sync-button";
 
 export const metadata = { title: "Calendario · LDP Legal Suite" };
 
@@ -49,6 +50,7 @@ export default async function CalendarioPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <CalendarSyncButton />
           <Button variant="outline" asChild>
             <a href="/api/calendario/export.ics" download>
               <Download className="h-4 w-4" />

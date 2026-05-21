@@ -141,6 +141,23 @@ export async function createEventFromChatAction(input: {
     },
   });
 
+  // Best-effort: push al calendario Microsoft del usuario si tiene
+  // conectado. No bloquea el flow ni revierte si falla (el cron diario
+  // lo recoge en el siguiente pull).
+  try {
+    const { pushEventToProvider } = await import("@/lib/calendar/sync");
+    void pushEventToProvider(user.userId, created.id, {
+      title: parsed.data.title,
+      description: parsed.data.description ?? null,
+      location: parsed.data.location ?? null,
+      startAt,
+      endAt,
+      allDay: duration === 0,
+    });
+  } catch {
+    // ignore — el cron diario reconciliará
+  }
+
   revalidatePath(`/casos/${parsed.data.caseId}`);
   revalidatePath("/calendario");
   return { ok: true, eventId: created.id, alertCount: alertRows.length };

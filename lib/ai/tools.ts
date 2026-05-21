@@ -171,6 +171,63 @@ export const cancelEventTool: AiTool = {
   },
 };
 
+// Compone y envía un correo en nombre del usuario (Microsoft Graph).
+// SIEMPRE requiere confirmación humana — el usuario revisa el contenido
+// final en la tarjeta del chat antes de que se envíe.
+//
+// La IA debe primero redactar el correo en el chat (texto plano), pedir
+// confirmación al usuario, y SÓLO cuando dice "sí mandalo" invocar esta
+// tool con el cuerpo final acordado. El skill de cartas LDP aplica al
+// cuerpo si es una carta formal; el skill de cobros si es seguimiento de
+// pago, etc.
+export const sendEmailTool: AiTool = {
+  name: "send_email",
+  description:
+    "Envía un correo a uno o más destinatarios desde la cuenta Microsoft del usuario (Outlook). SIEMPRE redactá primero el correo en texto en el chat, mostrale los destinatarios, asunto, y cuerpo final al usuario, y esperá su 'sí, mandalo' antes de invocar. La firma del usuario se concatena automáticamente al final del cuerpo si está configurada.",
+  input_schema: {
+    type: "object",
+    properties: {
+      to: {
+        type: "array",
+        description: "Lista de destinatarios principales.",
+        items: {
+          type: "object",
+          properties: {
+            email: { type: "string", description: "Email válido (RFC 5322)." },
+            name: { type: "string", description: "Nombre legible. Opcional." },
+          },
+          required: ["email"],
+        },
+        minItems: 1,
+      },
+      cc: {
+        type: "array",
+        description: "CC opcional.",
+        items: {
+          type: "object",
+          properties: {
+            email: { type: "string" },
+            name: { type: "string" },
+          },
+          required: ["email"],
+        },
+      },
+      subject: { type: "string", description: "Asunto del correo." },
+      bodyHtml: {
+        type: "string",
+        description:
+          "Cuerpo del correo en HTML simple (párrafos con <p>, saltos con <br>, listas con <ul><li>). Sin estilos inline complicados — el cliente del destinatario decide cómo se ve.",
+      },
+      attachDocumentIds: {
+        type: "array",
+        description: "UUIDs de documentos del expediente para adjuntar (opcional).",
+        items: { type: "string" },
+      },
+    },
+    required: ["to", "subject", "bodyHtml"],
+  },
+};
+
 // Convenience: tools enabled for the matter chat. Other entry points (e.g.
 // the global palette) may expose a different subset.
 export const matterChatTools: AiTool[] = [
@@ -179,4 +236,5 @@ export const matterChatTools: AiTool[] = [
   readDocumentTool,
   updateEventTool,
   cancelEventTool,
+  sendEmailTool,
 ];

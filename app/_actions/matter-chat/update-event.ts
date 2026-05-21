@@ -116,6 +116,19 @@ export async function updateEventFromChatAction(
     },
   });
 
+  // Best-effort: propagar el cambio al calendario Microsoft.
+  try {
+    const { pushEventUpdateToProvider } = await import("@/lib/calendar/sync");
+    void pushEventUpdateToProvider(user.userId, data.eventId, {
+      title: data.title,
+      location: data.location,
+      startAt: newStart ?? undefined,
+      endAt: patch.endAt ?? undefined,
+    });
+  } catch {
+    // ignore
+  }
+
   revalidatePath(`/casos/${data.caseId}`);
   revalidatePath("/calendario");
   return { ok: true };
@@ -173,6 +186,14 @@ export async function cancelEventFromChatAction(
     summary: `Canceló evento por IA: ${data.reason}`,
     diff: { reason: data.reason, chatMessageId: data.chatMessageId },
   });
+
+  // Best-effort: borrar también en el calendario Microsoft.
+  try {
+    const { pushEventDeleteToProvider } = await import("@/lib/calendar/sync");
+    void pushEventDeleteToProvider(user.userId, data.eventId);
+  } catch {
+    // ignore
+  }
 
   revalidatePath(`/casos/${data.caseId}`);
   revalidatePath("/calendario");

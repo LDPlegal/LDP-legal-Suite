@@ -45,6 +45,7 @@ import {
   cancelEventFromChatAction,
   updateEventFromChatAction,
 } from "@/app/_actions/matter-chat/update-event";
+import { sendEmailFromChatAction } from "@/app/_actions/matter-chat/send-email";
 
 type ToolUse = {
   id: string;
@@ -56,8 +57,10 @@ type ToolUse = {
   // Event creation state (after the user clicks "Crear evento").
   eventCreated?: { eventId: string; alertCount: number };
   creating?: boolean;
-  // update_event / cancel_event: one-shot success flag.
+  // update_event / cancel_event / send_email: one-shot success flag.
   done?: boolean;
+  // send_email: id del registro en sent_emails.
+  sentEmailId?: string;
 };
 
 type ChatMessage = {
@@ -299,6 +302,74 @@ export function MatterChatPanel({
       );
       toast.success("Evento creado", {
         description: `${r.alertCount} alerta(s) programada(s).`,
+      });
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error inesperado.");
+    }
+  }
+
+  // Confirm "Enviar" click on a send_email tool card.
+  async function handleSendEmail(messageId: string, toolUseId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    const use = msg?.toolUses?.find((t) => t.id === toolUseId);
+    if (!msg || !use) return;
+    const inp = use.input as {
+      to?: Array<{ email: string; name?: string }>;
+      cc?: Array<{ email: string; name?: string }>;
+      subject?: string;
+      bodyHtml?: string;
+      attachDocumentIds?: string[];
+    };
+    if (!inp.to || inp.to.length === 0 || !inp.subject || !inp.bodyHtml) {
+      toast.error("La IA no proporcionó destinatarios/asunto/cuerpo. Pedile que reintente.");
+      return;
+    }
+    setMessages((cur) =>
+      cur.map((m) =>
+        m.id === messageId
+          ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: true } : t)) }
+          : m,
+      ),
+    );
+    try {
+      const r = await sendEmailFromChatAction({
+        caseId,
+        chatMessageId: messageId.startsWith("user-") ? undefined : messageId,
+        to: inp.to,
+        cc: inp.cc,
+        subject: inp.subject,
+        bodyHtml: inp.bodyHtml,
+        originalPrompt: msg.content,
+        attachDocumentIds: inp.attachDocumentIds,
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        setMessages((cur) =>
+          cur.map((m) =>
+            m.id === messageId
+              ? { ...m, toolUses: m.toolUses?.map((t) => (t.id === toolUseId ? { ...t, creating: false } : t)) }
+              : m,
+          ),
+        );
+        return;
+      }
+      setMessages((cur) =>
+        cur.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                toolUses: m.toolUses?.map((t) =>
+                  t.id === toolUseId
+                    ? { ...t, creating: false, done: true, sentEmailId: r.sentEmailId }
+                    : t,
+                ),
+              }
+            : m,
+        ),
+      );
+      toast.success("Correo enviado", {
+        description: `${inp.to.length} destinatario(s) — copia guardada en Outlook.`,
       });
       router.refresh();
     } catch (err) {
@@ -550,6 +621,7 @@ export function MatterChatPanel({
                   onCreateEvent={handleCreateEvent}
                   onUpdateEvent={handleUpdateEvent}
                   onCancelEvent={handleCancelEvent}
+                  onSendEmail={handleSendEmail}
                 />
               ))}
               {sending ? (
@@ -610,12 +682,14 @@ function ChatBubble({
   onCreateEvent,
   onUpdateEvent,
   onCancelEvent,
+  onSendEmail,
 }: {
   message: ChatMessage;
   onGenerate?: (messageId: string, toolUseId: string) => void;
   onCreateEvent?: (messageId: string, toolUseId: string) => void;
   onUpdateEvent?: (messageId: string, toolUseId: string) => void;
   onCancelEvent?: (messageId: string, toolUseId: string) => void;
+  onSendEmail?: (messageId: string, toolUseId: string) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -665,6 +739,7 @@ function ChatBubble({
             onCreateEvent={onCreateEvent}
             onUpdateEvent={onUpdateEvent}
             onCancelEvent={onCancelEvent}
+            onSendEmail={onSendEmail}
           />
         ))}
         {isAssistant ? (
@@ -695,6 +770,7 @@ function ToolUseCard({
   onCreateEvent,
   onUpdateEvent,
   onCancelEvent,
+  onSendEmail,
 }: {
   messageId: string;
   use: ToolUse;
@@ -702,6 +778,7 @@ function ToolUseCard({
   onCreateEvent?: (messageId: string, toolUseId: string) => void;
   onUpdateEvent?: (messageId: string, toolUseId: string) => void;
   onCancelEvent?: (messageId: string, toolUseId: string) => void;
+  onSendEmail?: (messageId: string, toolUseId: string) => void;
 }) {
   if (use.name === "generate_document") {
     const inp = use.input as {
@@ -881,6 +958,77 @@ function ToolUseCard({
               onClick={() => onCancelEvent?.(messageId, use.id)}
             >
               Confirmar cancelación
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // send_email card — la IA propone enviar un correo. El usuario revisa
+  // destinatarios + asunto + cuerpo y confirma con click. Por seguridad
+  // siempre requiere confirmación (no autosend).
+  if (use.name === "send_email") {
+    const inp = use.input as {
+      to?: Array<{ email: string; name?: string }>;
+      cc?: Array<{ email: string; name?: string }>;
+      subject?: string;
+      bodyHtml?: string;
+    };
+    const recipients = (inp.to ?? [])
+      .map((r) => (r.name ? `${r.name} <${r.email}>` : r.email))
+      .join(", ");
+    const ccList = (inp.cc ?? [])
+      .map((r) => (r.name ? `${r.name} <${r.email}>` : r.email))
+      .join(", ");
+    return (
+      <div className="mt-3 rounded-md border bg-background p-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-medium text-violet-700 dark:text-violet-300">
+            ✉️ Correo propuesto
+          </span>
+        </div>
+        <div className="mt-2 space-y-1 text-xs">
+          <p>
+            <span className="text-muted-foreground">Para:</span> {recipients || "(sin destinatarios)"}
+          </p>
+          {ccList ? (
+            <p>
+              <span className="text-muted-foreground">CC:</span> {ccList}
+            </p>
+          ) : null}
+          <p>
+            <span className="text-muted-foreground">Asunto:</span>{" "}
+            <span className="font-medium">{inp.subject ?? "(sin asunto)"}</span>
+          </p>
+        </div>
+        {inp.bodyHtml ? (
+          <details className="mt-2">
+            <summary className="cursor-pointer text-[11px] text-muted-foreground">
+              Ver cuerpo del correo
+            </summary>
+            <div
+              className="prose prose-sm dark:prose-invert mt-1 max-h-60 max-w-none overflow-auto rounded border bg-muted/30 p-2 text-xs"
+              dangerouslySetInnerHTML={{ __html: inp.bodyHtml }}
+            />
+          </details>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {use.done ? (
+            <span className="text-[11px] text-emerald-600">
+              ✓ Correo enviado · copia en tu carpeta Sent
+            </span>
+          ) : use.creating ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Enviando…
+            </div>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onSendEmail?.(messageId, use.id)}
+            >
+              Enviar correo
             </Button>
           )}
         </div>

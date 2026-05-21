@@ -29,6 +29,7 @@ import { TwoFactorPanel } from "./_components/two-factor-panel";
 import { AiBudgetPanel } from "./_components/ai-budget-panel";
 import { OAuthIntegrationsPanel } from "./_components/oauth-integrations-panel";
 import { MutedKindsPanel } from "./_components/muted-kinds-panel";
+import { EmailSignaturePanel } from "./_components/email-signature-panel";
 import { calendarIntegrations } from "@/lib/db/schema";
 import { isNull } from "drizzle-orm";
 import { isProviderConfigured } from "@/lib/oauth";
@@ -58,7 +59,10 @@ export default async function ConfiguracionPage() {
     listClients(user.firmId, user.userId, { limit: 200 }),
     getBudgetStatus(user.firmId),
     adminDb
-      .select({ twoFactorEnabled: users.twoFactorEnabled })
+      .select({
+        twoFactorEnabled: users.twoFactorEnabled,
+        emailSignature: users.emailSignature,
+      })
       .from(users)
       .where(eq(users.id, user.userId))
       .limit(1),
@@ -86,6 +90,7 @@ export default async function ConfiguracionPage() {
   const aiEnabled = isAiEnabled();
   const aiModel = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
   const twoFactorEnabled = twoFactorRow[0]?.twoFactorEnabled ?? false;
+  const emailSignature = twoFactorRow[0]?.emailSignature ?? "";
 
   return (
     <div className="space-y-6">
@@ -231,6 +236,15 @@ export default async function ConfiguracionPage() {
                   lastSyncAt: c.lastSyncAt ? c.lastSyncAt.toISOString() : null,
                 }))}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Firma para correos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EmailSignaturePanel initial={emailSignature} />
             </CardContent>
           </Card>
 
