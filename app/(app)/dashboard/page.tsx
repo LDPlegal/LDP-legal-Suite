@@ -112,26 +112,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/80">
-            {now.toLocaleDateString("es-DO", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
-          <h1 className="text-[28px] font-semibold leading-tight tracking-tight">
-            {greeting},{" "}
-            <span className="text-gradient-brand">
-              {user.name.split(" ")[0]}
-            </span>
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Acá está lo importante de tu firma hoy.
-          </p>
-        </div>
+      <div className="space-y-2">
+        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          {now.toLocaleDateString("es-DO", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
+          {greeting}, {user.name.split(" ")[0]}.
+        </h1>
       </div>
 
       <AiHero pendingPromptsCount={sugerencias.length} />
