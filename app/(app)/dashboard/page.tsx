@@ -31,7 +31,6 @@ import { formatInFirmTz } from "@/lib/datetime/format";
 import { SuggestionsWidget } from "./_components/suggestions-widget";
 import { KpiCard } from "./_components/kpi-card";
 import { AgingChart } from "./_components/aging-chart";
-import { StaggerList } from "./_components/stagger-list";
 
 export const metadata = { title: "Dashboard · LDP Legal Suite" };
 
@@ -229,50 +228,55 @@ export default async function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <StaggerList className="space-y-2">
-                {proximosEventos.slice(0, 5).map((e) => {
+              <ul className="space-y-2">
+                {proximosEventos.slice(0, 5).map((e, idx) => {
                   const startAt = new Date(e.startAt);
                   const isToday =
                     startAt.toDateString() === new Date().toDateString();
                   return (
-                    <Link
+                    <li
                       key={e.id}
-                      href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
-                      className="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="fade-in-up"
+                      style={{ animationDelay: `${idx * 50}ms` }}
                     >
-                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-500/10 to-blue-500/0 dark:border-blue-800/40">
-                        <span className="text-[10px] uppercase font-semibold tracking-wider text-blue-600 dark:text-blue-400">
-                          {startAt.toLocaleDateString("es-DO", {
-                            month: "short",
-                          }).replace(".", "")}
-                        </span>
-                        <span className="text-lg font-semibold leading-none">
-                          {startAt.getDate()}
-                        </span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {e.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isToday ? "Hoy" : startAt.toLocaleDateString("es-DO", { weekday: "long" })}
-                          {" · "}
-                          {startAt.toLocaleTimeString("es-DO", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {e.caseCode ? (
-                            <>
-                              {" · "}
-                              <span className="font-mono">{e.caseCode}</span>
-                            </>
-                          ) : null}
-                        </p>
-                      </div>
-                    </Link>
+                      <Link
+                        href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
+                        className="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      >
+                        <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-500/10 to-blue-500/0 dark:border-blue-800/40">
+                          <span className="text-[10px] uppercase font-semibold tracking-wider text-blue-600 dark:text-blue-400">
+                            {startAt.toLocaleDateString("es-DO", {
+                              month: "short",
+                            }).replace(".", "")}
+                          </span>
+                          <span className="text-lg font-semibold leading-none">
+                            {startAt.getDate()}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {e.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isToday ? "Hoy" : startAt.toLocaleDateString("es-DO", { weekday: "long" })}
+                            {" · "}
+                            {startAt.toLocaleTimeString("es-DO", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                            {e.caseCode ? (
+                              <>
+                                {" · "}
+                                <span className="font-mono">{e.caseCode}</span>
+                              </>
+                            ) : null}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
                   );
                 })}
-              </StaggerList>
+              </ul>
             )}
           </CardContent>
         </Card>
@@ -323,8 +327,8 @@ export default async function DashboardPage() {
                 </p>
               </div>
             ) : (
-              <StaggerList className="space-y-1.5">
-                {misTareas.slice(0, 6).map((t) => {
+              <ul className="space-y-1.5">
+                {misTareas.slice(0, 6).map((t, idx) => {
                   const overdue =
                     t.dueAt && new Date(t.dueAt).getTime() < now.getTime();
                   const priorityColor =
@@ -334,9 +338,10 @@ export default async function DashboardPage() {
                         ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20"
                         : "text-muted-foreground bg-muted/40 border-border";
                   return (
-                    <div
+                    <li
                       key={t.id}
-                      className="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="fade-in-up group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      style={{ animationDelay: `${idx * 50}ms` }}
                     >
                       <span
                         className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${priorityColor}`}
@@ -381,10 +386,10 @@ export default async function DashboardPage() {
                       >
                         {t.priority}
                       </Badge>
-                    </div>
+                    </li>
                   );
                 })}
-              </StaggerList>
+              </ul>
             )}
           </CardContent>
         </Card>
@@ -402,7 +407,7 @@ export default async function DashboardPage() {
                 Sin actividad registrada todavía.
               </p>
             ) : (
-              <StaggerList className="relative space-y-0">
+              <ul className="relative space-y-0">
                 {actividad.slice(0, 7).map((e, i, arr) => {
                   const initials = (e.userName ?? "??")
                     .split(" ")
@@ -411,7 +416,11 @@ export default async function DashboardPage() {
                     .join("")
                     .toUpperCase();
                   return (
-                    <div key={e.id} className="relative flex items-start gap-3 pb-3">
+                    <li
+                      key={e.id}
+                      className="fade-in-up relative flex items-start gap-3 pb-3"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
                       {/* Vertical line connecting timeline */}
                       {i < arr.length - 1 ? (
                         <span
@@ -443,10 +452,10 @@ export default async function DashboardPage() {
                           {formatInFirmTz(e.createdAt, undefined, "dd/MM HH:mm")}
                         </p>
                       </div>
-                    </div>
+                    </li>
                   );
                 })}
-              </StaggerList>
+              </ul>
             )}
           </CardContent>
         </Card>
