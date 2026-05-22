@@ -3,11 +3,50 @@
 // KPI Card vibrante: gradiente único por color, icono grande translúcido,
 // número animado, hover con lift suave. Cada color tiene su personalidad
 // (azul = casos, teal = clientes, ámbar = tiempos, rojo = por cobrar).
+//
+// IMPORTANTE: como este componente cruza la frontera server/client, no
+// podemos recibir el icono como prop (los componentes de Lucide son
+// funciones y no son serializables). Resolvemos el icono adentro a
+// partir de un string key.
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import {
+  Briefcase,
+  Calendar,
+  CheckSquare,
+  Clock,
+  FileText,
+  ListChecks,
+  Receipt,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { AnimatedCounter } from "./animated-counter";
+
+export type KpiIconName =
+  | "briefcase"
+  | "users"
+  | "clock"
+  | "receipt"
+  | "calendar"
+  | "listChecks"
+  | "fileText"
+  | "checkSquare"
+  | "sparkles";
+
+const ICON_MAP: Record<KpiIconName, LucideIcon> = {
+  briefcase: Briefcase,
+  users: Users,
+  clock: Clock,
+  receipt: Receipt,
+  calendar: Calendar,
+  listChecks: ListChecks,
+  fileText: FileText,
+  checkSquare: CheckSquare,
+  sparkles: Sparkles,
+};
 
 export type KpiColor = "blue" | "teal" | "amber" | "rose" | "violet" | "emerald";
 
@@ -70,11 +109,10 @@ export type KpiCardProps = {
   label: string;
   hint: string;
   href: string;
-  icon: LucideIcon;
+  iconName: KpiIconName;
   color: KpiColor;
-  // Soporta valor numérico (anima) o un texto literal (para casos como "0.0h").
   numeric?: KpiNumeric;
-  displayValue?: string; // fallback texto si no es numérico
+  displayValue?: string;
   delay?: number;
 };
 
@@ -82,23 +120,26 @@ export function KpiCard({
   label,
   hint,
   href,
-  icon: Icon,
+  iconName,
   color,
   numeric,
   displayValue,
   delay = 0,
 }: KpiCardProps) {
   const c = COLOR_STYLES[color];
+  const Icon = ICON_MAP[iconName];
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+      transition={{
+        duration: 0.45,
+        delay,
+        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+      }}
     >
       <Link href={href} className="group relative block">
-        <div
-          className={`relative overflow-hidden rounded-2xl border border-border bg-card backdrop-blur-xl transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[var(--glass-shadow-lg)]`}
-        >
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card backdrop-blur-xl transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[var(--glass-shadow-lg)]">
           {/* Tinted gradient layer */}
           <div
             className={`absolute inset-0 bg-gradient-to-br ${c.bgGradient} opacity-100`}

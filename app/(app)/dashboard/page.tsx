@@ -102,37 +102,6 @@ export default async function DashboardPage() {
   const myHours = myHoursRow ? myHoursRow.total_seconds / 3600 : 0;
   const myBillableHours = myHoursRow ? myHoursRow.billable_seconds / 3600 : 0;
 
-  const kpis = [
-    {
-      label: "Casos abiertos",
-      value: String(openCasesRes.total),
-      icon: Briefcase,
-      hint: `${casesRes.total} en total`,
-      href: "/casos",
-    },
-    {
-      label: "Clientes",
-      value: String(clientsRes.total),
-      icon: Users,
-      hint: "Activos + prospectos",
-      href: "/clientes",
-    },
-    {
-      label: "Mis horas (mes)",
-      value: `${myHours.toFixed(1)}h`,
-      icon: Clock,
-      hint: `${myBillableHours.toFixed(1)}h facturables`,
-      href: "/tiempos",
-    },
-    {
-      label: "Por cobrar",
-      value: formatMoney(num(billing.total_outstanding)),
-      icon: Receipt,
-      hint: `${billing.invoice_count} facturas YTD`,
-      href: "/reportes",
-    },
-  ];
-
   const hour = now.getHours();
   const greeting =
     hour < 5
@@ -171,7 +140,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Casos abiertos"
           href="/casos"
-          icon={Briefcase}
+          iconName="briefcase"
           color="blue"
           numeric={{ type: "number", value: openCasesRes.total }}
           hint={`${casesRes.total} en total`}
@@ -180,7 +149,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Clientes"
           href="/clientes"
-          icon={Users}
+          iconName="users"
           color="teal"
           numeric={{ type: "number", value: clientsRes.total }}
           hint="Activos + prospectos"
@@ -189,7 +158,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Mis horas (mes)"
           href="/tiempos"
-          icon={Clock}
+          iconName="clock"
           color="amber"
           numeric={{
             type: "number",
@@ -203,7 +172,7 @@ export default async function DashboardPage() {
         <KpiCard
           label="Por cobrar"
           href="/reportes"
-          icon={Receipt}
+          iconName="receipt"
           color="rose"
           displayValue={formatMoney(num(billing.total_outstanding))}
           hint={`${billing.invoice_count} facturas YTD`}
