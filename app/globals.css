@@ -92,26 +92,28 @@
   /* Radius base ligeramente más generoso (Apple Glass tiende a ~14-16px) */
   --radius: 0.875rem;
 
-  /* Light mode — fondo blanco con tinte azul sutil */
-  --background: #FAFBFD;
+  /* Light mode — fondo tipo papel premium cálido (no blanco frío).
+     Inspirado en el letterhead de bufetes serios: off-white con leve
+     calidez para que se sienta como pergamino sin caer en sepia. */
+  --background: #F6F4EF;
   --foreground: #0B1929;
 
-  --card: rgba(255, 255, 255, 0.72);
+  --card: rgba(255, 254, 252, 0.85);
   --card-foreground: #0B1929;
 
-  --popover: rgba(255, 255, 255, 0.92);
+  --popover: rgba(255, 254, 252, 0.96);
   --popover-foreground: #0B1929;
 
   --primary: #0F4C81;
   --primary-foreground: #FFFFFF;
 
-  --secondary: rgba(241, 245, 249, 0.7);
+  --secondary: rgba(237, 232, 222, 0.6);
   --secondary-foreground: #0B1929;
 
-  --muted: rgba(241, 245, 249, 0.6);
-  --muted-foreground: #5B6B82;
+  --muted: rgba(237, 232, 222, 0.5);
+  --muted-foreground: #5C6573;
 
-  --accent: rgba(232, 241, 250, 0.8);
+  --accent: rgba(232, 241, 250, 0.85);
   --accent-foreground: #0F4C81;
 
   --destructive: #DC2626;
@@ -123,34 +125,34 @@
   --success: #0D9488;
   --success-foreground: #FFFFFF;
 
-  --border: rgba(15, 76, 129, 0.10);
-  --input: rgba(15, 76, 129, 0.14);
+  --border: rgba(15, 76, 129, 0.12);
+  --input: rgba(15, 76, 129, 0.16);
   --ring: #1E6FBA;
 
-  --sidebar: rgba(247, 249, 252, 0.65);
-  --sidebar-foreground: #0B1929;
-  --sidebar-primary: #0F4C81;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: rgba(232, 241, 250, 0.8);
-  --sidebar-accent-foreground: #0F4C81;
-  --sidebar-border: rgba(15, 76, 129, 0.08);
-  --sidebar-ring: #1E6FBA;
+  --sidebar: #051D33;
+  --sidebar-foreground: #E6EEF8;
+  --sidebar-primary: #4D93C7;
+  --sidebar-primary-foreground: #051D33;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #E6EEF8;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #4D93C7;
 
-  /* Glass system tokens */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-strong: rgba(255, 255, 255, 0.88);
-  --glass-bg-subtle: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.7);
-  --glass-border-inner: rgba(15, 76, 129, 0.08);
+  /* Glass system tokens — papel cálido en vez de blanco frío */
+  --glass-bg: rgba(255, 254, 252, 0.85);
+  --glass-bg-strong: rgba(255, 254, 252, 0.96);
+  --glass-bg-subtle: rgba(255, 254, 252, 0.65);
+  --glass-border: rgba(255, 254, 252, 0.7);
+  --glass-border-inner: rgba(15, 76, 129, 0.10);
   --glass-shadow:
-    0 1px 2px rgba(11, 25, 41, 0.04),
+    0 1px 2px rgba(11, 25, 41, 0.05),
     0 4px 16px -4px rgba(11, 25, 41, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --glass-shadow-lg:
     0 1px 2px rgba(11, 25, 41, 0.06),
     0 8px 24px -8px rgba(11, 25, 41, 0.12),
     0 24px 48px -16px rgba(11, 25, 41, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --glass-blur: saturate(140%) blur(12px);
   --glass-blur-strong: saturate(160%) blur(20px);
 
@@ -242,8 +244,13 @@
 
   body {
     background-color: var(--background);
-    background-image: var(--ambient-gradient);
+    /* Pattern tipo papel premium: noise muy sutil + lines horizontales casi
+       imperceptibles. Le da textura al fondo sin parecer "fake AI". */
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' /%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.10 0 0 0 0 0.20 0 0 0 0.045 0' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E"),
+      var(--ambient-gradient);
     background-attachment: fixed;
+    background-size: 240px 240px, auto;
     color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter ligature features */

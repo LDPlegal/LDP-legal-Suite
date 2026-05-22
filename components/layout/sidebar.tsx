@@ -111,19 +111,21 @@ export function Sidebar({
     <aside
       className={cn(
         "sticky top-0 z-30 flex h-screen shrink-0 flex-col text-sidebar-foreground",
-        "bg-[var(--sidebar)] backdrop-blur-2xl",
-        "border-r border-sidebar-border",
+        // Sidebar SIEMPRE navy profundo — funciona en light y dark mode,
+        // da contraste y "anchora" la página como un letterhead legal.
+        "bg-[#051D33] text-[#E6EEF8]",
+        "border-r border-white/[0.06]",
         "transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
         collapsed ? "w-[72px]" : "w-[244px]",
       )}
     >
       {/* Brand */}
-      <div className="relative flex h-16 items-center justify-between border-b border-sidebar-border px-3">
+      <div className="relative flex h-16 items-center justify-between border-b border-white/[0.06] px-3">
         <Link
           href="/dashboard"
-          className="flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-sidebar-accent/40"
+          className="flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-white/[0.05]"
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[var(--color-brand-600)] text-white">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-[#051D33]">
             <Scale className="h-4 w-4" />
           </span>
           {!collapsed ? (
@@ -133,10 +135,10 @@ export function Sidebar({
               transition={{ duration: 0.2 }}
               className="min-w-0 leading-tight"
             >
-              <p className="truncate text-[13px] font-semibold tracking-tight">
+              <p className="truncate text-[13px] font-semibold tracking-tight text-white">
                 {firmName}
               </p>
-              <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">
                 Legal Suite
               </p>
             </motion.div>
@@ -145,7 +147,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground press transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="grid h-7 w-7 place-items-center rounded-md text-white/55 press transition-colors hover:bg-white/[0.06] hover:text-white"
           aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
         >
           {collapsed ? (
@@ -156,26 +158,24 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Asistente IA — discreto, no gritando */}
+      {/* Asistente IA — discreto */}
       <div className="px-3 pt-3">
         <Link
           href="/casos"
           className={cn(
-            "group flex items-center gap-2.5 rounded-md border border-border bg-card/60 backdrop-blur-sm px-2.5 py-2 press",
-            "transition-colors hover:bg-accent/60 hover:border-border/80",
+            "group flex items-center gap-2.5 rounded-md border border-white/[0.10] bg-white/[0.04] px-2.5 py-2 press",
+            "transition-colors hover:bg-white/[0.08] hover:border-white/[0.18]",
             collapsed ? "justify-center" : "",
           )}
           title={collapsed ? "Asistente IA" : undefined}
         >
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#4D93C7]" />
           {!collapsed ? (
             <div className="min-w-0 leading-tight">
-              <p className="text-[12px] font-medium tracking-tight text-foreground">
+              <p className="text-[12px] font-medium tracking-tight text-white">
                 Asistente IA
               </p>
-              <p className="text-[10px] text-muted-foreground">
-                Cmd · J en un caso
-              </p>
+              <p className="text-[10px] text-white/50">Cmd · J en un caso</p>
             </div>
           ) : null}
         </Link>
@@ -186,7 +186,7 @@ export function Sidebar({
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
             {!collapsed ? (
-              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.10em] text-muted-foreground/60">
+              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
                 {group.label}
               </p>
             ) : null}
@@ -202,17 +202,17 @@ export function Sidebar({
                         "group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm",
                         "transition-[color] duration-150",
                         active
-                          ? "text-foreground font-medium"
-                          : "text-muted-foreground hover:text-foreground",
+                          ? "text-white font-medium"
+                          : "text-white/65 hover:text-white",
                       )}
                       title={collapsed ? item.label : undefined}
                     >
-                      {/* Indicador animado — pill que se desliza */}
+                      {/* Indicador activo — pill se desliza con layoutId */}
                       {active ? (
                         <motion.span
                           layoutId="sidebar-active-pill"
                           aria-hidden
-                          className="absolute inset-0 rounded-md bg-sidebar-accent"
+                          className="absolute inset-0 rounded-md bg-white/[0.08]"
                           transition={{
                             type: "spring",
                             stiffness: 380,
@@ -220,12 +220,12 @@ export function Sidebar({
                           }}
                         />
                       ) : null}
-                      {/* Barra brand a la izquierda del item activo */}
+                      {/* Barra activa a la izquierda */}
                       {active ? (
                         <motion.span
                           layoutId="sidebar-active-bar"
                           aria-hidden
-                          className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary"
+                          className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-[#4D93C7]"
                           transition={{
                             type: "spring",
                             stiffness: 380,
@@ -236,7 +236,7 @@ export function Sidebar({
                       <Icon
                         className={cn(
                           "relative h-4 w-4 shrink-0",
-                          active ? "text-primary" : "",
+                          active ? "text-[#4D93C7]" : "",
                         )}
                       />
                       {!collapsed ? (
@@ -253,15 +253,15 @@ export function Sidebar({
         ))}
       </nav>
 
-      {/* User card discreta */}
-      <div className="border-t border-sidebar-border p-3">
+      {/* User card */}
+      <div className="border-t border-white/[0.06] p-3">
         <div
           className={cn(
             "flex items-center gap-2.5 rounded-md",
-            !collapsed && "px-1.5 py-1 hover:bg-sidebar-accent/40 transition-colors press",
+            !collapsed && "px-1.5 py-1 hover:bg-white/[0.05] transition-colors press",
           )}
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--color-brand-600)] text-[11px] font-semibold text-white">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.10] text-[11px] font-semibold text-white ring-1 ring-white/[0.10]">
             {initialsOf(user.name)}
           </span>
           <AnimatePresence>
@@ -273,10 +273,10 @@ export function Sidebar({
                 transition={{ duration: 0.18 }}
                 className="min-w-0 leading-tight"
               >
-                <p className="truncate text-[12px] font-medium tracking-tight">
+                <p className="truncate text-[12px] font-medium tracking-tight text-white">
                   {user.name}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[10px] text-white/45">
                   {ROLE_LABEL[user.role] ?? user.role}
                 </p>
               </motion.div>
