@@ -159,6 +159,10 @@
     radial-gradient(ellipse 80% 50% at 20% 0%, rgba(30, 111, 186, 0.07), transparent 60%),
     radial-gradient(ellipse 60% 50% at 100% 40%, rgba(20, 184, 166, 0.05), transparent 60%),
     radial-gradient(ellipse 70% 60% at 0% 100%, rgba(15, 76, 129, 0.04), transparent 50%);
+
+  /* Acento dorado clásico legal */
+  --color-gold: #B89254;
+  --color-gold-light: #D4B173;
 }
 
 .dark {
@@ -415,5 +419,55 @@
   .fade-in-up {
     opacity: 0;
     animation: ldp-fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Shimmer animation para skeletons / loading states */
+  @keyframes ldp-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: ldp-shimmer 2s linear infinite;
+  }
+
+  /* Floating animation — para elementos decorativos que respiran */
+  @keyframes ldp-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .float {
+    animation: ldp-float 4s ease-in-out infinite;
+  }
+
+  /* Acento dorado para elementos críticos legales (sellos, firmas, etc.) */
+  .text-gold {
+    color: var(--color-gold);
+  }
+  .border-gold {
+    border-color: var(--color-gold-light);
+  }
+  .bg-gold-soft {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-gold) 15%, transparent),
+      color-mix(in srgb, var(--color-gold) 5%, transparent)
+    );
+  }
+
+  /* Subtle 3D tilt en hover — útil para cards interactivas */
+  .tilt-hover {
+    transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform: perspective(800px) rotateX(0) rotateY(0);
+  }
+  .tilt-hover:hover {
+    transform: perspective(800px) translateZ(8px) rotateX(2deg);
   }
 }

@@ -1,12 +1,10 @@
 import Link from "next/link";
 import {
-  Briefcase,
   Calendar,
   CheckSquare,
   Clock,
   ListChecks,
   Receipt,
-  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +29,7 @@ import { formatInFirmTz } from "@/lib/datetime/format";
 import { SuggestionsWidget } from "./_components/suggestions-widget";
 import { KpiCard } from "./_components/kpi-card";
 import { AgingChart } from "./_components/aging-chart";
+import { AiHero } from "./_components/ai-hero";
 
 export const metadata = { title: "Dashboard · LDP Legal Suite" };
 
@@ -134,6 +133,8 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      <AiHero pendingPromptsCount={sugerencias.length} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
