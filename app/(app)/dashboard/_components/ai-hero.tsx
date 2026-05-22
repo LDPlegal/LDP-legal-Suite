@@ -26,7 +26,7 @@ export function AiHero({
       {/* Base gradient */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10"
+        className="absolute inset-0 z-0"
         style={{
           background:
             "linear-gradient(135deg, #051D33 0%, #0F4C81 40%, #1E6FBA 80%, #14B8A6 100%)",
@@ -40,7 +40,7 @@ export function AiHero({
           opacity: [0.5, 0.7, 0.5],
         }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -right-20 -top-24 -z-10 h-72 w-72 rounded-full blur-3xl"
+        className="absolute -right-20 -top-24 z-0 h-72 w-72 rounded-full blur-3xl"
         style={{
           background:
             "radial-gradient(circle, rgba(20,184,166,0.65), transparent 70%)",
@@ -54,7 +54,7 @@ export function AiHero({
           opacity: [0.45, 0.6, 0.45],
         }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute -bottom-32 -left-24 -z-10 h-80 w-80 rounded-full blur-3xl"
+        className="absolute -bottom-32 -left-24 z-0 h-80 w-80 rounded-full blur-3xl"
         style={{
           background:
             "radial-gradient(circle, rgba(30,111,186,0.65), transparent 70%)",
@@ -63,7 +63,7 @@ export function AiHero({
       {/* Grain noise */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 opacity-[0.05] mix-blend-overlay"
+        className="absolute inset-0 z-0 opacity-[0.05] mix-blend-overlay"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E\")",
@@ -81,7 +81,7 @@ export function AiHero({
         }}
       />
 
-      <div className="relative flex flex-col gap-5 p-7 md:flex-row md:items-center md:justify-between md:gap-8 md:p-9">
+      <div className="relative z-10 flex flex-col gap-5 p-7 md:flex-row md:items-center md:justify-between md:gap-8 md:p-9">
         <div className="flex-1 space-y-3 text-white">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-white/70">
             <Sparkles className="h-3.5 w-3.5" />
