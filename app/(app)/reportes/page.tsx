@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, DollarSign, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -98,12 +99,12 @@ export default async function ReportesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Reportes</h1>
-        <p className="text-sm text-muted-foreground">
-          Indicadores de la firma · año {now.getFullYear()}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={`Año ${now.getFullYear()}`}
+        title="Reportes"
+        description="Indicadores de la firma: facturación, productividad por persona, AR aging y consumo de IA."
+      />
+
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

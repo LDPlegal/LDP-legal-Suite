@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, ShieldCheck } from "lucide-react";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
@@ -94,12 +95,11 @@ export default async function ConfiguracionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Configuración</h1>
-        <p className="text-sm text-muted-foreground">
-          Datos del firm, fiscal, plantillas y tarifas. Solo admins / socios pueden modificar.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Sistema"
+        title="Configuración"
+        description="Datos del firm, fiscal, plantillas, tarifas, equipo y seguridad. Solo admins y socios pueden modificar."
+      />
 
       <Tabs defaultValue="fiscal">
         <TabsList>

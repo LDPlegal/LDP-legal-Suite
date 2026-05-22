@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import { listInvoices } from "@/lib/db/queries/invoices";
 import { requireUser } from "@/lib/auth/session";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
@@ -40,15 +41,42 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Facturación</h1>
-        <p className="text-sm text-muted-foreground">
-          {total} {total === 1 ? "factura" : "facturas"} · {formatMoney(totalAmt)} facturado · {formatMoney(balance)} por cobrar
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Selecciona facturas en la tabla para acciones en bulk (eliminar borradores · anular).
-          Configura rangos NCF en <span className="font-mono">Configuración → Fiscal</span>.
-        </p>
+      <PageHeader
+        eyebrow="Cobranzas"
+        title="Facturación"
+        description={`${formatMoney(totalAmt)} facturado · ${formatMoney(balance)} por cobrar. Configurá rangos NCF en Configuración → Fiscal.`}
+        count={total}
+        countLabel={{ singular: "factura", plural: "facturas" }}
+      />
+
+      {/* Stats cards: facturado / por cobrar */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card backdrop-blur-xl p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Facturado
+          </p>
+          <p className="mt-1 stat-number text-2xl text-foreground">
+            {formatMoney(totalAmt)}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {total === 1 ? "1 factura" : `${total} facturas`} en el listado
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card backdrop-blur-xl p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Por cobrar
+          </p>
+          <p
+            className={`mt-1 stat-number text-2xl ${
+              balance > 0 ? "text-foreground" : "text-success"
+            }`}
+          >
+            {formatMoney(balance)}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Balance pendiente
+          </p>
+        </div>
       </div>
 
       <Card className="overflow-hidden">

@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -47,13 +48,13 @@ export default async function TiemposPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tiempos</h1>
-          <p className="text-sm text-muted-foreground">
-            Tus últimos 30 días · {entries.length} {entries.length === 1 ? "entrada" : "entradas"}
-          </p>
-        </div>
+      <PageHeader
+        eyebrow="Tiempo facturable"
+        title="Tiempos"
+        description="Tus últimos 30 días de actividad. Usá el timer en el header para registrar trabajo en vivo, o cargá manualmente."
+        count={entries.length}
+        countLabel={{ singular: "entrada", plural: "entradas" }}
+      >
         <ManualTimeEntryDrawer
           casos={casesRes.rows.map((c) => ({ id: c.id, code: c.code, title: c.title }))}
           trigger={
@@ -63,7 +64,7 @@ export default async function TiemposPage() {
             </Button>
           }
         />
-      </div>
+      </PageHeader>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <KpiCard label="Total" value={formatDuration(totalSeconds)} />

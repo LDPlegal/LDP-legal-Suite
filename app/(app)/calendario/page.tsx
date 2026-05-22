@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { Download, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { listEventsInRange } from "@/lib/db/queries/events";
 import { listCases } from "@/lib/db/queries/cases";
 import { listFirmUsers } from "@/lib/db/queries/users";
@@ -42,15 +43,14 @@ export default async function CalendarioPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Calendario</h1>
-          <p className="text-sm text-muted-foreground">
-            {eventos.length} {eventos.length === 1 ? "evento" : "eventos"} próximos
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <CalendarSyncButton />
+      <PageHeader
+        eyebrow="Agenda"
+        title="Calendario"
+        description="Audiencias, plazos procesales, reuniones con clientes y vencimientos administrativos del firm."
+        count={eventos.length}
+        countLabel={{ singular: "evento próximo", plural: "eventos próximos" }}
+      >
+        <CalendarSyncButton />
           <Button variant="outline" asChild>
             <a href="/api/calendario/export.ics" download>
               <Download className="h-4 w-4" />
@@ -87,8 +87,7 @@ export default async function CalendarioPage() {
               </Button>
             }
           />
-        </div>
-      </div>
+      </PageHeader>
 
       <CalendarView
         eventos={eventos.map((e) => ({

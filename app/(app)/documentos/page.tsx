@@ -3,6 +3,7 @@ import { Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -36,14 +37,13 @@ export default async function DocumentosPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Documentos</h1>
-          <p className="text-sm text-muted-foreground">
-            Vista global de archivos del firm. Busca por nombre, etiquetas o por
-            contenido (OCR de PDFs e imágenes escaneadas).
-          </p>
-        </div>
+      <PageHeader
+        eyebrow="Archivo"
+        title="Documentos"
+        description="Vista global de archivos del firm. Buscá por nombre, etiquetas o por contenido (OCR de PDFs e imágenes escaneadas)."
+        count={total}
+        countLabel={{ singular: "archivo", plural: "archivos" }}
+      >
         <DocumentUploadGlobalDrawer
           trigger={
             <Button id="upload-global-doc-btn">
@@ -52,7 +52,7 @@ export default async function DocumentosPage({
             </Button>
           }
         />
-      </div>
+      </PageHeader>
 
       {isAiEnabled() ? <AiDocumentSearch /> : null}
 

@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Plus, Search, ShieldCheck } from "lucide-react";
+import { Briefcase, Plus, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/layout/empty-state";
 import {
   Table,
   TableBody,
@@ -59,18 +61,17 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Casos</h1>
-          <p className="text-sm text-muted-foreground">
-            {casesRes.total} {casesRes.total === 1 ? "caso" : "casos"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/casos/archivados">Archivados</Link>
-          </Button>
-          <CasoFormDrawer
+      <PageHeader
+        eyebrow="Expedientes"
+        title="Casos"
+        description="Cartera completa del firm. Filtrá por estado o materia para localizar lo que necesités."
+        count={casesRes.total}
+        countLabel={{ singular: "caso", plural: "casos" }}
+      >
+        <Button asChild variant="outline" size="sm">
+          <Link href="/casos/archivados">Archivados</Link>
+        </Button>
+        <CasoFormDrawer
           clientes={clientesRes.rows.map((c) => ({ id: c.id, displayName: c.displayName }))}
           users={lawyers.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
           templates={templates.map((t) => ({
@@ -87,71 +88,79 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
             </Button>
           }
         />
+      </PageHeader>
+
+      {/* Filtros */}
+      <form className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card backdrop-blur-xl p-2.5">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar por código, título o contraparte…"
+            className="pl-9"
+          />
         </div>
-      </div>
+        <select
+          name="status"
+          defaultValue={status}
+          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+        >
+          <option value="">Todos los estados</option>
+          <option value="open">Abiertos</option>
+          <option value="on_hold">En espera</option>
+          <option value="closed">Cerrados</option>
+        </select>
+        <select
+          name="matter"
+          defaultValue={matter}
+          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+        >
+          <option value="">Todas las materias</option>
+          {Object.entries(MATTER_LABEL).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+      </form>
 
-      <Card className="overflow-hidden">
-        <form className="flex flex-wrap items-center gap-2 border-b border-border p-3">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar por código, título o contraparte..."
-              className="pl-9"
-            />
-          </div>
-          <select
-            name="status"
-            defaultValue={status}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">Todos los estados</option>
-            <option value="open">Abiertos</option>
-            <option value="on_hold">En espera</option>
-            <option value="closed">Cerrados</option>
-          </select>
-          <select
-            name="matter"
-            defaultValue={matter}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="">Todas las materias</option>
-            {Object.entries(MATTER_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" variant="outline">
-            Filtrar
-          </Button>
-        </form>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-32">Código</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Materia</TableHead>
-              <TableHead>Líder</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="hidden md:table-cell">Apertura</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {casesRes.rows.length === 0 ? (
+      {/* Tabla o empty state */}
+      {casesRes.rows.length === 0 ? (
+        <EmptyState
+          icon={<Briefcase className="h-5 w-5" />}
+          title="No hay casos que coincidan"
+          description={
+            q || status || matter
+              ? "Ajustá los filtros o creá un nuevo expediente para comenzar."
+              : "Empezá creando tu primer caso. Podés usar una plantilla para acelerar la carga inicial."
+          }
+        />
+      ) : (
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
-                  Sin casos que coincidan. Crea uno nuevo o ajusta los filtros.
-                </TableCell>
+                <TableHead className="w-32">Código</TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Materia</TableHead>
+                <TableHead>Líder</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="hidden md:table-cell">Apertura</TableHead>
               </TableRow>
-            ) : (
-              casesRes.rows.map((c) => (
-                <TableRow key={c.id}>
+            </TableHeader>
+            <TableBody>
+              {casesRes.rows.map((c) => (
+                <TableRow key={c.id} className="group">
                   <TableCell className="font-mono text-xs">
-                    <Link href={`/casos/${c.id}`} className="hover:underline">
+                    <Link
+                      href={`/casos/${c.id}`}
+                      className="font-medium text-foreground hover:text-primary transition-colors"
+                    >
                       {c.code}
                     </Link>
                     {c.visibility === "restricted" ? (
@@ -162,25 +171,36 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
                     ) : null}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <Link href={`/casos/${c.id}`} className="font-medium hover:underline">
+                    <Link
+                      href={`/casos/${c.id}`}
+                      className="font-medium text-foreground hover:text-primary transition-colors"
+                    >
                       {c.title}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm">{c.clientDisplayName ?? "—"}</TableCell>
-                  <TableCell className="text-sm">{MATTER_LABEL[c.matterType]}</TableCell>
-                  <TableCell className="text-sm">{c.leadLawyerName ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.clientDisplayName ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {MATTER_LABEL[c.matterType]}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.leadLawyerName ?? "—"}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[c.status]}>{CASE_STATUS_LABEL[c.status]}</Badge>
+                    <Badge variant={STATUS_VARIANT[c.status]}>
+                      {CASE_STATUS_LABEL[c.status]}
+                    </Badge>
                   </TableCell>
                   <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
                     {formatInFirmTz(c.openedAt, undefined, "dd/MM/yyyy")}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </div>
   );
 }

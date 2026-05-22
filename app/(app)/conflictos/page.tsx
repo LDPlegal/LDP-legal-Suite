@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -23,18 +24,13 @@ export default async function ConflictosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Conflictos de interés
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Personas o entidades que figuran simultáneamente como cliente del
-            firm y como contraparte en algún caso. La detección automática se
-            basa en RNC/cédula, ignorando guiones y espacios.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Compliance"
+        title="Conflictos de interés"
+        description="Personas o entidades que figuran simultáneamente como cliente del firm y como contraparte en algún caso. Detección por RNC / cédula (ignora guiones y espacios)."
+        count={pairs.length}
+        countLabel={{ singular: "conflicto detectado", plural: "conflictos detectados" }}
+      />
 
       {pairs.length === 0 ? (
         <Card>
