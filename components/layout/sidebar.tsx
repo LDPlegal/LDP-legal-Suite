@@ -18,6 +18,7 @@ import {
   Clock,
   FileText,
   LayoutDashboard,
+  LogOut,
   Receipt,
   Scale,
   Settings,
@@ -27,6 +28,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { logoutAction } from "@/app/_actions/auth/logout";
 import { cn } from "@/lib/utils";
 import { useModKey } from "@/lib/hooks/use-platform";
 
@@ -255,35 +257,61 @@ export function Sidebar({
         ))}
       </nav>
 
-      {/* User card */}
+      {/* User card — click sobre el avatar lleva a /configuracion;
+          hover muestra el botón de logout chiquito a la derecha. */}
       <div className="border-t border-white/[0.06] p-3">
         <div
           className={cn(
-            "flex items-center gap-2.5 rounded-md",
-            !collapsed && "px-1.5 py-1 hover:bg-white/[0.05] transition-colors press",
+            "group/user relative flex items-center gap-2.5 rounded-md",
+            !collapsed && "transition-colors",
           )}
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.10] text-[11px] font-semibold text-white ring-1 ring-white/[0.10]">
-            {initialsOf(user.name)}
-          </span>
-          <AnimatePresence>
-            {!collapsed ? (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.18 }}
-                className="min-w-0 leading-tight"
+          <Link
+            href="/configuracion"
+            title="Mi cuenta · Configuración"
+            className={cn(
+              "press flex min-w-0 flex-1 items-center gap-2.5 rounded-md",
+              !collapsed
+                ? "px-1.5 py-1 hover:bg-white/[0.05]"
+                : "justify-center",
+            )}
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.10] text-[11px] font-semibold text-white ring-1 ring-white/[0.10] transition-colors group-hover/user:ring-white/[0.25]">
+              {initialsOf(user.name)}
+            </span>
+            <AnimatePresence>
+              {!collapsed ? (
+                <motion.div
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18 }}
+                  className="min-w-0 leading-tight"
+                >
+                  <p className="truncate text-[12px] font-medium tracking-tight text-white">
+                    {user.name}
+                  </p>
+                  <p className="text-[10px] text-white/45">
+                    {ROLE_LABEL[user.role] ?? user.role}
+                  </p>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </Link>
+
+          {/* Botón logout — aparece en hover, no colapsado */}
+          {!collapsed ? (
+            <form action={logoutAction} className="shrink-0">
+              <button
+                type="submit"
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+                className="grid h-7 w-7 place-items-center rounded-md text-white/45 opacity-0 transition-all group-hover/user:opacity-100 hover:bg-white/[0.06] hover:text-white press"
               >
-                <p className="truncate text-[12px] font-medium tracking-tight text-white">
-                  {user.name}
-                </p>
-                <p className="text-[10px] text-white/45">
-                  {ROLE_LABEL[user.role] ?? user.role}
-                </p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </form>
+          ) : null}
         </div>
       </div>
     </aside>

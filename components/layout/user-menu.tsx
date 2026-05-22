@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -42,31 +40,55 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Menú de usuario">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{initials || "?"}</AvatarFallback>
-          </Avatar>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Menú de usuario"
+          className="rounded-full"
+        >
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-[12px] font-semibold text-primary ring-1 ring-primary/15">
+            {initials || "?"}
+          </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="space-y-0.5">
-          <p className="font-medium">{name}</p>
-          <p className="text-xs font-normal text-muted-foreground">{email}</p>
-          <p className="text-xs font-normal text-muted-foreground">
-            {ROLE_LABEL[role] ?? role}
-          </p>
-        </DropdownMenuLabel>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-64 p-1"
+      >
+        {/* Header del menu con avatar + datos */}
+        <div className="flex items-center gap-3 px-2 py-2.5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-[13px] font-semibold text-primary ring-1 ring-primary/15">
+            {initials || "?"}
+          </span>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-medium">{name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {email}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.10em] text-muted-foreground/70">
+              {ROLE_LABEL[role] ?? role}
+            </p>
+          </div>
+        </div>
+
         <DropdownMenuSeparator />
+
         <DropdownMenuItem asChild>
-          <Link href="/configuracion">
-            <UserCog className="h-4 w-4" />
+          <Link href="/configuracion" className="cursor-pointer">
+            <UserCog className="h-4 w-4 text-muted-foreground" />
             Configuración
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
+
         <form action={logoutAction}>
           <button type="submit" className="w-full">
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem
+              asChild
+              className="cursor-pointer focus:bg-destructive/10 focus:text-destructive"
+            >
               <span className="text-destructive">
                 <LogOut className="h-4 w-4" />
                 Cerrar sesión
