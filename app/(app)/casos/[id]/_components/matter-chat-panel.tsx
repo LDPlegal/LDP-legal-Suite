@@ -46,6 +46,7 @@ import {
   updateEventFromChatAction,
 } from "@/app/_actions/matter-chat/update-event";
 import { sendEmailFromChatAction } from "@/app/_actions/matter-chat/send-email";
+import { useModKey } from "@/lib/hooks/use-platform";
 
 type ToolUse = {
   id: string;
@@ -92,6 +93,7 @@ export function MatterChatPanel({
   trigger?: ReactNode;
 }) {
   const router = useRouter();
+  const mod = useModKey();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -668,7 +670,7 @@ export function MatterChatPanel({
             </Button>
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground">
-            Enter envía · Shift+Enter nueva línea · Cmd/Ctrl+J para abrir/cerrar
+            Enter envía · Shift+Enter nueva línea · {mod}+J para abrir/cerrar
           </p>
         </div>
       </SheetContent>

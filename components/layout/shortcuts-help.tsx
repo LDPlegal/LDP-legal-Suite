@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useModKey } from "@/lib/hooks/use-platform";
 
 // Keyboard shortcuts cheat sheet, opened with `?` from anywhere in the app
 // (when no input is focused). The shortcuts themselves live in the
@@ -15,11 +16,13 @@ import {
 
 type Shortcut = { keys: string[]; description: string };
 
+// "mod" se reemplaza a ⌘ en Mac o Ctrl en Windows/Linux según el cliente.
 const GROUPS: Array<{ title: string; items: Shortcut[] }> = [
   {
     title: "Navegación",
     items: [
-      { keys: ["⌘", "K"], description: "Búsqueda global (clientes, casos)" },
+      { keys: ["mod", "K"], description: "Búsqueda global (clientes, casos)" },
+      { keys: ["mod", "J"], description: "Asistente IA dentro de un expediente" },
       { keys: ["?"], description: "Mostrar esta ayuda" },
       { keys: ["Esc"], description: "Cerrar drawers / diálogos" },
     ],
@@ -36,6 +39,7 @@ const GROUPS: Array<{ title: string; items: Shortcut[] }> = [
 
 export function ShortcutsHelp() {
   const [open, setOpen] = useState(false);
+  const mod = useModKey();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -78,13 +82,13 @@ export function ShortcutsHelp() {
                     className="flex items-center justify-between text-sm"
                   >
                     <span>{s.description}</span>
-                    <span className="flex gap-1">
+                    <span className="flex items-center gap-1">
                       {s.keys.map((k, j) => (
                         <kbd
                           key={j}
                           className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px]"
                         >
-                          {k}
+                          {k === "mod" ? mod : k}
                         </kbd>
                       ))}
                     </span>

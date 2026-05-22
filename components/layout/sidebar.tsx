@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModKey } from "@/lib/hooks/use-platform";
 
 type NavItem = {
   href: string;
@@ -102,6 +103,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const mod = useModKey();
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
@@ -175,7 +177,7 @@ export function Sidebar({
               <p className="text-[12px] font-medium tracking-tight text-white">
                 Asistente IA
               </p>
-              <p className="text-[10px] text-white/50">Cmd · J en un caso</p>
+              <p className="text-[10px] text-white/50">{mod} · J en un caso</p>
             </div>
           ) : null}
         </Link>

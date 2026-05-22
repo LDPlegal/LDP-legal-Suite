@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { LdpMonogram, ColumnsMotif } from "@/components/brand/monogram";
+import { useModKey } from "@/lib/hooks/use-platform";
 
 export function AiHero({
   ctaHref = "/casos",
@@ -17,6 +18,7 @@ export function AiHero({
   ctaHref?: string;
   pendingPromptsCount?: number;
 }) {
+  const mod = useModKey();
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#051D33] text-white shadow-[0_8px_30px_-12px_rgba(5,13,26,0.4)]">
       {/* Base wash sutil — navy slightly lighter desde la esquina top-left */}
@@ -77,7 +79,7 @@ export function AiHero({
             Tu asistente está disponible dentro de cada expediente. Pedile
             que lea un caso, redacte un acta, prepare una demanda o
             envíe un correo al cliente. Apretá{" "}
-            <KeyTag>Cmd</KeyTag>
+            <KeyTag>{mod}</KeyTag>
             <span className="mx-0.5 text-white/45">+</span>
             <KeyTag>J</KeyTag>{" "}
             dentro de cualquier caso.

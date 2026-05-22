@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { KbdShortcut } from "@/components/ui/kbd";
 import {
   CommandDialog,
   CommandEmpty,
@@ -83,9 +84,9 @@ export function CommandPalette() {
       >
         <Search className="h-4 w-4" />
         Buscar...
-        <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-          ⌘K
-        </kbd>
+        <span className="ml-auto">
+          <KbdShortcut keys={["mod", "K"]} />
+        </span>
       </Button>
       <Button
         variant="ghost"
