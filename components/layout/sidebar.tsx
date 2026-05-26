@@ -19,6 +19,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Receipt,
   Scale,
   Settings,
@@ -55,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/tareas", label: "Tareas", icon: ListChecks },
       { href: "/calendario", label: "Calendario", icon: Calendar },
       { href: "/documentos", label: "Documentos", icon: FileText },
+      { href: "/publicaciones", label: "Publicaciones", icon: Megaphone },
     ],
   },
   {
