@@ -143,8 +143,14 @@ export async function exchangeCodeForTokens(
     id_token?: string;
   };
   const expiresAt = new Date(Date.now() + (json.expires_in ?? 3600) * 1000);
-  // Extract the user's email from id_token (JWT, middle segment is base64url
-  // JSON). Best-effort; if it fails we leave it null and resolve later.
+  // Extract the user's email/UPN from id_token (JWT, middle segment es
+  // base64url JSON). Cubrimos todos los claims que Microsoft / Google
+  // pueden enviar según tipo de cuenta:
+  //   - email: claim estándar OpenID (mayoría de cuentas personales)
+  //   - preferred_username: Microsoft UPN típico (user@tenant.com)
+  //   - upn: Active Directory UPN (algunos tenants corporativos)
+  //   - unique_name: usado en v1.0 tokens
+  //   - name + oid: último recurso (oid es único pero feo de mostrar)
   let externalAccountId: string | null = null;
   if (json.id_token) {
     try {
@@ -153,11 +159,53 @@ export async function exchangeCodeForTokens(
         const padded = middle + "=".repeat((4 - (middle.length % 4)) % 4);
         const decoded = JSON.parse(
           Buffer.from(padded.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"),
-        ) as { email?: string; preferred_username?: string };
-        externalAccountId = decoded.email ?? decoded.preferred_username ?? null;
+        ) as {
+          email?: string;
+          preferred_username?: string;
+          upn?: string;
+          unique_name?: string;
+          name?: string;
+          oid?: string;
+          sub?: string;
+        };
+        externalAccountId =
+          decoded.email ??
+          decoded.preferred_username ??
+          decoded.upn ??
+          decoded.unique_name ??
+          // Fallback: si no hay un identificador human-friendly, usar oid o sub.
+          // Mejor mostrar el oid que romper el flow.
+          decoded.oid ??
+          decoded.sub ??
+          null;
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[oauth] failed to decode id_token:", err);
+    }
+  }
+  // Si seguimos sin externalAccountId, hacemos un fallback al endpoint de
+  // perfil del provider para resolverlo. Sólo Microsoft por ahora.
+  if (!externalAccountId && provider === "microsoft") {
+    try {
+      const profileRes = await fetch("https://graph.microsoft.com/v1.0/me", {
+        headers: { Authorization: `Bearer ${json.access_token}` },
+      });
+      if (profileRes.ok) {
+        const profile = (await profileRes.json()) as {
+          mail?: string;
+          userPrincipalName?: string;
+          displayName?: string;
+          id?: string;
+        };
+        externalAccountId =
+          profile.mail ??
+          profile.userPrincipalName ??
+          profile.displayName ??
+          profile.id ??
+          null;
+      }
+    } catch (err) {
+      console.error("[oauth] /me fallback failed:", err);
     }
   }
   return {

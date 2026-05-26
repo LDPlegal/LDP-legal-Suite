@@ -76,9 +76,12 @@ export async function saveCalendarIntegration(
   provider: OAuthProvider,
   tokens: ExchangedTokens,
 ): Promise<void> {
-  if (!tokens.externalAccountId) {
-    throw new Error("No se pudo determinar el email del proveedor — falta id_token.");
-  }
+  // Si no pudimos resolver un externalAccountId (id_token sin claims
+  // útiles + /me API falló), guardamos con placeholder en vez de fallar
+  // el flow entero. El sync funciona igual porque usa el access_token
+  // directamente — el accountId es solo para mostrar en la UI.
+  const externalAccountId =
+    tokens.externalAccountId ?? `${provider}-account-${userId.slice(0, 8)}`;
   const scope = `${firmId}:${userId}:${provider}`;
   const accessEnc = encryptTokenString(tokens.accessToken, scope);
   const refreshEnc = tokens.refreshToken
@@ -110,7 +113,7 @@ export async function saveCalendarIntegration(
     await adminDb
       .update(calendarIntegrations)
       .set({
-        externalAccountId: tokens.externalAccountId,
+        externalAccountId: externalAccountId,
         accessTokenCipher: accessEnc.cipher,
         refreshTokenCipher: refreshEnc?.cipher ?? null,
         tokenMeta: meta,
@@ -124,7 +127,7 @@ export async function saveCalendarIntegration(
       firmId,
       userId,
       provider,
-      externalAccountId: tokens.externalAccountId,
+      externalAccountId,
       accessTokenCipher: accessEnc.cipher,
       refreshTokenCipher: refreshEnc?.cipher ?? null,
       tokenMeta: meta,
