@@ -1,6 +1,6 @@
 "use client";
 
-// Post 01 — Presentación (1080×1350).
+// Story 01 — Presentación (1080×1920). Versión vertical.
 
 import { renderRichText } from "@/lib/marketing/rich-text";
 import {
@@ -13,15 +13,15 @@ import {
 
 type Props = { values: Record<string, string | number> };
 
-export function PostPresentacion({ values }: Props) {
+export function StoryPresentacion({ values }: Props) {
   const photo = String(values.photo ?? "");
   const statement = String(values.statement ?? "");
   const value1 = String(values.value1 ?? "");
   const value2 = String(values.value2 ?? "");
   const value3 = String(values.value3 ?? "");
-  const excerptSize = Number(values.excerptSize ?? 36);
-  const frostInset = Number(values.frostInset ?? 80);
-  const frostPad = Number(values.frostPad ?? 34);
+  const excerptSize = Number(values.excerptSize ?? 48);
+  const frostInset = Number(values.frostInset ?? 90);
+  const frostPad = Number(values.frostPad ?? 42);
   const frostTint = String(values.frostTint ?? "rgba(14, 31, 59, 0.32)");
   const excerptAlign = String(values.excerptAlign ?? "left") as
     | "left" | "center" | "right" | "justify";
@@ -29,54 +29,50 @@ export function PostPresentacion({ values }: Props) {
 
   return (
     <PhotoBg photo={photo}>
-      {/* Wordmark superior */}
-      <div className="absolute left-0 right-0 flex justify-center" style={{ paddingTop: 76 }}>
+      {/* Wordmark superior — más generoso por la altura extra */}
+      <div className="absolute left-0 right-0 flex flex-col items-center" style={{ paddingTop: 200 }}>
         <div
           style={{
             fontFamily: '"Cormorant Garamond", "EB Garamond", Georgia, serif',
-            fontSize: 88,
+            fontSize: 132,
             fontWeight: 500,
             letterSpacing: "0.18em",
             color: "#efe7d5",
-            textShadow: "0 2px 12px rgba(0,0,0,0.4)",
+            textShadow: "0 4px 18px rgba(0,0,0,0.45)",
             lineHeight: 1,
           }}
         >
           LDP
         </div>
-      </div>
-      <div className="absolute left-0 right-0 flex justify-center" style={{ top: 180 }}>
         <div
           style={{
             fontFamily: "ui-sans-serif, system-ui, sans-serif",
-            fontSize: 11,
-            letterSpacing: "0.36em",
+            fontSize: 14,
+            letterSpacing: "0.40em",
             color: "rgba(239,231,213,0.75)",
             textTransform: "uppercase",
+            marginTop: 16,
           }}
         >
           Legal Advisors
         </div>
+        <GoldenLine width={100} style={{ marginTop: 24 }} />
       </div>
-      <GoldenLine
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{ top: 224 }}
-      />
 
-      {/* Frost card con la declaración */}
+      {/* Frost card central */}
       <div
         className="absolute"
         style={{
           left: frostInset,
           right: frostInset,
-          top: "50%",
+          top: "55%",
           transform: "translateY(-50%)",
           padding: frostPad,
           background: frostTint,
           backdropFilter: "blur(18px) saturate(140%)",
           WebkitBackdropFilter: "blur(18px) saturate(140%)",
           border: "1px solid rgba(255,255,255,0.10)",
-          borderRadius: 6,
+          borderRadius: 8,
           fontFamily: font,
         }}
       >
@@ -92,48 +88,35 @@ export function PostPresentacion({ values }: Props) {
         >
           {renderRichText(statement)}
         </p>
-
         <ExtraBlock
           values={values}
           font={font}
-          style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.10)" }}
+          style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.10)" }}
         />
       </div>
 
-      {/* Triada de valores */}
+      {/* Triada de valores abajo */}
       <div
-        className="absolute left-0 right-0 flex items-center justify-center"
-        style={{ bottom: 110, gap: 32 }}
+        className="absolute left-0 right-0 flex flex-col items-center"
+        style={{ bottom: 220, gap: 12 }}
       >
-        {[value1, value2, value3].filter(Boolean).map((v, i, arr) => (
-          <div key={i} className="flex items-center" style={{ gap: 32 }}>
-            <span
-              style={{
-                fontFamily: '"EB Garamond", Georgia, serif',
-                fontSize: 22,
-                letterSpacing: "0.10em",
-                color: "rgba(239,231,213,0.92)",
-                fontStyle: "italic",
-              }}
-            >
-              {v}
-            </span>
-            {i < arr.length - 1 ? (
-              <span
-                aria-hidden
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: "50%",
-                  background: "rgba(184,146,84,0.7)",
-                }}
-              />
-            ) : null}
-          </div>
+        {[value1, value2, value3].filter(Boolean).map((v, i) => (
+          <span
+            key={i}
+            style={{
+              fontFamily: '"EB Garamond", Georgia, serif',
+              fontSize: 30,
+              letterSpacing: "0.14em",
+              color: "rgba(239,231,213,0.92)",
+              fontStyle: "italic",
+            }}
+          >
+            {v}
+          </span>
         ))}
       </div>
 
-      <LdpFooter bottom={48} />
+      <LdpFooter bottom={130} />
     </PhotoBg>
   );
 }

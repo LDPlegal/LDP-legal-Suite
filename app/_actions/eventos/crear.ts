@@ -67,17 +67,35 @@ export async function crearEventoAction(
     }
   }
 
-  await createEvent(user.firmId, user.userId, {
+  const startAt = new Date(data.startAt);
+  const endAt = new Date(data.endAt);
+  const created = await createEvent(user.firmId, user.userId, {
     title: data.title,
     description: data.description ?? null,
     location: data.location ?? null,
     caseId: data.caseId ?? null,
-    startAt: new Date(data.startAt),
-    endAt: new Date(data.endAt),
+    startAt,
+    endAt,
     allDay: data.allDay,
     attendees: data.attendees,
     reminderMinutes: data.reminderMinutes ?? null,
   });
+
+  // Best-effort: push al calendario Microsoft del usuario si lo tiene
+  // conectado. No bloquea ni revierte si falla — el cron diario reconcilia.
+  try {
+    const { pushEventToProvider } = await import("@/lib/calendar/sync");
+    void pushEventToProvider(user.userId, created.id, {
+      title: data.title,
+      description: data.description ?? null,
+      location: data.location ?? null,
+      startAt,
+      endAt,
+      allDay: data.allDay,
+    });
+  } catch {
+    // ignore — el sync diario lo recoge
+  }
 
   // Returning ok:true (instead of redirect()) lets the client drawer close
   // itself, toast, and call router.refresh() to update the visible list.

@@ -102,23 +102,42 @@ function TemplateTabs({
   active: string;
   onChange: (id: string) => void;
 }) {
+  const groups: Array<{ label: string; kind: "post" | "story" | "cover" }> = [
+    { label: "Posts (4:5)", kind: "post" },
+    { label: "Stories (9:16)", kind: "story" },
+    { label: "LinkedIn", kind: "cover" },
+  ];
+
   return (
-    <div className="flex flex-wrap gap-1.5 rounded-xl border border-border bg-card backdrop-blur-xl p-1.5">
-      {templates.map((t) => {
-        const isActive = t.id === active;
+    <div className="space-y-2 rounded-xl border border-border bg-card backdrop-blur-xl p-3">
+      {groups.map((g) => {
+        const items = templates.filter((t) => t.kind === g.kind);
+        if (items.length === 0) return null;
         return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            className={
-              isActive
-                ? "rounded-lg bg-[var(--glass-bg-strong)] px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_1px_2px_rgba(11,25,41,0.06),inset_0_1px_0_rgba(255,255,255,0.5)]"
-                : "rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-            }
-          >
-            {t.label}
-          </button>
+          <div key={g.kind} className="space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">
+              {g.label}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {items.map((t) => {
+                const isActive = t.id === active;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => onChange(t.id)}
+                    className={
+                      isActive
+                        ? "rounded-lg bg-[var(--glass-bg-strong)] px-3 py-1.5 text-xs font-medium text-foreground shadow-[0_1px_2px_rgba(11,25,41,0.06),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                        : "rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors hover:bg-accent/30"
+                    }
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         );
       })}
     </div>
@@ -139,12 +158,14 @@ function PreviewFrame({
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // Scale factor para que el preview entre en pantalla.
-  // Asumimos que el contenedor disponible tiene ~620px de ancho útil en
-  // monitores típicos. Para un canvas de 1080 → 620/1080 ≈ 0.57.
-  // Lo dejamos fijo por simplicidad — el usuario puede zoom-out del browser
-  // si quiere ver más detalle.
-  const PREVIEW_WIDTH = 620;
+  // Scale factor — adapta según aspect ratio para que el preview siempre
+  // entre cómodo en la pantalla:
+  //  - Posts (4:5): preview alto, scale ~0.46 → 500×625 visible
+  //  - Stories (9:16): muy alto, scale ~0.32 → 350×620 visible
+  //  - LinkedIn cover (4:1): bajo y ancho, scale ~0.40 → 632×158 visible
+  let PREVIEW_WIDTH = 620;
+  if (template.kind === "story") PREVIEW_WIDTH = 350;
+  if (template.kind === "cover") PREVIEW_WIDTH = 720;
   const scale = PREVIEW_WIDTH / template.size.w;
   const scaledH = template.size.h * scale;
 
