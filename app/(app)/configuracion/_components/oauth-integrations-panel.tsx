@@ -23,6 +23,7 @@ import {
   Link2Off,
   Loader2,
   Mail,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export function OAuthIntegrationsPanel({
   useEffect(() => {
     const oauthError = searchParams.get("oauth_error");
     const oauthConnected = searchParams.get("oauth_connected");
+    const adminConsentOk = searchParams.get("admin_consent");
 
     if (oauthError) {
       const msg = humanizeOAuthError(oauthError);
@@ -89,6 +91,13 @@ export function OAuthIntegrationsPanel({
       toast.error("No se pudo conectar.", {
         description: msg,
         duration: 12000,
+      });
+    } else if (adminConsentOk === "ok") {
+      setBannerSuccess(
+        "Autorización de la organización completada. Ahora cualquier miembro de la firma puede conectar su cuenta sin pedir aprobación.",
+      );
+      toast.success("Organización autorizada.", {
+        description: "Los usuarios ya pueden conectar sin aprobación.",
       });
     } else if (oauthConnected) {
       const provider =
@@ -100,10 +109,11 @@ export function OAuthIntegrationsPanel({
     }
     // Limpiamos los query params del URL para que un refresh no muestre
     // el mismo toast/banner.
-    if (oauthError || oauthConnected) {
+    if (oauthError || oauthConnected || adminConsentOk) {
       const cleanParams = new URLSearchParams(searchParams.toString());
       cleanParams.delete("oauth_error");
       cleanParams.delete("oauth_connected");
+      cleanParams.delete("admin_consent");
       const newQuery = cleanParams.toString();
       router.replace(
         newQuery
@@ -252,19 +262,56 @@ export function OAuthIntegrationsPanel({
         configured={microsoftConfigured}
       />
 
-      {/* Guidance sobre el flow de admin approval */}
+      {/* Autorización a nivel de organización (la forma correcta para
+          tenants corporativos). Solo tiene sentido mostrarla si Microsoft
+          está configurado. */}
+      {microsoftConfigured ? (
+        <div className="rounded-md border border-emerald-500/25 bg-emerald-500/[0.06] p-3">
+          <div className="flex items-start gap-2.5">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex-1 space-y-2">
+              <div>
+                <p className="text-[13px] font-medium text-foreground">
+                  Autorizar para toda la firma (recomendado)
+                </p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  En cuentas corporativas, Microsoft pide aprobación de un
+                  administrador cada vez que alguien conecta. Si un{" "}
+                  <strong>admin del tenant de Microsoft</strong> (típicamente
+                  un socio) autoriza la app <strong>una sola vez</strong> para
+                  toda la organización, después{" "}
+                  <strong>todos conectan sin aprobación</strong>.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <a href="/api/oauth/microsoft/admin-consent">
+                  <ShieldCheck className="h-3 w-3" />
+                  Autorizar organización (admin de Microsoft)
+                </a>
+              </Button>
+              <p className="text-[10px] text-muted-foreground/80">
+                Vas a tener que iniciar sesión con una cuenta que sea
+                administrador del Microsoft 365 de la firma.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Guidance sobre el flow de admin approval per-usuario */}
       <div className="rounded-md border border-blue-500/20 bg-blue-500/[0.06] p-3 text-[11px] text-muted-foreground">
         <div className="flex items-start gap-2">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
           <div className="space-y-1.5">
             <p>
               <strong className="text-foreground">
-                Si Microsoft te pidió aprobación de admin:
+                Si Microsoft te pidió aprobación al conectar:
               </strong>{" "}
-              una vez que el admin apruebe (te llega un correo de
-              confirmación), <strong>volvé acá</strong> y hacé click en
-              &quot;Conectar&quot; <strong>otra vez</strong>. Esa primera vez
-              quedó truncada — Microsoft no completa el OAuth automáticamente
+              lo más práctico es que un socio use el botón verde de arriba
+              para autorizar toda la firma de una vez. Si en cambio aprobaron
+              tu solicitud individual (te llegó un correo de confirmación),{" "}
+              <strong>volvé acá y hacé click en &quot;Conectar&quot; otra
+              vez</strong> — Microsoft no completa el OAuth automáticamente
               después de la aprobación.
             </p>
           </div>

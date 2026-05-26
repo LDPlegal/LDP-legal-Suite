@@ -103,6 +103,34 @@ export function buildAuthorizeUrl(
   return `${AUTH_URL[provider]}?${params.toString()}`;
 }
 
+// Admin consent URL — un admin del tenant lo usa UNA vez para autorizar
+// la app para TODA la organización. Después, cualquier usuario conecta sin
+// pasar por aprobación. Es la forma correcta de manejar tenants corporativos
+// que tienen restringido el consentimiento individual.
+//
+// Microsoft devuelve a redirect_uri con:
+//   ?admin_consent=True&tenant=<tenant_id>&state=<state>   (éxito)
+//   ?error=...&error_description=...&admin_consent=True     (rechazo/error)
+//
+// Solo aplica a Microsoft. Google maneja org consent vía Workspace admin
+// console, no por URL.
+export function buildAdminConsentUrl(
+  provider: OAuthProvider,
+  state: string,
+): string | null {
+  if (provider !== "microsoft") return null;
+  const cfg = readClientConfig(provider, true); // incluye todos los scopes
+  if (!cfg) return null;
+  const params = new URLSearchParams({
+    client_id: cfg.clientId,
+    redirect_uri: cfg.redirectUri,
+    scope: cfg.scopes.join(" "),
+    state,
+  });
+  // Endpoint /organizations/v2.0/adminconsent — fuerza tenant corporativo.
+  return `https://login.microsoftonline.com/organizations/v2.0/adminconsent?${params.toString()}`;
+}
+
 export type ExchangedTokens = {
   accessToken: string;
   refreshToken: string | null;

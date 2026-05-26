@@ -68,6 +68,27 @@ export async function GET(
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
   const errorDescription = url.searchParams.get("error_description");
+  const adminConsent = url.searchParams.get("admin_consent");
+
+  // ---- ADMIN CONSENT FLOW ----
+  // Si viene admin_consent (True/False), es la respuesta del endpoint
+  // /adminconsent. No hay `code` para intercambiar — solo confirma que el
+  // admin autorizó (o no) la app para toda la organización.
+  if (adminConsent !== null) {
+    if (error) {
+      console.warn(`[oauth/${provider}/admin-consent] error:`, error, errorDescription);
+      return redirectWithError(req, errorDescription || error);
+    }
+    if (adminConsent.toLowerCase() === "true") {
+      return NextResponse.redirect(
+        new URL(`/configuracion?tab=seguridad&admin_consent=ok`, req.url),
+      );
+    }
+    return redirectWithError(
+      req,
+      "El admin no completó la autorización de la organización.",
+    );
+  }
 
   // El provider devolvió un error (admin consent required, access denied, etc).
   if (error) {
