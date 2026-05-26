@@ -79,7 +79,7 @@ export class S3Storage implements StorageProvider {
 
   buildKey(parts: {
     firmId: string;
-    scope: "documents" | "invoices" | "avatars" | "receipts";
+    scope: "documents" | "invoices" | "avatars" | "receipts" | "marketing";
     entityId: string;
     filename: string;
   }): string {

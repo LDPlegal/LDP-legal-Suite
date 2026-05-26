@@ -1823,3 +1823,65 @@ export const inboxProcessed = pgTable(
 );
 
 export type InboxProcessed = typeof inboxProcessed.$inferSelect;
+
+// =============================================================================
+// marketing_photos — fotos custom subidas para el editor de publicaciones
+// =============================================================================
+// Cada firm sube sus propias fotos (logos del cliente, equipo nuevo, etc.).
+// Conviven con las built-in del repo (/public/marketing-photos/). El editor
+// las combina en una sola galería.
+
+export const marketingPhotos = pgTable(
+  "marketing_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    /** URL canónica para mostrar (siempre /api/marketing/photos/<id>/file) */
+    url: text("url").notNull(),
+    /** Key opaco del provider (R2/S3/local) */
+    storageKey: text("storage_key").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("marketing_photos_firm_idx").on(t.firmId).where(sql`${t.deletedAt} IS NULL`),
+  ],
+);
+
+export type MarketingPhoto = typeof marketingPhotos.$inferSelect;
+
+// =============================================================================
+// marketing_presets — snapshots reutilizables del state de un template
+// =============================================================================
+
+export const marketingPresets = pgTable(
+  "marketing_presets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    /** "p1", "p2", "p3", "p4", "s1"..."s4", "li" */
+    templateId: text("template_id").notNull(),
+    name: text("name").notNull(),
+    /** Snapshot completo de los values del editor para ese template */
+    values: jsonb("values").$type<Record<string, string | number>>().notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("marketing_presets_firm_template_idx")
+      .on(t.firmId, t.templateId)
+      .where(sql`${t.deletedAt} IS NULL`),
+  ],
+);
+
+export type MarketingPreset = typeof marketingPresets.$inferSelect;

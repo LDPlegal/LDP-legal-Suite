@@ -28,7 +28,7 @@ export interface StorageProvider {
    */
   buildKey(parts: {
     firmId: string;
-    scope: "documents" | "invoices" | "avatars" | "receipts";
+    scope: "documents" | "invoices" | "avatars" | "receipts" | "marketing";
     entityId: string;
     filename: string;
   }): string;

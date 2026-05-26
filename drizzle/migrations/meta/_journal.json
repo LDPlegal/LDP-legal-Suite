@@ -148,6 +148,13 @@
       "when": 1780400000000,
       "tag": "0020_event_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780500000000,
+      "tag": "0021_marketing_assets",
+      "breakpoints": true
     }
   ]
 }
