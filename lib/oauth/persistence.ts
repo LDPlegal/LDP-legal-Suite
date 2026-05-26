@@ -49,6 +49,27 @@ function decryptTokenString(
   return out.toString("utf8");
 }
 
+/** Error específico cuando los tokens cifrados de un usuario no pueden
+ *  descifrarse — típicamente porque APP_CRYPTO_MASTER_KEY cambió entre
+ *  el save y el read. El UI lo trata como "necesita reconectar". */
+export class IntegrationTokenUndecryptableError extends Error {
+  constructor(public provider: OAuthProvider) {
+    super(`No se pudieron descifrar los tokens de ${provider}. Reconectá la cuenta.`);
+    this.name = "IntegrationTokenUndecryptableError";
+  }
+}
+
+function isAuthTagError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const m = err.message.toLowerCase();
+  return (
+    m.includes("unable to authenticate data") ||
+    m.includes("unsupported state") ||
+    m.includes("aad mismatch") ||
+    m.includes("invalid iv length")
+  );
+}
+
 export async function saveCalendarIntegration(
   firmId: string,
   userId: string,
@@ -114,6 +135,11 @@ export async function saveCalendarIntegration(
 
 // Read + auto-refresh: devuelve un access_token válido. Si el actual está
 // expirado o por expirar en <2 min, usa el refresh token y actualiza la fila.
+//
+// Si los tokens no pueden descifrarse (típicamente porque
+// APP_CRYPTO_MASTER_KEY cambió desde que se guardaron), auto-disconnecta
+// la integración y tira IntegrationTokenUndecryptableError. El usuario
+// debe reconectar la cuenta — los tokens viejos son irrecuperables.
 export async function getValidAccessToken(
   userId: string,
   provider: OAuthProvider,
@@ -133,22 +159,41 @@ export async function getValidAccessToken(
   const scope = `${row.firmId}:${row.userId}:${row.provider}`;
   const expiresAt = new Date(row.tokenMeta.expiresAt);
   const needsRefresh = expiresAt.getTime() - Date.now() < 2 * 60 * 1000;
+
   if (!needsRefresh) {
-    const accessToken = decryptTokenString(
-      row.accessTokenCipher,
-      row.tokenMeta,
-      scope,
-    );
-    return { accessToken, externalAccountId: row.externalAccountId };
+    try {
+      const accessToken = decryptTokenString(
+        row.accessTokenCipher,
+        row.tokenMeta,
+        scope,
+      );
+      return { accessToken, externalAccountId: row.externalAccountId };
+    } catch (err) {
+      if (isAuthTagError(err)) {
+        await autoDisconnect(row.id, "tokens_undecryptable");
+        throw new IntegrationTokenUndecryptableError(provider);
+      }
+      throw err;
+    }
   }
   if (!row.refreshTokenCipher) {
     throw new Error("Token expirado y no hay refresh_token; el usuario debe reconectar.");
   }
-  const refreshToken = decryptTokenString(
-    row.refreshTokenCipher,
-    row.tokenMeta,
-    scope,
-  );
+  let refreshToken: string;
+  try {
+    refreshToken = decryptTokenString(
+      row.refreshTokenCipher,
+      row.tokenMeta,
+      scope,
+    );
+  } catch (err) {
+    if (isAuthTagError(err)) {
+      await autoDisconnect(row.id, "tokens_undecryptable");
+      throw new IntegrationTokenUndecryptableError(provider);
+    }
+    throw err;
+  }
+
   const refreshed = await refreshAccessToken(provider, refreshToken);
   const reEnc = encryptTokenString(refreshed.accessToken, scope);
   await adminDb
@@ -165,6 +210,19 @@ export async function getValidAccessToken(
     })
     .where(eq(calendarIntegrations.id, row.id));
   return { accessToken: refreshed.accessToken, externalAccountId: row.externalAccountId };
+}
+
+/** Marca la integración como desconectada y registra el motivo. El user
+ *  tiene que ir a /configuracion → Seguridad → Conectar de nuevo. */
+async function autoDisconnect(integrationId: string, reason: string): Promise<void> {
+  await adminDb
+    .update(calendarIntegrations)
+    .set({
+      disconnectedAt: new Date(),
+      lastError: `auto_disconnect:${reason}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(calendarIntegrations.id, integrationId));
 }
 
 export async function disconnectIntegration(

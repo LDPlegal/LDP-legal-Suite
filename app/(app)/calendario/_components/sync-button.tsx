@@ -2,6 +2,10 @@
 
 // F7+ Bloque 5 — Botón "Sincronizar con Outlook" que dispara
 // /api/sync/calendar para traer cambios del provider sin esperar al cron.
+//
+// Cuando el sync falla por necesitar reconexión (tokens irrecuperables o
+// permisos revocados), el toast incluye una acción "Reconectar" que
+// lleva directamente a /configuracion → Seguridad.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,35 +13,59 @@ import { RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+type SyncResponse =
+  | {
+      ok: true;
+      summary: { pulled: number; skipped: number; errors: number };
+      lastError: string | null;
+      needsReconnect?: boolean;
+    }
+  | { ok: false; error: string; needsReconnect?: boolean };
+
 export function CalendarSyncButton() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+
+  function showReconnectToast(message: string) {
+    toast.error(message, {
+      duration: 12000,
+      action: {
+        label: "Reconectar",
+        onClick: () => {
+          window.location.href = "/configuracion?tab=seguridad";
+        },
+      },
+    });
+  }
 
   async function sync() {
     setBusy(true);
     try {
       const r = await fetch("/api/sync/calendar", { method: "POST" });
-      const data = (await r.json()) as
-        | {
-            ok: true;
-            summary: { pulled: number; skipped: number; errors: number };
-            lastError: string | null;
-          }
-        | { ok: false; error: string };
+      const data = (await r.json()) as SyncResponse;
+
       if (!data.ok) {
-        toast.error(data.error);
+        if (data.needsReconnect) {
+          showReconnectToast(data.error);
+        } else {
+          toast.error(data.error);
+        }
         return;
       }
+
       const s = data.summary;
       if (s.pulled === 0 && s.skipped === 0 && s.errors === 0) {
-        toast.info("No tenés Microsoft conectado. Conectalo en Configuración → Seguridad.");
-      } else if (s.errors > 0 && s.pulled === 0 && s.skipped === 0) {
-        // Sync falló sin traer nada — mostrá el error real para debug.
-        toast.error(
-          data.lastError
-            ? `Error sincronizando: ${data.lastError.slice(0, 200)}`
-            : "Sync falló sin detalle.",
+        toast.info(
+          "No tenés Microsoft conectado. Conectalo en Configuración → Seguridad.",
         );
+      } else if (s.errors > 0 && s.pulled === 0 && s.skipped === 0) {
+        // Sync falló sin traer nada — mostrá el error humanizado.
+        const msg = data.lastError ?? "Sync falló sin detalle.";
+        if (data.needsReconnect) {
+          showReconnectToast(msg);
+        } else {
+          toast.error(msg);
+        }
       } else {
         toast.success(
           `Sincronizado · ${s.pulled} nuevos, ${s.skipped} actualizados${s.errors > 0 ? `, ${s.errors} errores` : ""}.`,
@@ -45,7 +73,7 @@ export function CalendarSyncButton() {
       }
       router.refresh();
     } catch {
-      toast.error("Error al sincronizar.");
+      toast.error("Error al sincronizar. Probá de nuevo en un momento.");
     } finally {
       setBusy(false);
     }
