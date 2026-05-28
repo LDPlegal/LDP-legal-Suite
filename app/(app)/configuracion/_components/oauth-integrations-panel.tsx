@@ -272,27 +272,30 @@ export function OAuthIntegrationsPanel({
             <div className="flex-1 space-y-2">
               <div>
                 <p className="text-[13px] font-medium text-foreground">
-                  Autorizar para toda la firma (recomendado)
+                  Conectar sin pedir aprobación (recomendado para la firma)
                 </p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                   En cuentas corporativas, Microsoft pide aprobación de un
-                  administrador cada vez que alguien conecta. Si un{" "}
-                  <strong>admin del tenant de Microsoft</strong> (típicamente
-                  un socio) autoriza la app <strong>una sola vez</strong> para
-                  toda la organización, después{" "}
-                  <strong>todos conectan sin aprobación</strong>.
+                  admin del tenant cada vez. Hay <strong>2 formas</strong> de
+                  resolverlo definitivamente —{" "}
+                  <strong>solo el admin del Microsoft 365 de LDP</strong>{" "}
+                  necesita hacerlo una vez. Después todos conectan sin
+                  aprobación.
                 </p>
               </div>
-              <Button asChild size="sm" variant="outline">
-                <a href="/api/oauth/microsoft/admin-consent">
-                  <ShieldCheck className="h-3 w-3" />
-                  Autorizar organización (admin de Microsoft)
-                </a>
-              </Button>
-              <p className="text-[10px] text-muted-foreground/80">
-                Vas a tener que iniciar sesión con una cuenta que sea
-                administrador del Microsoft 365 de la firma.
-              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm">
+                  <a href="/configuracion/microsoft-setup">
+                    Ver guía paso a paso
+                  </a>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <a href="/api/oauth/microsoft/admin-consent">
+                    <ShieldCheck className="h-3 w-3" />
+                    Intentar admin consent rápido
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
