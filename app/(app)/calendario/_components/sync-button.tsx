@@ -54,18 +54,20 @@ export function CalendarSyncButton() {
       }
 
       const s = data.summary;
-      if (s.pulled === 0 && s.skipped === 0 && s.errors === 0) {
-        toast.info(
-          "No tenés Microsoft conectado. Conectalo en Configuración → Seguridad.",
-        );
-      } else if (s.errors > 0 && s.pulled === 0 && s.skipped === 0) {
-        // Sync falló sin traer nada — mostrá el error humanizado.
+      if (s.errors > 0 && s.pulled === 0 && s.skipped === 0) {
+        // Sync corrió pero falló sin traer nada — mostrá el error humanizado.
+        // No confundir con "no conectado": ese caso lo maneja data.ok=false
+        // arriba, gracias al guard del sync route.
         const msg = data.lastError ?? "Sync falló sin detalle.";
         if (data.needsReconnect) {
           showReconnectToast(msg);
         } else {
           toast.error(msg);
         }
+      } else if (s.pulled === 0 && s.skipped === 0) {
+        // Sync exitoso pero no había nada nuevo. Esto NO es un error — es
+        // el caso normal cuando ya estás al día.
+        toast.success("Calendario ya está al día.");
       } else {
         toast.success(
           `Sincronizado · ${s.pulled} nuevos, ${s.skipped} actualizados${s.errors > 0 ? `, ${s.errors} errores` : ""}.`,
