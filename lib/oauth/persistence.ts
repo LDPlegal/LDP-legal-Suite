@@ -137,8 +137,21 @@ export async function getValidAccessToken(
     throw new Error("Token expirado y no hay refresh_token; reconectá la cuenta.");
   }
 
-  // Refresh el access token.
-  const refreshed = await refreshAccessToken(provider, row.refreshToken);
+  // Refresh el access token. Si esto falla, el refresh token está
+  // muerto (revocado por el user, password change, sesión Azure expirada,
+  // app re-consented, etc.) — auto-desconectamos para que la UI muestre
+  // "Conectar" en vez de mantener al usuario creyendo que sigue activo
+  // mientras cada Graph call falla en silencio.
+  let refreshed;
+  try {
+    refreshed = await refreshAccessToken(provider, row.refreshToken);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "refresh_failed";
+    await autoDisconnect(row.id, `refresh_failed:${msg.slice(0, 120)}`);
+    throw new Error(
+      `No se pudo refrescar el token de ${provider}. Reconectá la cuenta en Configuración → Seguridad. (${msg.slice(0, 160)})`,
+    );
+  }
   await adminDb
     .update(calendarIntegrations)
     .set({

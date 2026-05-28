@@ -142,9 +142,16 @@ export function Sidebar({
           "bg-[#051D33] text-[#E6EEF8]",
           "border-r border-white/[0.06]",
           "transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          // Desktop: sticky en su posición. Móvil: fixed slide-in.
-          "md:sticky md:top-0",
-          "fixed inset-y-0 left-0 md:relative",
+          // Posicionamiento — IMPORTANTE: las dos clases de position van
+          // en la misma línea para que el variant md: gane sobre el base.
+          // Mobile: fixed slide-in (overlay). Desktop md+: sticky top-0
+          // para que se quede pegado al scrollear el contenido.
+          // No usar md:relative + md:sticky en líneas separadas — Tailwind
+          // emite ambas reglas con la misma especificidad y `relative`
+          // gana alfabéticamente → el sidebar termina scrolleando con la
+          // página. Solo md:sticky es suficiente: sticky se comporta como
+          // relative en flujo normal y ADEMÁS se ancla al top al scrollear.
+          "fixed inset-y-0 left-0 md:sticky md:top-0 md:inset-y-auto",
           // Width: drawer ancho fijo en móvil, colapsable en desktop.
           mobileOpen ? "w-[260px]" : collapsed ? "w-[72px]" : "w-[244px]",
           // Visibility en móvil

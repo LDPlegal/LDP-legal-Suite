@@ -75,16 +75,58 @@ export async function sendEmailFromChatAction(
 
   // Determinar from. Microsoft Graph usa la cuenta del token (no se puede
   // override). Para audit lo resolvemos desde /me.
+  //
+  // Antes este catch era bare ({} sin err) y siempre devolvía
+  // "No tenés Microsoft conectado" — pero el error real puede ser muchos:
+  // token expirado + refresh falló, scope revocado, Graph throttling, red
+  // caída, etc. Mostramos el error literal (recortado) para no engañar al
+  // usuario diciéndole "reconectá" cuando el problema es otro.
   let fromAddress = u?.email ?? "unknown";
   try {
     const profile = await getProfile(user.userId);
     fromAddress = profile.mail ?? profile.userPrincipalName ?? fromAddress;
-  } catch {
-    // /me falló — probablemente no hay token Microsoft. Falla rápida con
-    // mensaje útil.
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "error desconocido";
+    console.error("[matter-chat/send-email] getProfile failed:", msg, err);
+
+    // Diferenciamos los casos:
+    //   - "not_connected" / null token → de verdad no está conectado
+    //   - 401 / "unauthorized" / "InvalidAuthenticationToken" → token revocado o expiró sin refresh válido
+    //   - 403 / "Forbidden" → scope insuficiente (Mail.Send no consentido)
+    //   - cualquier otra cosa → mostrar el error literal
+    const lower = msg.toLowerCase();
+    if (lower.includes("not_connected") || lower.includes("no tiene microsoft")) {
+      return {
+        ok: false,
+        error:
+          "No tenés Microsoft conectado. Andá a Configuración → Seguridad y conectá tu cuenta.",
+      };
+    }
+    if (
+      lower.includes("invalidauthenticationtoken") ||
+      lower.includes("unauthorized") ||
+      lower.includes("token expirado") ||
+      lower.includes("refresh") ||
+      lower.includes("graph 401")
+    ) {
+      return {
+        ok: false,
+        error:
+          "Tu sesión con Microsoft caducó y no se pudo refrescar automáticamente. " +
+          "Andá a Configuración → Seguridad → Desconectar y volvé a conectar Microsoft.",
+      };
+    }
+    if (lower.includes("forbidden") || lower.includes("graph 403")) {
+      return {
+        ok: false,
+        error:
+          "Tu cuenta Microsoft no tiene permiso para enviar correos (scope Mail.Send no concedido). " +
+          "Avisá al admin para revisar la configuración de la app en Azure.",
+      };
+    }
     return {
       ok: false,
-      error: "No tenés Microsoft conectado. Andá a /configuracion → Seguridad y conectá tu cuenta.",
+      error: `No pude conectar con Microsoft Graph: ${msg.slice(0, 220)}`,
     };
   }
 
