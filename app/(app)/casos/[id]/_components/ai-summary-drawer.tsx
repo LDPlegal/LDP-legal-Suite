@@ -66,7 +66,7 @@ export function AiSummaryDrawer({
       fd.set("text", state.text);
       const r = await guardarResumenComoNotaAction(fd);
       if (r.ok) {
-        toast.success("Guardado como nota del caso");
+        toast.success("Guardado como gestión del caso");
         setOpen(false);
         router.refresh();
       } else {
@@ -118,9 +118,9 @@ export function AiSummaryDrawer({
             Resumen IA del caso
           </SheetTitle>
           <SheetDescription>
-            Claude lee todo lo registrado en el caso (eventos, notas, gastos,
+            Claude lee todo lo registrado en el caso (eventos, gestiones, gastos,
             tiempos, OCR de documentos) y genera un resumen ejecutivo. Puedes
-            guardarlo como nota o regenerarlo si agregaste información nueva.
+            guardarlo como gestión o regenerarlo si agregaste información nueva.
           </SheetDescription>
         </SheetHeader>
 
@@ -206,7 +206,7 @@ export function AiSummaryDrawer({
             disabled={!state?.ok || pending || saving}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Guardar como nota
+            Guardar como gestión
           </Button>
         </SheetFooter>
       </SheetContent>

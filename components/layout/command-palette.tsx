@@ -100,7 +100,7 @@ export function CommandPalette() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
-          placeholder="Buscar clientes, casos, documentos, facturas, notas..."
+          placeholder="Buscar clientes, casos, documentos, facturas, gestiones..."
           value={query}
           onValueChange={setQuery}
         />
@@ -199,7 +199,7 @@ export function CommandPalette() {
           {results.notas.length > 0 ? (
             <>
               <CommandSeparator />
-              <CommandGroup heading="Notas">
+              <CommandGroup heading="Gestiones">
                 {results.notas.map((n) => (
                   <CommandItem
                     key={n.id}

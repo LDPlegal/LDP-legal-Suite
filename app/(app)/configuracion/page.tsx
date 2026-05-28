@@ -310,11 +310,11 @@ export default async function ConfiguracionPage() {
                   <ul className="list-disc space-y-1 pl-5">
                     <li>
                       <strong>Caso → Resumen IA</strong>: genera un resumen ejecutivo
-                      del caso a partir de eventos, notas, gastos y documentos OCR.
+                      del caso a partir de eventos, gestiones, gastos y documentos OCR.
                     </li>
                     <li>
-                      <strong>Notas del caso → Mejorar redacción</strong>: refina la
-                      nota actual manteniendo el contenido legal.
+                      <strong>Gestiones del caso → Mejorar redacción</strong>: refina la
+                      gestión actual manteniendo el contenido legal.
                     </li>
                     <li>
                       <strong>Documentos → Búsqueda IA</strong>: en lugar de

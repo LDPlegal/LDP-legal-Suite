@@ -10,7 +10,7 @@ const Schema = z.object({
   caseId: z.string().uuid(),
   title: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
   // Content is the Tiptap JSON document; serialized as a JSON string in the form.
-  content: z.string().min(1, "La nota está vacía."),
+  content: z.string().min(1, "La gestión está vacía."),
 });
 
 export type NotaFormState =
@@ -37,7 +37,7 @@ export async function guardarNotaAction(
   try {
     contentJson = JSON.parse(parsed.data.content) as Record<string, unknown>;
   } catch {
-    return { ok: false, error: "Contenido de la nota inválido." };
+    return { ok: false, error: "Contenido de la gestión inválido." };
   }
 
   if (parsed.data.noteId) {
@@ -45,7 +45,7 @@ export async function guardarNotaAction(
       title: parsed.data.title ?? null,
       content: contentJson,
     });
-    if (!updated) return { ok: false, error: "Nota no encontrada." };
+    if (!updated) return { ok: false, error: "Gestión no encontrada." };
     revalidatePath(`/casos/${parsed.data.caseId}`);
     return { ok: true, noteId: updated.id };
   }

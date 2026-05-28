@@ -57,7 +57,7 @@ export async function refinarNotaAction(
     }
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "No se pudo refinar la nota.",
+      error: err instanceof Error ? err.message : "No se pudo refinar la gestión.",
     };
   }
 }

@@ -80,7 +80,7 @@ export function NoteFormDrawer({
       // Force RichTextEditor to remount so its internal state picks up the
       // new doc (the editor reads initialContent only on mount).
       setEditorKey((k) => k + 1);
-      toast.success("Nota refinada con IA", {
+      toast.success("Gestión refinada con IA", {
         description: `Tokens: ${r.usage.inputTokens} entrada · ${r.usage.outputTokens} salida.`,
       });
     } finally {
@@ -91,7 +91,7 @@ export function NoteFormDrawer({
     async (prev, fd) => {
       const result = await guardarNotaAction(prev, fd);
       if (result.ok) {
-        toast.success(noteId ? "Nota actualizada" : "Nota guardada");
+        toast.success(noteId ? "Gestión actualizada" : "Gestión guardada");
         setOpen(false);
         router.refresh();
       }
@@ -105,9 +105,9 @@ export function NoteFormDrawer({
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{noteId ? "Editar nota" : "Nueva nota"}</SheetTitle>
+          <SheetTitle>{noteId ? "Editar gestión" : "Nueva gestión"}</SheetTitle>
           <SheetDescription>
-            Notas internas del caso. Soportan formato (negrita, listas, citas).
+            Gestiones internas del caso. Soportan formato (negrita, listas, citas).
           </SheetDescription>
         </SheetHeader>
         <form
@@ -156,7 +156,7 @@ export function NoteFormDrawer({
                 key={editorKey}
                 initialContent={content}
                 onChange={setContent}
-                placeholder="Escribe la nota..."
+                placeholder="Escribe la gestión..."
               />
             </div>
 
@@ -170,7 +170,7 @@ export function NoteFormDrawer({
             </Button>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2 className="animate-spin" /> : null}
-              Guardar nota
+              Guardar gestión
             </Button>
           </SheetFooter>
         </form>

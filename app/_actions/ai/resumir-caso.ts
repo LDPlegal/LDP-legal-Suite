@@ -84,7 +84,7 @@ export async function guardarResumenComoNotaAction(
     entityId: note.id,
     caseId: parsed.data.caseId,
     action: "created",
-    summary: "Guardó resumen IA como nota",
+    summary: "Guardó resumen IA como gestión",
   });
   revalidatePath(`/casos/${parsed.data.caseId}`);
   return { ok: true, noteId: note.id };

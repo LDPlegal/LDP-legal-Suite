@@ -47,14 +47,14 @@ export function NoteCard({
             initialContent={note.content}
             aiEnabled={aiEnabled}
             trigger={
-              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar nota">
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar gestión">
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
             }
           />
           <ConfirmButton
             action={eliminarNotaAction}
-            title="¿Eliminar esta nota?"
+            title="¿Eliminar esta gestión?"
             description={note.title ? `"${note.title}" — esta acción es reversible (queda archivada).` : "Esta acción es reversible (queda archivada)."}
             confirmLabel="Eliminar"
             trigger={
@@ -62,7 +62,7 @@ export function NoteCard({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-destructive"
-                aria-label="Eliminar nota"
+                aria-label="Eliminar gestión"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>

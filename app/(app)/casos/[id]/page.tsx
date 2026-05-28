@@ -210,7 +210,7 @@ export default async function CasoDetailPage({
           <TabsTrigger value="tareas">Tareas ({tareas.length})</TabsTrigger>
           <TabsTrigger value="eventos">Eventos ({eventos.length})</TabsTrigger>
           <TabsTrigger value="documentos">Documentos ({documentos.length})</TabsTrigger>
-          <TabsTrigger value="notas">Notas ({notas.length})</TabsTrigger>
+          <TabsTrigger value="notas">Gestiones ({notas.length})</TabsTrigger>
           <TabsTrigger value="facturacion">Facturación ({facturasCaso.length})</TabsTrigger>
           <TabsTrigger value="bitacora">Bitácora</TabsTrigger>
         </TabsList>
@@ -677,7 +677,7 @@ export default async function CasoDetailPage({
         <TabsContent value="notas" className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {notas.length} {notas.length === 1 ? "nota" : "notas"}
+              {notas.length} {notas.length === 1 ? "gestión" : "gestiones"}
             </p>
             <NoteFormDrawer
               caseId={c.id}
@@ -685,14 +685,14 @@ export default async function CasoDetailPage({
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="h-3.5 w-3.5" />
-                  Nueva nota
+                  Nueva gestión
                 </Button>
               }
             />
           </div>
           {notas.length === 0 ? (
             <Card className="py-10 text-center text-sm text-muted-foreground">
-              Sin notas. Crea la primera arriba.
+              Sin gestiones. Crea la primera arriba.
             </Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">

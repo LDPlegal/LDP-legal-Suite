@@ -571,7 +571,7 @@ export function MatterChatPanel({
   const knownItems = [
     `${initialStats.docCount} ${initialStats.docCount === 1 ? "documento" : "documentos"}`,
     `${initialStats.eventCount} ${initialStats.eventCount === 1 ? "evento" : "eventos"}`,
-    `${initialStats.noteCount} ${initialStats.noteCount === 1 ? "nota" : "notas"}`,
+    `${initialStats.noteCount} ${initialStats.noteCount === 1 ? "gestión" : "gestiones"}`,
     `${initialStats.timeEntryCount} ${initialStats.timeEntryCount === 1 ? "tiempo" : "tiempos"}`,
   ].join(" · ");
 
