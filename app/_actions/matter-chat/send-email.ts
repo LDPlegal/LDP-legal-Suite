@@ -10,11 +10,16 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { adminDb } from "@/lib/db/admin";
-import { sentEmails, users } from "@/lib/db/schema";
+import { documents, sentEmails, users } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth/session";
-import { getProfile, sendMail } from "@/lib/oauth/microsoft-graph";
-import { eq } from "drizzle-orm";
+import {
+  getProfile,
+  sendMail,
+  type SendMailAttachment,
+} from "@/lib/oauth/microsoft-graph";
+import { and, eq, inArray } from "drizzle-orm";
 import { logAuditStandalone } from "@/lib/audit/log";
+import { getStorage } from "@/lib/storage";
 
 const RecipientSchema = z.object({
   email: z.string().email("Email inválido."),
@@ -83,6 +88,71 @@ export async function sendEmailFromChatAction(
     };
   }
 
+  // Resolver adjuntos: el modelo nos da una lista de documentIds. Validamos
+  // que cada uno pertenece a este firm (RLS-equivalent — adminDb bypasa RLS
+  // entonces lo verificamos a mano) y opcionalmente al caso. Después leemos
+  // los bytes del storage. Si un doc no existe / pertenece a otro firm /
+  // está vacío, abortamos antes de mandar el mail — preferimos fallar
+  // explícito a mandar el correo sin adjuntos prometidos.
+  let attachments: SendMailAttachment[] | undefined;
+  if (data.attachDocumentIds && data.attachDocumentIds.length > 0) {
+    const docs = await adminDb
+      .select({
+        id: documents.id,
+        firmId: documents.firmId,
+        caseId: documents.caseId,
+        name: documents.name,
+        mimeType: documents.mimeType,
+        storageKey: documents.storageKey,
+      })
+      .from(documents)
+      .where(
+        and(
+          inArray(documents.id, data.attachDocumentIds),
+          eq(documents.firmId, user.firmId),
+        ),
+      );
+    // Si pedíamos N docs y recibimos <N, alguno no existe o es de otro firm.
+    if (docs.length !== data.attachDocumentIds.length) {
+      const found = new Set(docs.map((d) => d.id));
+      const missing = data.attachDocumentIds.filter((id) => !found.has(id));
+      return {
+        ok: false,
+        error: `No pude adjuntar ${missing.length} documento(s) — puede ser que ya no existan o no pertenezcan a este expediente.`,
+      };
+    }
+    // Si el correo está vinculado a un caso, los docs deberían pertenecer al
+    // mismo caso (o no tener caso). Esto evita filtrar docs de otro caso por
+    // accidente vía un AI que confundió IDs.
+    if (data.caseId) {
+      const wrongCase = docs.filter(
+        (d) => d.caseId !== null && d.caseId !== data.caseId,
+      );
+      if (wrongCase.length > 0) {
+        return {
+          ok: false,
+          error: `${wrongCase.length} documento(s) pertenecen a otro expediente — no los adjunté por seguridad.`,
+        };
+      }
+    }
+
+    const storage = getStorage();
+    try {
+      attachments = await Promise.all(
+        docs.map(async (d) => ({
+          name: d.name,
+          mimeType: d.mimeType,
+          bytes: await storage.get(d.storageKey),
+        })),
+      );
+    } catch (err) {
+      return {
+        ok: false,
+        error: `No pude leer un adjunto del almacenamiento: ${err instanceof Error ? err.message : "error desconocido"}`,
+      };
+    }
+  }
+
   // Send.
   try {
     await sendMail(user.userId, {
@@ -92,6 +162,7 @@ export async function sendEmailFromChatAction(
       subject: data.subject,
       bodyHtml: finalBody,
       saveToSentItems: true,
+      attachments,
     });
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "error desconocido";

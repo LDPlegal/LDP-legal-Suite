@@ -143,19 +143,29 @@ export async function createEventFromChatAction(input: {
 
   // Best-effort: push al calendario Microsoft del usuario si tiene
   // conectado. No bloquea el flow ni revierte si falla (el cron diario
-  // lo recoge en el siguiente pull).
+  // lo recoge en el siguiente pull). Logueamos a console — Vercel los
+  // captura — para que cuando un evento NO aparezca en Outlook tengamos
+  // pista del porqué.
   try {
     const { pushEventToProvider } = await import("@/lib/calendar/sync");
-    void pushEventToProvider(user.userId, created.id, {
+    pushEventToProvider(user.userId, created.id, {
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       location: parsed.data.location ?? null,
       startAt,
       endAt,
       allDay: duration === 0,
+    }).catch((err) => {
+      console.warn(
+        `[matter-chat/create-event] push to provider failed for eventId=${created.id}:`,
+        err instanceof Error ? err.message : err,
+      );
     });
-  } catch {
-    // ignore — el cron diario reconciliará
+  } catch (err) {
+    console.warn(
+      `[matter-chat/create-event] dynamic import sync failed for eventId=${created.id}:`,
+      err instanceof Error ? err.message : err,
+    );
   }
 
   revalidatePath(`/casos/${parsed.data.caseId}`);

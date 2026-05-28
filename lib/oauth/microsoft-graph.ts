@@ -238,6 +238,15 @@ export async function deleteCalendarEvent(
 // Mail
 // ============================================================================
 
+export type SendMailAttachment = {
+  /** Nombre visible del archivo (e.g. "contrato.pdf"). */
+  name: string;
+  /** MIME type. Microsoft acepta cualquiera, los más comunes funcionan bien. */
+  mimeType: string;
+  /** Bytes del archivo. Microsoft Graph los necesita en base64. */
+  bytes: Uint8Array | Buffer;
+};
+
 export type SendMailInput = {
   to: Array<{ email: string; name?: string }>;
   cc?: Array<{ email: string; name?: string }>;
@@ -247,7 +256,16 @@ export type SendMailInput = {
   // Cuando true, Graph guarda el correo en la carpeta "Sent Items" del
   // usuario. Default true — los socios necesitan ver lo enviado en Outlook.
   saveToSentItems?: boolean;
+  /** Adjuntos en línea. Microsoft Graph permite hasta 3MB por adjunto vía
+   *  /sendMail (para más, hay que usar upload sessions, no soportado acá). */
+  attachments?: SendMailAttachment[];
 };
+
+/** Límite duro de Microsoft Graph para attachments vía /sendMail: 3MB por
+ *  archivo, ~25MB en total (el mensaje completo). Validamos para fallar
+ *  rápido en vez de que Graph nos rebote con un error críptico. */
+const MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+const MAX_TOTAL_ATTACHMENTS_BYTES = 24 * 1024 * 1024; // 24MB para dejar overhead del JSON
 
 export async function sendMail(
   userId: string,
@@ -266,6 +284,32 @@ export async function sendMail(
       emailAddress: { address: r.email, name: r.name },
     })),
   };
+
+  if (input.attachments && input.attachments.length > 0) {
+    let total = 0;
+    for (const att of input.attachments) {
+      const size = att.bytes.byteLength;
+      if (size > MAX_ATTACHMENT_BYTES) {
+        throw new Error(
+          `Adjunto '${att.name}' pesa ${(size / 1024 / 1024).toFixed(1)}MB — el máximo es 3MB. Para archivos grandes, compartilos por OneDrive y pegá el link.`,
+        );
+      }
+      total += size;
+    }
+    if (total > MAX_TOTAL_ATTACHMENTS_BYTES) {
+      throw new Error(
+        `Los adjuntos suman ${(total / 1024 / 1024).toFixed(1)}MB — el máximo total es 24MB.`,
+      );
+    }
+    message.hasAttachments = true;
+    message.attachments = input.attachments.map((att) => ({
+      "@odata.type": "#microsoft.graph.fileAttachment",
+      name: att.name,
+      contentType: att.mimeType,
+      contentBytes: Buffer.from(att.bytes).toString("base64"),
+    }));
+  }
+
   await graphFetchJson(userId, "/me/sendMail", {
     method: "POST",
     json: {
