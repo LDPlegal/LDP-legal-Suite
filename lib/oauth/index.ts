@@ -71,11 +71,15 @@ export function isProviderConfigured(provider: OAuthProvider): boolean {
 
 const AUTH_URL: Record<OAuthProvider, string> = {
   google: "https://accounts.google.com/o/oauth2/v2/auth",
-  microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+  // /organizations/ en vez de /common/: fuerza cuentas corporativas
+  // (work/school accounts) y rechaza cuentas personales outlook.com.
+  // Esto evita el caso "usuario logueó con su cuenta personal y el admin
+  // consent de LDP no aplica" — Microsoft pide consent individual y se traba.
+  microsoft: "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
 };
 const TOKEN_URL: Record<OAuthProvider, string> = {
   google: "https://oauth2.googleapis.com/token",
-  microsoft: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+  microsoft: "https://login.microsoftonline.com/organizations/oauth2/v2.0/token",
 };
 
 // Build the consent URL the user is redirected to. `state` is opaque
@@ -87,6 +91,17 @@ export function buildAuthorizeUrl(
 ): string | null {
   const cfg = readClientConfig(provider, opts.includeMailRead ?? false);
   if (!cfg) return null;
+  // IMPORTANTE — prompt:
+  //   - Google: necesitamos "consent" para garantizar refresh_token en la
+  //     primera conexión. Google solo da refresh_token cuando el usuario
+  //     explícitamente consiente.
+  //   - Microsoft: NUNCA forzamos "consent" — si lo hacemos, Microsoft
+  //     ignora el admin consent del tenant y pide consent individual al
+  //     usuario, lo que en tenants corporativos con user-consent restringido
+  //     dispara el flujo de "necesitás aprobación del admin". Usamos
+  //     "select_account" para que el usuario pueda elegir cuenta si tiene
+  //     varias sesiones en el browser, pero NO le pedimos consent.
+  const promptParam = provider === "google" ? "consent" : "select_account";
   const params = new URLSearchParams({
     client_id: cfg.clientId,
     redirect_uri: cfg.redirectUri,
@@ -94,7 +109,7 @@ export function buildAuthorizeUrl(
     scope: cfg.scopes.join(" "),
     state,
     access_type: provider === "google" ? "offline" : "",
-    prompt: "consent",
+    prompt: promptParam,
   });
   // Trim empty ones.
   for (const k of Array.from(params.keys())) {
