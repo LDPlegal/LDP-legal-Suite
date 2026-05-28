@@ -18,17 +18,25 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (user.role === "client") redirect("/portal/dashboard");
   const firm = await getCurrentFirm(user.firmId, user.userId);
 
+  // IMPORTANTE — layout de altura:
+  // El outer container es `h-screen` (no min-h-screen) + `overflow-hidden`.
+  // Eso fija la altura total a 100vh y previene que el BODY scrollee.
+  // El scroll vive en <main>, que tiene su propia altura constrained vía
+  // flex-1 dentro de un flex-col de altura 100vh.
+  // Resultado: el sidebar es flex item con h-screen y NUNCA se mueve,
+  // porque su parent tampoco crece. No depende de `position: sticky` —
+  // simplemente está fuera del scroll container.
   return (
     <TooltipProvider>
       <SidebarStateProvider>
-        <div className="flex min-h-screen w-full">
+        <div className="flex h-screen w-full overflow-hidden">
           <Sidebar
             firmName={firm?.name ?? "Firma"}
             user={{ name: user.name, email: user.email, role: user.role }}
           />
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col h-full">
             <Header user={{ name: user.name, email: user.email, role: user.role }} />
-            <main className="flex-1 overflow-y-auto p-4 md:p-6">
+            <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
               <PageTransition>{children}</PageTransition>
             </main>
           </div>

@@ -10,14 +10,15 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { adminDb } from "@/lib/db/admin";
-import { documents, sentEmails, users } from "@/lib/db/schema";
-import { requireUser } from "@/lib/auth/session";
 import {
-  getProfile,
-  sendMail,
-  type SendMailAttachment,
-} from "@/lib/oauth/microsoft-graph";
-import { and, eq, inArray } from "drizzle-orm";
+  calendarIntegrations,
+  documents,
+  sentEmails,
+  users,
+} from "@/lib/db/schema";
+import { requireUser } from "@/lib/auth/session";
+import { sendMail, type SendMailAttachment } from "@/lib/oauth/microsoft-graph";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { logAuditStandalone } from "@/lib/audit/log";
 import { getStorage } from "@/lib/storage";
 
@@ -73,62 +74,36 @@ export async function sendEmailFromChatAction(
 
   const finalBody = appendSignature(data.bodyHtml, u?.emailSignature ?? null);
 
-  // Determinar from. Microsoft Graph usa la cuenta del token (no se puede
-  // override). Para audit lo resolvemos desde /me.
+  // Determinar from. Microsoft Graph usa SIEMPRE la cuenta del token —
+  // el campo `from` que mandemos al endpoint es ignorado. Para audit
+  // logueamos el email que sabemos asociado al token: viene del flow OAuth
+  // (id_token o /me fallback) y está guardado en
+  // calendar_integrations.externalAccountId.
   //
-  // Antes este catch era bare ({} sin err) y siempre devolvía
-  // "No tenés Microsoft conectado" — pero el error real puede ser muchos:
-  // token expirado + refresh falló, scope revocado, Graph throttling, red
-  // caída, etc. Mostramos el error literal (recortado) para no engañar al
-  // usuario diciéndole "reconectá" cuando el problema es otro.
-  let fromAddress = u?.email ?? "unknown";
-  try {
-    const profile = await getProfile(user.userId);
-    fromAddress = profile.mail ?? profile.userPrincipalName ?? fromAddress;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "error desconocido";
-    console.error("[matter-chat/send-email] getProfile failed:", msg, err);
-
-    // Diferenciamos los casos:
-    //   - "not_connected" / null token → de verdad no está conectado
-    //   - 401 / "unauthorized" / "InvalidAuthenticationToken" → token revocado o expiró sin refresh válido
-    //   - 403 / "Forbidden" → scope insuficiente (Mail.Send no consentido)
-    //   - cualquier otra cosa → mostrar el error literal
-    const lower = msg.toLowerCase();
-    if (lower.includes("not_connected") || lower.includes("no tiene microsoft")) {
-      return {
-        ok: false,
-        error:
-          "No tenés Microsoft conectado. Andá a Configuración → Seguridad y conectá tu cuenta.",
-      };
-    }
-    if (
-      lower.includes("invalidauthenticationtoken") ||
-      lower.includes("unauthorized") ||
-      lower.includes("token expirado") ||
-      lower.includes("refresh") ||
-      lower.includes("graph 401")
-    ) {
-      return {
-        ok: false,
-        error:
-          "Tu sesión con Microsoft caducó y no se pudo refrescar automáticamente. " +
-          "Andá a Configuración → Seguridad → Desconectar y volvé a conectar Microsoft.",
-      };
-    }
-    if (lower.includes("forbidden") || lower.includes("graph 403")) {
-      return {
-        ok: false,
-        error:
-          "Tu cuenta Microsoft no tiene permiso para enviar correos (scope Mail.Send no concedido). " +
-          "Avisá al admin para revisar la configuración de la app en Azure.",
-      };
-    }
+  // Antes acá llamábamos /me (getProfile) para "verificar" la conexión
+  // antes de mandar. Pero /me requiere scope User.Read que no consentimos
+  // — y agregarlo dispararía re-consent de TODO el tenant. La integración
+  // ya nos garantiza que el token funciona; si está roto, sendMail() lo
+  // dirá directamente.
+  const [integration] = await adminDb
+    .select({ externalAccountId: calendarIntegrations.externalAccountId })
+    .from(calendarIntegrations)
+    .where(
+      and(
+        eq(calendarIntegrations.userId, user.userId),
+        eq(calendarIntegrations.provider, "microsoft"),
+        isNull(calendarIntegrations.disconnectedAt),
+      ),
+    )
+    .limit(1);
+  if (!integration) {
     return {
       ok: false,
-      error: `No pude conectar con Microsoft Graph: ${msg.slice(0, 220)}`,
+      error:
+        "No tenés Microsoft conectado. Andá a Configuración → Seguridad y conectá tu cuenta.",
     };
   }
+  const fromAddress = integration.externalAccountId ?? u?.email ?? "unknown";
 
   // Resolver adjuntos: el modelo nos da una lista de documentIds. Validamos
   // que cada uno pertenece a este firm (RLS-equivalent — adminDb bypasa RLS
