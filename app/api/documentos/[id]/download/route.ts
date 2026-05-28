@@ -30,23 +30,44 @@ export async function GET(
   try {
     bytes = await storage.get(doc.storageKey);
   } catch (err) {
-    // Distinguir error de "archivo no existe en storage" (caso común si el
-    // STORAGE_DRIVER=local está corriendo en Vercel — el filesystem se
-    // resetea entre deploys y entre lambdas) de un error de S3/red real.
-    // En cualquier caso, devolvemos JSON 500 con detalle para que la UI
-    // no muestre la página opaca de "Esta página no funciona — HTTP 500".
     const msg = err instanceof Error ? err.message : String(err);
+    const lower = msg.toLowerCase();
     console.error(
       `[documentos/download] storage.get failed for storageKey=${doc.storageKey} (doc ${doc.id}):`,
       msg,
     );
+
+    // Caso #1: archivo no existe en el bucket. Esto pasa con docs de seed
+    // (storageKey empieza con "seed/") cuyo metadata está en la DB pero los
+    // bytes nunca se subieron — porque seed solo crea filas, no archivos.
+    // También pasa si alguien borró el objeto manual desde R2 console.
+    if (
+      lower.includes("nosuchkey") ||
+      lower.includes("specified key does not exist") ||
+      lower.includes("not found")
+    ) {
+      const isSeedDoc = doc.storageKey.startsWith("seed/");
+      return NextResponse.json(
+        {
+          error: "file_missing_in_storage",
+          detail: isSeedDoc
+            ? "Este documento es de los datos de prueba (seed). Solo tiene metadata en la DB, no tiene archivo físico. Borralo y subí uno real para probar el download."
+            : "El archivo existe en la base de datos pero no en el bucket de storage. Puede haber sido borrado manualmente desde R2 o haber fallado el upload original.",
+          storageKey: doc.storageKey,
+          isSeedDoc,
+        },
+        { status: 404 },
+      );
+    }
+
+    // Caso #2: error real de storage (credenciales mal, bucket inaccesible,
+    // red caída, etc.). 500 con detalle.
     return NextResponse.json(
       {
         error: "storage_unavailable",
         detail:
-          "El archivo no se pudo leer del almacenamiento. " +
-          "Si estás en producción y STORAGE_DRIVER=local, los archivos no persisten en Vercel — " +
-          "configurá STORAGE_DRIVER=s3 con credenciales R2/S3.",
+          "No se pudo leer el archivo del bucket. " +
+          "Verificá que las env vars S3_* estén bien configuradas en Vercel.",
         storageKey: doc.storageKey,
         underlyingError: msg.slice(0, 280),
       },
