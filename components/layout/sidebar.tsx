@@ -32,6 +32,8 @@ import {
 import { logoutAction } from "@/app/_actions/auth/logout";
 import { cn } from "@/lib/utils";
 import { useModKey } from "@/lib/hooks/use-platform";
+import { useSidebarState } from "./sidebar-state-context";
+import { useEffect } from "react";
 
 type NavItem = {
   href: string;
@@ -108,23 +110,47 @@ export function Sidebar({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const mod = useModKey();
+  const { mobileOpen, setMobileOpen } = useSidebarState();
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  // Cerrar el drawer móvil cuando cambia la ruta — si el usuario clickea
+  // un ítem, la nav se cierra sola.
+  useEffect(() => {
+    setMobileOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   return (
-    <aside
-      className={cn(
-        "sticky top-0 z-30 flex h-screen shrink-0 flex-col text-sidebar-foreground",
-        // Sidebar SIEMPRE navy profundo — funciona en light y dark mode,
-        // da contraste y "anchora" la página como un letterhead legal.
-        "bg-[#051D33] text-[#E6EEF8]",
-        "border-r border-white/[0.06]",
-        "transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-        collapsed ? "w-[72px]" : "w-[244px]",
-      )}
-    >
+    <>
+      {/* Overlay para móvil cuando el drawer está abierto */}
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+        />
+      ) : null}
+
+      <aside
+        className={cn(
+          "z-50 flex h-screen shrink-0 flex-col text-sidebar-foreground",
+          // Sidebar SIEMPRE navy profundo
+          "bg-[#051D33] text-[#E6EEF8]",
+          "border-r border-white/[0.06]",
+          "transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          // Desktop: sticky en su posición. Móvil: fixed slide-in.
+          "md:sticky md:top-0",
+          "fixed inset-y-0 left-0 md:relative",
+          // Width: drawer ancho fijo en móvil, colapsable en desktop.
+          mobileOpen ? "w-[260px]" : collapsed ? "w-[72px]" : "w-[244px]",
+          // Visibility en móvil
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        )}
+      >
       {/* Brand */}
       <div className="relative flex h-16 items-center justify-between border-b border-white/[0.06] px-3">
         <Link
@@ -317,5 +343,6 @@ export function Sidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

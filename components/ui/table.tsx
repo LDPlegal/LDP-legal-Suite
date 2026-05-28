@@ -3,7 +3,9 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    // overflow-x-auto + min-w-full hace scroll horizontal en móvil
+    // cuando la tabla no entra, en vez de aplastar las columnas.
+    <div className="relative w-full overflow-x-auto">
       <table
         ref={ref}
         className={cn("w-full caption-bottom text-sm", className)}
