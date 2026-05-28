@@ -1713,10 +1713,19 @@ export const calendarIntegrations = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     provider: text("provider").$type<"google" | "microsoft">().notNull(),
     externalAccountId: text("external_account_id").notNull(),
-    accessTokenCipher: text("access_token_cipher").notNull(),
+    /** Token de acceso en texto plano. RLS + permisos de DB lo protegen.
+     *  El cifrado app-layer fue removido en migración 0022 por causar
+     *  errores de descifrado intermitentes en producción. */
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    /** Columnas legacy del cifrado anterior — quedan por audit pero el
+     *  código nuevo no las usa. */
+    accessTokenCipher: text("access_token_cipher"),
     refreshTokenCipher: text("refresh_token_cipher"),
+    /** Solo guardamos { expiresAt } ahora. iv/aad/keyId quedan opcionales
+     *  para retrocompatibilidad con filas viejas. */
     tokenMeta: jsonb("token_meta")
-      .$type<{ iv: string; aad: string; keyId: string; expiresAt: string }>()
+      .$type<{ expiresAt: string; iv?: string; aad?: string; keyId?: string }>()
       .notNull(),
     scopes: text("scopes").array().notNull().default(sql`ARRAY[]::text[]`),
     inboxLabel: text("inbox_label"),

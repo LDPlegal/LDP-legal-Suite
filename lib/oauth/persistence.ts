@@ -1,73 +1,40 @@
-// F7+ Bloque 5 — Persistencia de tokens OAuth con cifrado app-layer.
+// F7+ Bloque 5 — Persistencia de tokens OAuth.
 //
-// El access_token + refresh_token se cifran con AES-256-GCM antes de
-// persistir en calendar_integrations. La master key vive en
-// APP_CRYPTO_MASTER_KEY (lib/crypto/app-layer.ts).
+// Decisión post-mortem: el cifrado app-layer de tokens (AES-256-GCM con
+// HKDF) causaba errores intermitentes "Unable to authenticate data" en
+// producción. Cualquier desalineación de APP_CRYPTO_MASTER_KEY entre
+// ambientes Vercel rompía el flow. Lo eliminamos.
+//
+// Los tokens viven en columnas plaintext (access_token, refresh_token).
+// Protección:
+//   * RLS por firmId.
+//   * app_user no es superuser.
+//   * Tokens expiran (access ~1h, refresh ~90d).
+//   * El usuario puede revocar desde el provider en cualquier momento.
+//
+// Migración 0022 agregó las columnas plaintext y dropeó el NOT NULL del
+// access_token_cipher. Las columnas cipher quedan por audit pero no se
+// usan más.
 
 import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import { calendarIntegrations } from "@/lib/db/schema";
-import { decryptDocument, encryptDocument } from "@/lib/crypto/app-layer";
 import {
   type ExchangedTokens,
   type OAuthProvider,
   refreshAccessToken,
 } from "./index";
 
-function encryptTokenString(s: string, scope: string): {
-  cipher: string;
-  iv: string;
-  aad: string;
-  keyId: string;
-} {
-  const { ciphertext, meta } = encryptDocument({
-    plaintext: Buffer.from(s, "utf8"),
-    documentId: scope, // re-using documentId slot as a binding scope
-    firmId: scope,
-  });
-  return {
-    cipher: ciphertext.toString("base64"),
-    iv: meta.iv,
-    aad: meta.aad,
-    keyId: meta.keyId,
-  };
-}
-
-function decryptTokenString(
-  cipherB64: string,
-  meta: { iv: string; aad: string; keyId: string },
-  scope: string,
-): string {
-  const buf = Buffer.from(cipherB64, "base64");
-  const out = decryptDocument({
-    ciphertext: buf,
-    meta: { v: 1, ...meta },
-    documentId: scope,
-    firmId: scope,
-  });
-  return out.toString("utf8");
-}
-
-/** Error específico cuando los tokens cifrados de un usuario no pueden
- *  descifrarse — típicamente porque APP_CRYPTO_MASTER_KEY cambió entre
- *  el save y el read. El UI lo trata como "necesita reconectar". */
+/** Error específico cuando los tokens no se pueden leer (deberían estar
+ *  en plaintext después de migración 0022, pero si una fila vieja sigue
+ *  con solo cipher y la app no puede descifrar, tiramos esto y el caller
+ *  fuerza reconnect). */
 export class IntegrationTokenUndecryptableError extends Error {
   constructor(public provider: OAuthProvider) {
-    super(`No se pudieron descifrar los tokens de ${provider}. Reconectá la cuenta.`);
+    super(`Los tokens de ${provider} no son legibles. Reconectá la cuenta.`);
     this.name = "IntegrationTokenUndecryptableError";
   }
-}
-
-function isAuthTagError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const m = err.message.toLowerCase();
-  return (
-    m.includes("unable to authenticate data") ||
-    m.includes("unsupported state") ||
-    m.includes("aad mismatch") ||
-    m.includes("invalid iv length")
-  );
 }
 
 export async function saveCalendarIntegration(
@@ -76,17 +43,13 @@ export async function saveCalendarIntegration(
   provider: OAuthProvider,
   tokens: ExchangedTokens,
 ): Promise<void> {
-  // Si no pudimos resolver un externalAccountId (id_token sin claims
-  // útiles + /me API falló), guardamos con placeholder en vez de fallar
-  // el flow entero. El sync funciona igual porque usa el access_token
-  // directamente — el accountId es solo para mostrar en la UI.
+  // Si no resolvió externalAccountId, usamos placeholder (los tokens son
+  // lo que importa funcionalmente).
   const externalAccountId =
     tokens.externalAccountId ?? `${provider}-account-${userId.slice(0, 8)}`;
-  const scope = `${firmId}:${userId}:${provider}`;
-  const accessEnc = encryptTokenString(tokens.accessToken, scope);
-  const refreshEnc = tokens.refreshToken
-    ? encryptTokenString(tokens.refreshToken, scope)
-    : null;
+
+  const tokenMeta = { expiresAt: tokens.expiresAt.toISOString() };
+  const scopes = tokens.scope ? tokens.scope.split(" ") : [];
 
   // Upsert por (user_id, provider) cuando el row no está disconnected.
   const [existing] = await adminDb
@@ -101,22 +64,17 @@ export async function saveCalendarIntegration(
     )
     .limit(1);
 
-  const meta = {
-    iv: accessEnc.iv,
-    aad: accessEnc.aad,
-    keyId: accessEnc.keyId,
-    expiresAt: tokens.expiresAt.toISOString(),
-  };
-  const scopes = tokens.scope ? tokens.scope.split(" ") : [];
-
   if (existing) {
     await adminDb
       .update(calendarIntegrations)
       .set({
-        externalAccountId: externalAccountId,
-        accessTokenCipher: accessEnc.cipher,
-        refreshTokenCipher: refreshEnc?.cipher ?? null,
-        tokenMeta: meta,
+        externalAccountId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        // Legacy columns: blanqueamos para no confundir
+        accessTokenCipher: null,
+        refreshTokenCipher: null,
+        tokenMeta,
         scopes,
         updatedAt: new Date(),
         lastError: null,
@@ -128,21 +86,18 @@ export async function saveCalendarIntegration(
       userId,
       provider,
       externalAccountId,
-      accessTokenCipher: accessEnc.cipher,
-      refreshTokenCipher: refreshEnc?.cipher ?? null,
-      tokenMeta: meta,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenMeta,
       scopes,
     });
   }
 }
 
-// Read + auto-refresh: devuelve un access_token válido. Si el actual está
-// expirado o por expirar en <2 min, usa el refresh token y actualiza la fila.
-//
-// Si los tokens no pueden descifrarse (típicamente porque
-// APP_CRYPTO_MASTER_KEY cambió desde que se guardaron), auto-disconnecta
-// la integración y tira IntegrationTokenUndecryptableError. El usuario
-// debe reconectar la cuenta — los tokens viejos son irrecuperables.
+/** Devuelve un access_token válido. Si está expirado o por expirar en
+ *  <2 min, usa el refresh token. Si las tokens están en formato viejo
+ *  (cipher) y no las podemos leer, tira IntegrationTokenUndecryptableError
+ *  → el caller marca needs-reconnect. */
 export async function getValidAccessToken(
   userId: string,
   provider: OAuthProvider,
@@ -159,56 +114,36 @@ export async function getValidAccessToken(
     )
     .limit(1);
   if (!row) return null;
-  const scope = `${row.firmId}:${row.userId}:${row.provider}`;
+
+  // Fila vieja sin plaintext y solo con cipher → no podemos leerla.
+  // Esto solo pasa para integrations creadas antes de la migración 0022
+  // y que todavía no se han reconectado.
+  if (!row.accessToken && row.accessTokenCipher) {
+    await autoDisconnect(row.id, "tokens_legacy_cipher_only");
+    throw new IntegrationTokenUndecryptableError(provider);
+  }
+  if (!row.accessToken) {
+    await autoDisconnect(row.id, "no_access_token");
+    throw new IntegrationTokenUndecryptableError(provider);
+  }
+
   const expiresAt = new Date(row.tokenMeta.expiresAt);
   const needsRefresh = expiresAt.getTime() - Date.now() < 2 * 60 * 1000;
 
   if (!needsRefresh) {
-    try {
-      const accessToken = decryptTokenString(
-        row.accessTokenCipher,
-        row.tokenMeta,
-        scope,
-      );
-      return { accessToken, externalAccountId: row.externalAccountId };
-    } catch (err) {
-      if (isAuthTagError(err)) {
-        await autoDisconnect(row.id, "tokens_undecryptable");
-        throw new IntegrationTokenUndecryptableError(provider);
-      }
-      throw err;
-    }
+    return { accessToken: row.accessToken, externalAccountId: row.externalAccountId };
   }
-  if (!row.refreshTokenCipher) {
-    throw new Error("Token expirado y no hay refresh_token; el usuario debe reconectar.");
-  }
-  let refreshToken: string;
-  try {
-    refreshToken = decryptTokenString(
-      row.refreshTokenCipher,
-      row.tokenMeta,
-      scope,
-    );
-  } catch (err) {
-    if (isAuthTagError(err)) {
-      await autoDisconnect(row.id, "tokens_undecryptable");
-      throw new IntegrationTokenUndecryptableError(provider);
-    }
-    throw err;
+  if (!row.refreshToken) {
+    throw new Error("Token expirado y no hay refresh_token; reconectá la cuenta.");
   }
 
-  const refreshed = await refreshAccessToken(provider, refreshToken);
-  const reEnc = encryptTokenString(refreshed.accessToken, scope);
+  // Refresh el access token.
+  const refreshed = await refreshAccessToken(provider, row.refreshToken);
   await adminDb
     .update(calendarIntegrations)
     .set({
-      accessTokenCipher: reEnc.cipher,
-      tokenMeta: {
-        iv: reEnc.iv,
-        aad: reEnc.aad,
-        keyId: reEnc.keyId,
-        expiresAt: refreshed.expiresAt.toISOString(),
-      },
+      accessToken: refreshed.accessToken,
+      tokenMeta: { expiresAt: refreshed.expiresAt.toISOString() },
       updatedAt: new Date(),
     })
     .where(eq(calendarIntegrations.id, row.id));
