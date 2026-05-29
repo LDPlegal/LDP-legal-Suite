@@ -241,6 +241,17 @@ export async function POST(req: Request) {
   const d1 = await adminDb.delete(cases).where(eq(cases.firmId, firmId));
   deleted.cases = d1.rowCount ?? 0;
 
+  // Eventos firm-level (sin caseId, no cascadearon desde cases) y los que
+  // quedaron sueltos por otra razón.
+  const dEvents = await adminDb.delete(events).where(eq(events.firmId, firmId));
+  deleted.events = dEvents.rowCount ?? 0;
+
+  // AI suggestions firm-level — pueden no tener caseId.
+  const dAi = await adminDb
+    .delete(aiSuggestions)
+    .where(eq(aiSuggestions.firmId, firmId));
+  deleted.ai_suggestions = dAi.rowCount ?? 0;
+
   const d2 = await adminDb.delete(documents).where(eq(documents.firmId, firmId));
   deleted.documents = d2.rowCount ?? 0;
 
@@ -300,8 +311,7 @@ export async function POST(req: Request) {
   }
 
   // Silenciar TS sobre imports que solo se usan en sql raw o conteo
-  void tasks; void notes; void events; void timeEntries; void expenses;
-  void matterChats; void aiSuggestions;
+  void tasks; void notes; void timeEntries; void expenses; void matterChats;
 
   return NextResponse.json({
     mode: "executed",
