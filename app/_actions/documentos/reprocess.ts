@@ -44,6 +44,14 @@ export type ReprocessOneState =
     }
   | { ok: false; error: string };
 
+export type ReprocessResultItem = {
+  docId: string;
+  docName: string;
+  status: "done" | "skipped" | "failed";
+  method?: string;
+  reason?: string;
+};
+
 export type ReprocessBulkState =
   | {
       ok: true;
@@ -52,13 +60,7 @@ export type ReprocessBulkState =
       skipped: number;
       failed: number;
       remaining: number; // cuántos quedan pendientes después de este lote
-      results: Array<{
-        docId: string;
-        docName: string;
-        status: "done" | "skipped" | "failed";
-        method?: string;
-        reason?: string;
-      }>;
+      results: ReprocessResultItem[];
     }
   | { ok: false; error: string };
 
@@ -184,9 +186,7 @@ export async function reprocessAllPendingDocsAction(): Promise<ReprocessBulkStat
   }
 
   const batch = allPending.slice(0, BULK_MAX_DOCS_PER_CALL);
-  const results: ReprocessBulkState extends { ok: true; results: infer R }
-    ? R
-    : never = [];
+  const results: ReprocessResultItem[] = [];
   let done = 0;
   let skipped = 0;
   let failed = 0;
