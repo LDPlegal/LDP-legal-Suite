@@ -657,7 +657,7 @@ export default async function CasoDetailPage({
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="h-3.5 w-3.5" />
-                  Subir documento
+                  Subir documentos
                 </Button>
               }
             />

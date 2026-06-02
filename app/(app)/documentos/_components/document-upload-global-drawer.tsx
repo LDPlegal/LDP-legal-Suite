@@ -1,8 +1,19 @@
 "use client";
 
-import { useActionState, useRef, useState, type ReactNode } from "react";
+// Subida global de documentos (vista /documentos) — soporta multi-archivo
+// y carpeta completa. Misma lógica que el uploader del caso pero sin caseId
+// asociado (los archivos van a la "carpeta general" del firm).
+
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  FilePlus,
+  FolderUp,
+  Loader2,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +28,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  uploadDocumentGlobalAction,
-  type UploadDocumentGlobalState,
-} from "@/app/_actions/documentos/upload-global";
+import { uploadDocumentGlobalAction } from "@/app/_actions/documentos/upload-global";
 
-const initial: UploadDocumentGlobalState = { ok: true, documentId: "" };
+type QueueItem = {
+  id: string;
+  file: File;
+  relPath: string;
+  status: "queued" | "uploading" | "done" | "error";
+  error?: string;
+};
+
+const MAX_PER_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_BATCH_FILES = 200;
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export function DocumentUploadGlobalDrawer({
   trigger,
@@ -30,84 +53,316 @@ export function DocumentUploadGlobalDrawer({
   trigger: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [tags, setTags] = useState("");
+  const filesInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [state, action, pending] = useActionState<UploadDocumentGlobalState, FormData>(
-    async (prev, fd) => {
-      const result = await uploadDocumentGlobalAction(prev, fd);
-      if (result.ok) {
-        toast.success("Documento subido");
-        setOpen(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        router.refresh();
+
+  function addFiles(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const incoming: QueueItem[] = [];
+    for (const f of Array.from(list)) {
+      if (f.name === ".DS_Store" || f.name === "Thumbs.db") continue;
+      const relPath =
+        (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
+      incoming.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${f.name}`,
+        file: f,
+        relPath,
+        status: "queued",
+      });
+    }
+    setQueue((prev) => {
+      const merged = [...prev, ...incoming];
+      if (merged.length > MAX_BATCH_FILES) {
+        toast.warning(
+          `Solo agregué los primeros ${MAX_BATCH_FILES} archivos. Subí en lotes más chicos.`,
+        );
+        return merged.slice(0, MAX_BATCH_FILES);
       }
-      return result;
-    },
-    initial,
-  );
+      return merged;
+    });
+  }
+
+  function removeItem(id: string) {
+    setQueue((prev) => prev.filter((q) => q.id !== id));
+  }
+
+  function clearQueue() {
+    setQueue([]);
+  }
+
+  async function uploadOne(item: QueueItem): Promise<void> {
+    if (item.file.size === 0) {
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === item.id ? { ...q, status: "error", error: "Archivo vacío" } : q,
+        ),
+      );
+      return;
+    }
+    if (item.file.size > MAX_PER_FILE_BYTES) {
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === item.id
+            ? {
+                ...q,
+                status: "error",
+                error: `Excede 25MB (${formatBytes(item.file.size)})`,
+              }
+            : q,
+        ),
+      );
+      return;
+    }
+
+    setQueue((prev) =>
+      prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q)),
+    );
+
+    const fd = new FormData();
+    fd.set("file", item.file);
+    if (tags.trim()) fd.set("tags", tags.trim());
+
+    try {
+      const r = await uploadDocumentGlobalAction(undefined, fd);
+      if (r.ok) {
+        setQueue((prev) =>
+          prev.map((q) => (q.id === item.id ? { ...q, status: "done" } : q)),
+        );
+      } else {
+        setQueue((prev) =>
+          prev.map((q) =>
+            q.id === item.id ? { ...q, status: "error", error: r.error } : q,
+          ),
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === item.id ? { ...q, status: "error", error: msg } : q,
+        ),
+      );
+    }
+  }
+
+  async function uploadAll() {
+    if (uploading) return;
+    const pending = queue.filter((q) => q.status === "queued" || q.status === "error");
+    if (pending.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const item of pending) {
+        await uploadOne(item);
+      }
+      router.refresh();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function tryCloseAfterUpload() {
+    const errors = queue.filter((q) => q.status === "error").length;
+    const done = queue.filter((q) => q.status === "done").length;
+    if (errors === 0 && done > 0 && done === queue.length) {
+      toast.success(
+        `${done} archivo${done === 1 ? "" : "s"} subido${done === 1 ? "" : "s"}.`,
+      );
+      setOpen(false);
+      setQueue([]);
+      setTags("");
+    } else if (done > 0 && errors > 0) {
+      toast.warning(
+        `Subí ${done}/${queue.length}. ${errors} fallaron — revisá la lista.`,
+      );
+    }
+  }
+
+  const totalBytes = queue.reduce((sum, q) => sum + q.file.size, 0);
+  const doneCount = queue.filter((q) => q.status === "done").length;
+  const errorCount = queue.filter((q) => q.status === "error").length;
+  const allDone = queue.length > 0 && doneCount === queue.length;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) {
+          if (!uploading && (allDone || queue.length === 0)) {
+            setQueue([]);
+            setTags("");
+          }
+        }
+      }}
+    >
       <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent>
+      <SheetContent className="sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>Subir documento</SheetTitle>
+          <SheetTitle>Subir documentos</SheetTitle>
           <SheetDescription>
-            Sube un documento general sin enlazarlo a un caso o cliente. Podrás
-            vincularlo más adelante si lo necesitas.
+            Documentos generales sin caso asociado. Podés elegir varios archivos
+            o subir una carpeta completa. Máximo 25 MB por archivo.
           </SheetDescription>
         </SheetHeader>
-        <form action={action} className="flex flex-1 flex-col min-h-0">
-          <SheetBody className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="global-file">Archivo *</Label>
-              <Input
-                id="global-file"
-                name="file"
-                type="file"
-                required
-                ref={fileInputRef}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                PDF, imagen o cualquier archivo &lt; 25 MB. Si es imagen, OCR
-                ocurre al subir.
-              </p>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="global-tags">Etiquetas</Label>
-              <Input
-                id="global-tags"
-                name="tags"
-                placeholder="Coma separadas: contrato, firmado, original"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Útiles para filtrar luego (no son requeridas).
-              </p>
-            </div>
-
-            {!state.ok && state.error ? (
-              <p className="text-sm text-destructive">{state.error}</p>
-            ) : null}
-
-            {pending ? (
-              <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                Subiendo y procesando OCR si aplica. Imágenes pueden tardar
-                5–15s.
-              </p>
-            ) : null}
-          </SheetBody>
-          <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+        <SheetBody className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => filesInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <FilePlus className="h-4 w-4" />
+              Seleccionar archivos
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="animate-spin" /> : null}
-              Subir
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => folderInputRef.current?.click()}
+              disabled={uploading}
+            >
+              <FolderUp className="h-4 w-4" />
+              Seleccionar carpeta
             </Button>
-          </SheetFooter>
-        </form>
+          </div>
+
+          <input
+            ref={filesInputRef}
+            type="file"
+            multiple
+            onChange={(e) => addFiles(e.target.files)}
+            className="hidden"
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            // @ts-expect-error — webkitdirectory no está en los types estándar
+            webkitdirectory=""
+            directory=""
+            onChange={(e) => addFiles(e.target.files)}
+            className="hidden"
+          />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="g-batch-tags">Etiquetas (aplican a todos)</Label>
+            <Input
+              id="g-batch-tags"
+              value={tags}
+              onChange={(e) => setTags(e.currentTarget.value)}
+              placeholder="Coma separadas: contrato, firmado, original"
+              disabled={uploading}
+            />
+          </div>
+
+          {queue.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  Archivos a subir ({queue.length})
+                  <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                    {formatBytes(totalBytes)} total
+                    {doneCount > 0 ? ` · ${doneCount} listos` : ""}
+                    {errorCount > 0 ? ` · ${errorCount} fallaron` : ""}
+                  </span>
+                </p>
+                {!uploading ? (
+                  <button
+                    type="button"
+                    onClick={clearQueue}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline"
+                  >
+                    Quitar todos
+                  </button>
+                ) : null}
+              </div>
+              <ul className="max-h-72 space-y-1 overflow-y-auto rounded-md border bg-card p-2">
+                {queue.map((q) => (
+                  <li
+                    key={q.id}
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent/30"
+                  >
+                    <StatusIcon status={q.status} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{q.relPath}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {formatBytes(q.file.size)}
+                        {q.error ? (
+                          <span className="ml-2 text-destructive">· {q.error}</span>
+                        ) : null}
+                      </p>
+                    </div>
+                    {!uploading && q.status !== "done" ? (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(q.id)}
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label="Quitar"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="rounded-md border border-dashed bg-muted/30 p-4 text-center text-[12px] text-muted-foreground">
+              Aún no agregaste archivos. Usá los botones de arriba.
+            </p>
+          )}
+        </SheetBody>
+
+        <SheetFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (allDone || queue.length === 0) tryCloseAfterUpload();
+              setOpen(false);
+            }}
+            disabled={uploading}
+          >
+            {allDone ? "Cerrar" : "Cancelar"}
+          </Button>
+          <Button
+            type="button"
+            onClick={async () => {
+              await uploadAll();
+              tryCloseAfterUpload();
+            }}
+            disabled={uploading || queue.length === 0 || allDone}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {uploading
+              ? "Subiendo..."
+              : allDone
+                ? "Todo subido"
+                : `Subir ${queue.filter((q) => q.status !== "done").length} archivo${
+                    queue.filter((q) => q.status !== "done").length === 1 ? "" : "s"
+                  }`}
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
+}
+
+function StatusIcon({ status }: { status: QueueItem["status"] }) {
+  if (status === "uploading") {
+    return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />;
+  }
+  if (status === "done") {
+    return <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />;
+  }
+  if (status === "error") {
+    return <XCircle className="h-4 w-4 shrink-0 text-destructive" />;
+  }
+  return <FilePlus className="h-4 w-4 shrink-0 text-muted-foreground" />;
 }
