@@ -30,7 +30,8 @@ export type DetectedFileType = {
 export const PROCESSABLE_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-  "application/msword", // .doc legacy (no podemos extraer, pero lo reconocemos)
+  "application/msword", // .doc legacy — extraído con word-extractor
+  "application/x-cfb", // contenedor CFB/OLE2 (a menudo .doc viejo)
   "image/jpeg",
   "image/png",
   "image/webp",
@@ -84,6 +85,7 @@ export async function detectFileType(
 const EXT_TO_MIME: Record<string, string> = {
   pdf: "application/pdf",
   doc: "application/msword",
+  cfb: "application/x-cfb",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xls: "application/vnd.ms-excel",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

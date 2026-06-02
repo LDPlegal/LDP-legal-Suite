@@ -11,6 +11,7 @@ import {
   type OcrResult,
 } from "./index";
 import { extractDocxText } from "./docx";
+import { extractDocLegacyText } from "./doc-legacy";
 import { ocrWithClaude } from "./claude-vision";
 
 const TESSERACT_MIMES = new Set([
@@ -133,13 +134,22 @@ export class SmartOcr implements OcrProvider {
       return r;
     }
 
-    // ── Word DOC legacy ──
-    if (realMime === "application/msword") {
-      return {
-        status: "skipped",
-        reason:
-          "Word .doc legacy no soportado. Re-guardá el archivo como .docx desde Word (Archivo → Guardar como → Word Document .docx) y volvé a subirlo.",
-      };
+    // ── Word DOC legacy (.doc — CFB/OLE2 format) ──
+    // file-type devuelve "application/msword" para .doc o "application/x-cfb"
+    // para el contenedor CFB cuando no detecta el sub-tipo Word. Manejamos
+    // ambos — word-extractor sabe parsear ambos casos.
+    if (
+      realMime === "application/msword" ||
+      realMime === "application/x-cfb" ||
+      realMime === "application/vnd.ms-office"
+    ) {
+      const r = await extractDocLegacyText(input.bytes);
+      if (r.status === "done") {
+        return { status: "done", text: r.text, method: "word-extractor (doc legacy)" };
+      }
+      // Si word-extractor falló (puede ser un .xls/.ppt legacy disfrazado de
+      // CFB), devolver el resultado tal cual con el motivo claro.
+      return r;
     }
 
     // ── Imágenes ──
