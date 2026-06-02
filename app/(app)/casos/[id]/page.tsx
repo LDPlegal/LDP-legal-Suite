@@ -38,7 +38,7 @@ import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
 import { num, formatMoney } from "@/lib/invoicing/calculate";
-import { formatMoneyWithSymbol } from "@/lib/currencies";
+import { formatFeeAmounts } from "@/lib/currencies";
 import {
   BILLING_MODE_LABEL,
   CASE_FEE_TYPE_LABEL,
@@ -241,12 +241,12 @@ export default async function CasoDetailPage({
                   <Row label="Honorarios">
                     <div className="flex flex-col gap-1">
                       {honorarios.map((h) => (
-                        <div key={h.id} className="flex items-baseline gap-2">
+                        <div key={h.id} className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
                             {CASE_FEE_TYPE_LABEL[h.feeType]}
                           </span>
                           <span className="font-mono">
-                            {formatMoneyWithSymbol(h.amount, h.currency)}
+                            {formatFeeAmounts(h.amountUsd, h.amountDop)}
                           </span>
                           {h.description ? (
                             <span className="text-[12px] text-muted-foreground">

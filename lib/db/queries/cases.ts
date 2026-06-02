@@ -176,8 +176,8 @@ export async function createCase(
     fees?: Array<{
       feeType: "flat_fee" | "retainer" | "success_fee" | "other";
       description?: string;
-      amount: string;
-      currency: string;
+      amountUsd?: string;
+      amountDop?: string;
     }>;
   },
 ): Promise<Case> {
@@ -210,8 +210,8 @@ export async function createCase(
           caseId: row.id,
           feeType: f.feeType,
           description: f.description ?? null,
-          amount: f.amount,
-          currency: f.currency,
+          amountUsd: f.amountUsd ?? null,
+          amountDop: f.amountDop ?? null,
         })),
       );
     }

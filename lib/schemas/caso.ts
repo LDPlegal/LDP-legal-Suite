@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { CURRENCY_CODES } from "@/lib/currencies";
 
 export const CaseFeeTypeEnum = z.enum([
   "flat_fee",
@@ -16,22 +15,37 @@ export const CASE_FEE_TYPE_LABEL: Record<CaseFeeType, string> = {
   other: "Otro",
 };
 
-/** Honorario individual del caso. Una sola moneda por fila — para mezclar
- *  monedas, se crean varias filas. */
-export const CaseFeeInputSchema = z.object({
-  feeType: CaseFeeTypeEnum,
-  description: z
-    .string()
-    .trim()
-    .max(200)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  amount: z
-    .string()
-    .trim()
-    .regex(/^\d+(\.\d{1,2})?$/u, "Monto inválido"),
-  currency: z.enum(CURRENCY_CODES as [string, ...string[]]),
-});
+/** Validador de monto decimal en string (formato "1000" o "1000.50"). */
+const moneyString = z
+  .string()
+  .trim()
+  .regex(/^\d+(\.\d{1,2})?$/u, "Monto inválido");
+
+/** Honorario individual del caso. Modelo dual-currency:
+ *  - amountUsd: monto en dólares (opcional)
+ *  - amountDop: monto en pesos (opcional)
+ *  - Al menos uno debe estar presente (validado en superRefine). */
+export const CaseFeeInputSchema = z
+  .object({
+    feeType: CaseFeeTypeEnum,
+    description: z
+      .string()
+      .trim()
+      .max(200)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    amountUsd: moneyString.optional().or(z.literal("").transform(() => undefined)),
+    amountDop: moneyString.optional().or(z.literal("").transform(() => undefined)),
+  })
+  .superRefine((val, ctx) => {
+    if (!val.amountUsd && !val.amountDop) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["amountUsd"],
+        message: "Cargá al menos un monto (USD o DOP).",
+      });
+    }
+  });
 export type CaseFeeInput = z.infer<typeof CaseFeeInputSchema>;
 
 export const MatterTypeEnum = z.enum([

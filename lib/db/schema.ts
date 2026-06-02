@@ -377,8 +377,11 @@ export const caseFees = pgTable(
       .references(() => cases.id, { onDelete: "cascade" }),
     feeType: caseFeeTypeEnum("fee_type").notNull(),
     description: text("description"),
-    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
-    currency: text("currency").notNull().default("DOP"),
+    /** Monto en dólares. Nullable — puede ser solo en pesos.
+     *  CHECK constraint a nivel DB: amount_usd o amount_dop debe ser != NULL. */
+    amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }),
+    /** Monto en pesos dominicanos. Nullable — puede ser solo en dólares. */
+    amountDop: decimal("amount_dop", { precision: 14, scale: 2 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -21,6 +21,7 @@ import { crearCasoAction, type CasoFormState } from "@/app/_actions/casos/crear"
 import { MATTER_LABEL } from "@/lib/schemas/caso";
 import { ConflictAlert } from "@/components/conflictos/conflict-alert";
 import { CaseFeesInput } from "./case-fees-input";
+import { ClienteQuickCreate } from "./cliente-quick-create";
 
 type Cliente = { id: string; displayName: string };
 type User = { id: string; name: string; role: string };
@@ -43,6 +44,12 @@ export function CasoFormDrawer({
   const [open, setOpen] = useState(false);
   const [restricted, setRestricted] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  // Lista local de clientes — empieza con los del server y se extiende
+  // cuando el user crea uno inline desde el quick-create.
+  const [clienteList, setClienteList] = useState<Cliente[]>(clientes);
+  // Cliente seleccionado actualmente (controlado, así podemos seleccionar
+  // el recién creado automáticamente).
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   // Live values for the conflict-of-interest alert (counterparty fields).
   const [counterpartyName, setCounterpartyName] = useState("");
   const [counterpartyTaxId, setCounterpartyTaxId] = useState("");
@@ -91,17 +98,34 @@ export function CasoFormDrawer({
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Cliente *" error={errFor(state, "clientId")}>
+              <Field
+                label={
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Cliente *</span>
+                    <ClienteQuickCreate
+                      onCreated={(c) => {
+                        setClienteList((prev) =>
+                          // Evita duplicados si por alguna razón ya estaba.
+                          prev.some((p) => p.id === c.id) ? prev : [c, ...prev],
+                        );
+                        setSelectedClientId(c.id);
+                      }}
+                    />
+                  </div>
+                }
+                error={errFor(state, "clientId")}
+              >
                 <select
                   name="clientId"
                   required
-                  defaultValue=""
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.currentTarget.value)}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="" disabled>
                     Seleccionar cliente...
                   </option>
-                  {clientes.map((c) => (
+                  {clienteList.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.displayName}
                     </option>
@@ -343,7 +367,9 @@ function Field({
   error,
   children,
 }: {
-  label: string;
+  // Acepta nodo React para poder meter botones inline al lado del texto
+  // (ej. "Cliente *" con un botón "+ Nuevo cliente" pegado a la derecha).
+  label: ReactNode;
   error?: string;
   children: ReactNode;
 }) {
