@@ -10,6 +10,7 @@ import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { DocumentEditDrawer } from "./document-edit-drawer";
 import { DocumentSummaryDrawer } from "@/app/(app)/documentos/_components/document-summary-drawer";
+import { ReprocessOneButton } from "@/app/(app)/documentos/_components/reprocess-buttons";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
@@ -132,6 +133,7 @@ export function DocumentRow({
             }
           />
         ) : null}
+        <ReprocessOneButton docId={doc.id} />
         <DocumentEditDrawer
           caseId={caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}

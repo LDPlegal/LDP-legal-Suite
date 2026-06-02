@@ -19,6 +19,7 @@ import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
 import { DocumentSummaryDrawer } from "./document-summary-drawer";
+import { ReprocessOneButton } from "./reprocess-buttons";
 import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
@@ -173,6 +174,7 @@ export function DocumentGlobalRow({
             }
           />
         ) : null}
+        <ReprocessOneButton docId={doc.id} />
         <DocumentEditDrawer
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}

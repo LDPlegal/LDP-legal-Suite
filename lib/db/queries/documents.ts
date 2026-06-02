@@ -198,6 +198,52 @@ export async function updateDocumentOcr(
   });
 }
 
+/** Actualiza metadata "fija" del documento (nombre + mime). Útil después
+ *  de re-detectar el tipo real con magic bytes en docs viejos cuyo mime
+ *  era "application/octet-stream". */
+export async function updateDocumentMetadata(
+  firmId: string,
+  userId: string,
+  documentId: string,
+  patch: { name?: string; mimeType?: string },
+): Promise<void> {
+  await withFirm(firmId, userId, async (tx) => {
+    const setData: Record<string, unknown> = { updatedAt: new Date() };
+    if (patch.name) setData.name = patch.name;
+    if (patch.mimeType) setData.mimeType = patch.mimeType;
+    await tx
+      .update(documents)
+      .set(setData)
+      .where(eq(documents.id, documentId));
+  });
+}
+
+/** Lista todos los documentos del firm cuyo OCR no está "done" — usado por
+ *  la acción bulk de re-procesamiento. Incluye los marcados como
+ *  "processing" que llevan demasiado tiempo (limbo). */
+export async function listDocumentsNeedingOcr(
+  firmId: string,
+  userId: string,
+  opts: { limit?: number } = {},
+): Promise<Document[]> {
+  const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select()
+      .from(documents)
+      .where(
+        and(
+          isNull(documents.deletedAt),
+          // Cualquier estado distinto de "done" — usamos NOT EQ porque
+          // ocrStatus es un enum, no SQL string.
+          sql`${documents.ocrStatus} != 'done'`,
+        ),
+      )
+      .orderBy(desc(documents.createdAt))
+      .limit(limit);
+  });
+}
+
 export async function renameDocument(
   firmId: string,
   userId: string,

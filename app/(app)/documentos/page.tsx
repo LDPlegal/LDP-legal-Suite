@@ -17,6 +17,7 @@ import { isAiEnabled } from "@/lib/ai";
 import { AiDocumentSearch } from "./_components/ai-search";
 import { DocumentGlobalRow } from "./_components/document-global-row";
 import { DocumentUploadGlobalDrawer } from "./_components/document-upload-global-drawer";
+import { ReprocessAllButton } from "./_components/reprocess-buttons";
 
 export const metadata = { title: "Documentos · LDP Legal Suite" };
 
@@ -44,14 +45,17 @@ export default async function DocumentosPage({
         count={total}
         countLabel={{ singular: "archivo", plural: "archivos" }}
       >
-        <DocumentUploadGlobalDrawer
-          trigger={
-            <Button id="upload-global-doc-btn">
-              <Upload className="mr-2 h-4 w-4" />
-              Subir documento
-            </Button>
-          }
-        />
+        <div className="flex items-center gap-2">
+          <ReprocessAllButton />
+          <DocumentUploadGlobalDrawer
+            trigger={
+              <Button id="upload-global-doc-btn">
+                <Upload className="mr-2 h-4 w-4" />
+                Subir documento
+              </Button>
+            }
+          />
+        </div>
       </PageHeader>
 
       {isAiEnabled() ? <AiDocumentSearch /> : null}
