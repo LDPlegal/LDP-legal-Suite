@@ -33,7 +33,7 @@ import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
 import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
 import { aprobarGastoAction } from "@/app/_actions/gastos/aprobar";
 import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
-import { DocumentRow } from "./_components/document-row";
+import { CaseDocumentsSection } from "./_components/case-documents-section";
 import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
@@ -662,31 +662,11 @@ export default async function CasoDetailPage({
               }
             />
           </div>
-          <Card className="overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Subido por</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Tamaño</TableHead>
-                  <TableHead>OCR</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documentos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                      Sin documentos. Sube el primero arriba.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  documentos.map((doc) => <DocumentRow key={doc.id} doc={doc} caseId={c.id} aiEnabled={aiEnabled} />)
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          <CaseDocumentsSection
+            docs={documentos}
+            caseId={c.id}
+            aiEnabled={aiEnabled}
+          />
         </TabsContent>
         <TabsContent value="notas" className="space-y-3">
           <div className="flex items-center justify-between">
