@@ -115,7 +115,8 @@ export type RunPromptOptions = {
       | "matter_chat"
       | "matter_context"
       | "doc_generate"
-      | "event_parse";
+      | "event_parse"
+      | "ocr_extract";
   };
   // Prompt caching: when set, the systemAddendum and any messages flagged
   // with cache:true get a cache_control marker. Anthropic charges 1.25x the

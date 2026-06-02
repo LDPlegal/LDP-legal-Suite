@@ -2,6 +2,7 @@ import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import {
   cases,
+  clients,
   documents,
   users,
   type Document,
@@ -50,6 +51,14 @@ export async function listAllDocuments(
         ilike(documents.name, like),
         ilike(documents.ocrText, like),
         sql`array_to_string(${documents.tags}, ',') ILIKE ${like}`,
+        // Buscar también por caso (código y título) — útil cuando el user
+        // recuerda el caso pero no el nombre del doc.
+        ilike(cases.code, like),
+        ilike(cases.title, like),
+        // Buscar por cliente — "todos los docs del cliente Pérez"
+        ilike(clients.displayName, like),
+        // Por nombre del subidor
+        ilike(users.name, like),
       );
       if (search) conds.push(search);
     }
@@ -84,13 +93,19 @@ export async function listAllDocuments(
         .from(documents)
         .leftJoin(users, eq(users.id, documents.uploadedBy))
         .leftJoin(cases, eq(cases.id, documents.caseId))
+        .leftJoin(clients, eq(clients.id, cases.clientId))
         .where(where)
         .orderBy(desc(documents.createdAt))
         .limit(limit)
         .offset(offset),
+      // El count también necesita los mismos joins para que los ilike de
+      // cases/clients/users en search no fallen con "missing FROM-clause".
       tx
         .select({ count: sql<number>`count(*)::int` })
         .from(documents)
+        .leftJoin(users, eq(users.id, documents.uploadedBy))
+        .leftJoin(cases, eq(cases.id, documents.caseId))
+        .leftJoin(clients, eq(clients.id, cases.clientId))
         .where(where),
     ]);
 

@@ -62,7 +62,7 @@ export default async function DocumentosPage({
           <Input
             name="q"
             defaultValue={q}
-            placeholder="Buscar por nombre, etiqueta, o texto OCR…"
+            placeholder="Buscar por nombre, etiqueta, OCR, caso, cliente o quién lo subió…"
             className="pl-8"
           />
         </div>

@@ -55,6 +55,9 @@ export async function listCases(
         ilike(cases.code, term),
         ilike(cases.title, term),
         ilike(cases.counterpartyName, term),
+        // Cliente — join a clients abajo permite buscar por nombre del cliente
+        // ("Constructora Caribe", "Juan Pérez") en el mismo input.
+        ilike(clients.displayName, term),
       );
       if (s) conds.push(s);
     }
@@ -95,9 +98,13 @@ export async function listCases(
         .orderBy(order)
         .limit(limit)
         .offset(offset),
+      // El count tiene que tener el mismo leftJoin a clients que el select
+      // arriba — si no, el filtro `ilike(clients.displayName)` falla porque
+      // clients no está en el FROM.
       tx
         .select({ count: sql<number>`count(*)::int` })
         .from(cases)
+        .leftJoin(clients, eq(clients.id, cases.clientId))
         .where(and(...conds)),
     ]);
 

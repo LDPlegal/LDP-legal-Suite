@@ -7,6 +7,10 @@ import { requireUser } from "@/lib/auth/session";
 import { createDocument, updateDocumentOcr } from "@/lib/db/queries/documents";
 import { getStorage } from "@/lib/storage";
 import { getOcr } from "@/lib/ocr";
+import {
+  detectFileType,
+  ensureFilenameExtension,
+} from "@/lib/files/detect-type";
 
 const Schema = z.object({
   caseId: z.string().uuid().nullable().optional(),
@@ -57,19 +61,26 @@ export async function uploadDocumentGlobalAction(
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
 
+    // Magic-byte detection: el browser/sistema operativo a menudo manda
+    // "application/octet-stream" para archivos sin extensión. Acá leemos los
+    // primeros bytes para saber el tipo REAL — sin esto, el OCR skipea todo.
+    const detected = await detectFileType(bytes, file.type || null, file.name);
+    const realMime = detected.mimeType;
+    const finalFilename = ensureFilenameExtension(file.name, detected);
+
     const storage = getStorage();
     const key = storage.buildKey({
       firmId: user.firmId,
       scope: "documents",
       entityId: parsed.data.caseId ?? "general",
-      filename: file.name,
+      filename: finalFilename,
     });
-    await storage.put(key, bytes, file.type || "application/octet-stream");
+    await storage.put(key, bytes, realMime);
 
     const doc = await createDocument(user.firmId, user.userId, {
       caseId: parsed.data.caseId ?? null,
-      name: file.name,
-      mimeType: file.type || "application/octet-stream",
+      name: finalFilename,
+      mimeType: realMime,
       sizeBytes: file.size,
       storageKey: key,
       tags: parsed.data.tags,
@@ -83,29 +94,40 @@ export async function uploadDocumentGlobalAction(
     // Fire-and-forget OCR via `after()`.
     const userId = user.userId;
     const firmId = user.firmId;
+    const docMime = doc.mimeType;
+    const docName = doc.name;
+    const docSize = doc.sizeBytes;
     after(async () => {
       try {
         const ocr = await getOcr();
         const result = await ocr.recognize({
-          mimeType: doc.mimeType,
+          mimeType: docMime,
           bytes,
-          sizeBytes: doc.sizeBytes,
+          sizeBytes: docSize,
+          filename: docName,
+          firmId,
+          userId,
         });
         if (result.status === "done") {
+          console.log(
+            `[OCR-global] doc ${doc.id} extracted ${result.text.length} chars via ${result.method ?? "?"}`,
+          );
           await updateDocumentOcr(firmId, userId, doc.id, {
             ocrStatus: "done",
             ocrText: result.text,
           });
         } else if (result.status === "skipped") {
+          console.log(`[OCR-global] doc ${doc.id} skipped: ${result.reason}`);
           await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "skipped" });
         } else {
+          console.error(`[OCR-global] doc ${doc.id} failed: ${result.reason}`);
           await updateDocumentOcr(firmId, userId, doc.id, { ocrStatus: "failed" });
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
-        await updateDocumentOcr(firmId, userId, doc.id, { 
-          ocrStatus: "done",
-          ocrText: `[UPLOAD CATCH] ${msg}` 
+        console.error(`[OCR-global] doc ${doc.id} uncaught exception:`, msg);
+        await updateDocumentOcr(firmId, userId, doc.id, {
+          ocrStatus: "failed",
         });
       }
     });

@@ -1492,6 +1492,7 @@ export const aiUsage = pgTable(
         | "matter_context"
         | "doc_generate"
         | "event_parse"
+        | "ocr_extract"
       >()
       .notNull(),
     model: text("model").notNull(),

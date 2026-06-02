@@ -97,7 +97,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
           <Input
             name="q"
             defaultValue={q}
-            placeholder="Buscar por código, título o contraparte…"
+            placeholder="Buscar por código, título, cliente o contraparte…"
             className="pl-9"
           />
         </div>
