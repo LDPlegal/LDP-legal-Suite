@@ -71,7 +71,8 @@ export function CaseDocumentsSection({
         />
         {query && filtered.length !== docs.length ? (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {filtered.length} de {docs.length} archivos coinciden con "{query}"
+            {filtered.length} de {docs.length} archivos coinciden con
+            {" “"}{query}{"”"}
           </p>
         ) : null}
       </div>
