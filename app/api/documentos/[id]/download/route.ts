@@ -83,6 +83,18 @@ export async function GET(
       "Content-Disposition": `inline; filename*=UTF-8''${filename}`,
       "Content-Length": String(doc.sizeBytes),
       "Cache-Control": "private, max-age=0, no-store",
+      // Permitir explícitamente embedding desde la misma app (iframe del
+      // preview drawer, etc.). Sin esto algunos browsers/servers añaden
+      // X-Frame-Options DENY por default y el iframe muestra "rechazó la
+      // conexión".
+      "X-Frame-Options": "SAMEORIGIN",
+      // Content-Security-Policy: solo permitir que LA APP misma haga frame
+      // de este recurso. Más estricto que XFO. frame-ancestors 'self' es
+      // lo equivalente moderno y robusto.
+      "Content-Security-Policy": "frame-ancestors 'self'",
+      // Permitir que <img> del mismo origen consuma este recurso (algunos
+      // setups bloquean por CORP para archivos servidos por API).
+      "Cross-Origin-Resource-Policy": "same-origin",
     },
   });
 }

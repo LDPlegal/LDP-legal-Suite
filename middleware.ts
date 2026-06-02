@@ -27,7 +27,10 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on every page route except static assets and the better-auth API.
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
+    // Run on every page route except static assets, the better-auth API, y
+    // los endpoints de download de documentos (que sirven archivos desde
+    // iframes/img-tags donde los cookies con SameSite no siempre llegan;
+    // esos endpoints hacen su propio auth con getCurrentUser).
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/documentos|api/portal/documentos|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
   ],
 };
