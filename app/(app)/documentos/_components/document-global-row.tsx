@@ -8,6 +8,7 @@ import {
   FileText,
   Image as ImageIcon,
   Pencil,
+  ScanEye,
   Trash2,
   Sparkles,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
 import { DocumentSummaryDrawer } from "./document-summary-drawer";
 import { ReprocessOneButton } from "./reprocess-buttons";
+import { DocumentPreviewDrawer } from "./document-preview-drawer";
 import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
@@ -60,14 +62,20 @@ export function DocumentGlobalRow({
           ) : (
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <Link
-            href={`/api/documentos/${doc.id}/download`}
-            target="_blank"
-            rel="noopener"
-            className="font-medium hover:underline"
-          >
-            {doc.name}
-          </Link>
+          <DocumentPreviewDrawer
+            documentId={doc.id}
+            documentName={doc.name}
+            mimeType={doc.mimeType}
+            trigger={
+              <button
+                type="button"
+                className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                title="Click para ver"
+              >
+                {doc.name}
+              </button>
+            }
+          />
           {doc.version > 1 ? (
             <Badge variant="outline" className="font-mono text-[10px]">
               v{doc.version}
@@ -153,6 +161,16 @@ export function DocumentGlobalRow({
             </Button>
           </form>
         ) : null}
+        <DocumentPreviewDrawer
+          documentId={doc.id}
+          documentName={doc.name}
+          mimeType={doc.mimeType}
+          trigger={
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver" title="Ver sin descargar">
+              <ScanEye className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
         <Link
           href={`/api/documentos/${doc.id}/download`}
           target="_blank"
@@ -160,6 +178,7 @@ export function DocumentGlobalRow({
           download={doc.name}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="Descargar"
+          title="Descargar"
         >
           <Download className="h-3.5 w-3.5" />
         </Link>

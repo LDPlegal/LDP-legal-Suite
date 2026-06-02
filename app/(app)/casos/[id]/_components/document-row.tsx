@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, Trash2, Sparkles } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, ScanEye, Trash2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -11,6 +11,7 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { DocumentEditDrawer } from "./document-edit-drawer";
 import { DocumentSummaryDrawer } from "@/app/(app)/documentos/_components/document-summary-drawer";
 import { ReprocessOneButton } from "@/app/(app)/documentos/_components/reprocess-buttons";
+import { DocumentPreviewDrawer } from "@/app/(app)/documentos/_components/document-preview-drawer";
 import {
   formatBytes,
   OCR_STATUS_LABEL,
@@ -44,14 +45,20 @@ export function DocumentRow({
           ) : (
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <Link
-            href={`/api/documentos/${doc.id}/download`}
-            target="_blank"
-            rel="noopener"
-            className="truncate font-medium hover:underline"
-          >
-            {doc.name}
-          </Link>
+          <DocumentPreviewDrawer
+            documentId={doc.id}
+            documentName={doc.name}
+            mimeType={doc.mimeType}
+            trigger={
+              <button
+                type="button"
+                className="truncate text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                title="Click para ver"
+              >
+                {doc.name}
+              </button>
+            }
+          />
           {doc.version > 1 ? (
             <Badge variant="outline" className="font-mono text-[10px]">
               v{doc.version}
@@ -112,7 +119,17 @@ export function DocumentRow({
             )}
           </Button>
         </form>
-        <Button asChild variant="ghost" size="icon" className="h-7 w-7" aria-label="Descargar">
+        <DocumentPreviewDrawer
+          documentId={doc.id}
+          documentName={doc.name}
+          mimeType={doc.mimeType}
+          trigger={
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver" title="Ver sin descargar">
+              <ScanEye className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
+        <Button asChild variant="ghost" size="icon" className="h-7 w-7" aria-label="Descargar" title="Descargar">
           <Link
             href={`/api/documentos/${doc.id}/download`}
             target="_blank"
