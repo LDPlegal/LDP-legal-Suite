@@ -72,6 +72,14 @@ export const billingModeEnum = pgEnum("billing_mode", [
   "contingency",
 ]);
 
+// Tipo de honorario en case_fees (multi-honorarios + multi-moneda por caso).
+export const caseFeeTypeEnum = pgEnum("case_fee_type", [
+  "flat_fee",
+  "retainer",
+  "success_fee",
+  "other",
+]);
+
 export const caseVisibilityEnum = pgEnum("case_visibility", [
   "firm",
   "restricted",
@@ -290,6 +298,10 @@ export const cases = pgTable(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     leadLawyerId: uuid("lead_lawyer_id").references(() => users.id, { onDelete: "set null" }),
     billingMode: billingModeEnum("billing_mode").notNull().default("hourly"),
+    // DEPRECATED — los honorarios ahora viven en la tabla case_fees con
+    // soporte multi-moneda. Estas columnas quedan por compat con código que
+    // pueda leerlas, pero el código nuevo NO debe escribir acá. Se dropearán
+    // en una migración posterior cuando confirmemos que nada las usa.
     flatFeeAmount: decimal("flat_fee_amount", { precision: 14, scale: 2 }),
     retainerBalance: decimal("retainer_balance", { precision: 14, scale: 2 }),
     court: text("court"),
@@ -345,6 +357,39 @@ export const caseAssignments = pgTable(
     index("case_assignments_user_idx").on(t.userId),
   ],
 );
+
+// =============================================================================
+// case_fees — honorarios del caso (multi-honorarios + multi-moneda)
+// =============================================================================
+// Cada caso puede tener N honorarios. Cada uno tiene su tipo, descripción
+// libre, monto y moneda. Permite mezclar: una tarifa plana en DOP + una
+// iguala mensual en USD para clientes internacionales.
+
+export const caseFees = pgTable(
+  "case_fees",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    feeType: caseFeeTypeEnum("fee_type").notNull(),
+    description: text("description"),
+    amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("DOP"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("case_fees_case_idx").on(t.caseId),
+    index("case_fees_firm_idx").on(t.firmId),
+  ],
+);
+
+export type CaseFee = typeof caseFees.$inferSelect;
+export type NewCaseFee = typeof caseFees.$inferInsert;
 
 // =============================================================================
 // case_counters — race-safe sequential generator for case codes (Trampa #7)

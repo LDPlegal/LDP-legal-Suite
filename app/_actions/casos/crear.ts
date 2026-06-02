@@ -38,6 +38,19 @@ export async function crearCasoAction(
     }
   }
 
+  // Honorarios: JSON-encoded array. El client manda { feeType, description,
+  // amount, currency }[]. Zod los valida después.
+  let fees: unknown[] = [];
+  const rawFees = formData.get("fees");
+  if (typeof rawFees === "string" && rawFees) {
+    try {
+      const j = JSON.parse(rawFees) as unknown;
+      if (Array.isArray(j)) fees = j;
+    } catch {
+      // ignore — schema validation catches malformed fees
+    }
+  }
+
   const parsed = CasoSchema.safeParse({
     title: formData.get("title"),
     clientId: formData.get("clientId"),
@@ -46,8 +59,7 @@ export async function crearCasoAction(
     status: formData.get("status") || "open",
     leadLawyerId: formData.get("leadLawyerId") || undefined,
     billingMode: formData.get("billingMode") || "hourly",
-    flatFeeAmount: formData.get("flatFeeAmount"),
-    retainerBalance: formData.get("retainerBalance"),
+    fees,
     court: formData.get("court"),
     counterpartyName: formData.get("counterpartyName"),
     counterpartyTaxId: formData.get("counterpartyTaxId"),
@@ -72,14 +84,13 @@ export async function crearCasoAction(
     status: data.status,
     leadLawyerId: data.leadLawyerId ?? null,
     billingMode: data.billingMode,
-    flatFeeAmount: data.flatFeeAmount ?? null,
-    retainerBalance: data.retainerBalance ?? null,
     court: data.court ?? null,
     counterpartyName: data.counterpartyName ?? null,
     counterpartyTaxId: data.counterpartyTaxId ?? null,
     tags: data.tags,
     visibility: data.visibility,
     assignments: data.assignments,
+    fees: data.fees,
   });
   // Optionally apply a matter template — fire after createCase succeeded so
   // we don't leave dangling tasks if the case insert failed. Errors here

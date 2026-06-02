@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getCaseById } from "@/lib/db/queries/cases";
+import { getCaseById, listCaseFees } from "@/lib/db/queries/cases";
 import { listTimeEntriesForCase } from "@/lib/db/queries/time-entries";
 import { listExpensesForCase, totalAmount } from "@/lib/db/queries/expenses";
 import { listTasksForCase } from "@/lib/db/queries/tasks";
@@ -38,8 +38,10 @@ import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
 import { num, formatMoney } from "@/lib/invoicing/calculate";
+import { formatMoneyWithSymbol } from "@/lib/currencies";
 import {
   BILLING_MODE_LABEL,
+  CASE_FEE_TYPE_LABEL,
   CASE_STATUS_LABEL,
   MATTER_LABEL,
 } from "@/lib/schemas/caso";
@@ -87,7 +89,7 @@ export default async function CasoDetailPage({
 
   const { case: c, client, leadLawyer, assignments } = detail;
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -99,6 +101,7 @@ export default async function CasoDetailPage({
     listFirmUsers(user.firmId, user.userId),
     listNcfRanges(user.firmId, user.userId),
     listAuditFor(user.firmId, user.userId, { caseId: c.id, limit: 100 }),
+    listCaseFees(user.firmId, user.userId, c.id),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges
@@ -234,14 +237,25 @@ export default async function CasoDetailPage({
                 </Row>
                 <Row label="Líder">{leadLawyer?.name ?? "Sin asignar"}</Row>
                 <Row label="Modo de facturación">{BILLING_MODE_LABEL[c.billingMode]}</Row>
-                {c.flatFeeAmount ? (
-                  <Row label="Tarifa plana">
-                    <span className="font-mono">DOP {c.flatFeeAmount}</span>
-                  </Row>
-                ) : null}
-                {c.retainerBalance ? (
-                  <Row label="Iguala">
-                    <span className="font-mono">DOP {c.retainerBalance}</span>
+                {honorarios.length > 0 ? (
+                  <Row label="Honorarios">
+                    <div className="flex flex-col gap-1">
+                      {honorarios.map((h) => (
+                        <div key={h.id} className="flex items-baseline gap-2">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                            {CASE_FEE_TYPE_LABEL[h.feeType]}
+                          </span>
+                          <span className="font-mono">
+                            {formatMoneyWithSymbol(h.amount, h.currency)}
+                          </span>
+                          {h.description ? (
+                            <span className="text-[12px] text-muted-foreground">
+                              · {h.description}
+                            </span>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
                   </Row>
                 ) : null}
                 {c.court ? <Row label="Tribunal">{c.court}</Row> : null}

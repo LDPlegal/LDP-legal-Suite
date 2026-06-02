@@ -20,6 +20,7 @@ import {
 import { crearCasoAction, type CasoFormState } from "@/app/_actions/casos/crear";
 import { MATTER_LABEL } from "@/lib/schemas/caso";
 import { ConflictAlert } from "@/components/conflictos/conflict-alert";
+import { CaseFeesInput } from "./case-fees-input";
 
 type Cliente = { id: string; displayName: string };
 type User = { id: string; name: string; role: string };
@@ -201,14 +202,7 @@ export function CasoFormDrawer({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Tarifa plana (DOP)" error={errFor(state, "flatFeeAmount")}>
-                <Input name="flatFeeAmount" placeholder="0.00" />
-              </Field>
-              <Field label="Iguala / Retainer (DOP)" error={errFor(state, "retainerBalance")}>
-                <Input name="retainerBalance" placeholder="0.00" />
-              </Field>
-            </div>
+            <CaseFeesInput error={errFor(state, "fees")} />
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Contraparte" error={errFor(state, "counterpartyName")}>

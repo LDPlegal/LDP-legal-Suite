@@ -1,4 +1,38 @@
 import { z } from "zod";
+import { CURRENCY_CODES } from "@/lib/currencies";
+
+export const CaseFeeTypeEnum = z.enum([
+  "flat_fee",
+  "retainer",
+  "success_fee",
+  "other",
+]);
+export type CaseFeeType = z.infer<typeof CaseFeeTypeEnum>;
+
+export const CASE_FEE_TYPE_LABEL: Record<CaseFeeType, string> = {
+  flat_fee: "Tarifa plana",
+  retainer: "Iguala / Retainer",
+  success_fee: "Honorario de éxito",
+  other: "Otro",
+};
+
+/** Honorario individual del caso. Una sola moneda por fila — para mezclar
+ *  monedas, se crean varias filas. */
+export const CaseFeeInputSchema = z.object({
+  feeType: CaseFeeTypeEnum,
+  description: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  amount: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/u, "Monto inválido"),
+  currency: z.enum(CURRENCY_CODES as [string, ...string[]]),
+});
+export type CaseFeeInput = z.infer<typeof CaseFeeInputSchema>;
 
 export const MatterTypeEnum = z.enum([
   "civil",
@@ -48,18 +82,9 @@ export const CasoSchema = z
     status: z.enum(["open", "on_hold", "closed"]).default("open"),
     leadLawyerId: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
     billingMode: z.enum(["hourly", "flat_fee", "retainer", "contingency"]).default("hourly"),
-    flatFeeAmount: z
-      .string()
-      .trim()
-      .regex(/^\d+(\.\d{1,2})?$/u, "Monto inválido")
-      .optional()
-      .or(z.literal("").transform(() => undefined)),
-    retainerBalance: z
-      .string()
-      .trim()
-      .regex(/^\d+(\.\d{1,2})?$/u, "Monto inválido")
-      .optional()
-      .or(z.literal("").transform(() => undefined)),
+    // Honorarios multi-moneda. Cada uno: tipo + descripción opcional + monto + moneda.
+    // Vacío permitido — un caso por hora puede no tener fees fijos cargados.
+    fees: z.array(CaseFeeInputSchema).default([]),
     court: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
     counterpartyName: z
       .string()
@@ -95,12 +120,31 @@ export const CasoSchema = z
         });
       }
     }
-    if (val.billingMode === "flat_fee" && !val.flatFeeAmount) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["flatFeeAmount"],
-        message: "Tarifa plana requerida en modo flat_fee",
-      });
+    // En modo flat_fee, exigimos al menos un honorario de tipo flat_fee
+    // cargado. En modo retainer, al menos un retainer. Esto evita casos
+    // marcados como "tarifa plana" sin honorarios definidos — confunde al
+    // momento de facturar.
+    if (val.billingMode === "flat_fee") {
+      const hasFlat = val.fees.some((f) => f.feeType === "flat_fee");
+      if (!hasFlat) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fees"],
+          message:
+            "Modo 'Tarifa plana' requiere al menos un honorario de tipo 'Tarifa plana' cargado.",
+        });
+      }
+    }
+    if (val.billingMode === "retainer") {
+      const hasRetainer = val.fees.some((f) => f.feeType === "retainer");
+      if (!hasRetainer) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fees"],
+          message:
+            "Modo 'Iguala' requiere al menos un honorario de tipo 'Iguala / Retainer' cargado.",
+        });
+      }
     }
   });
 

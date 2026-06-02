@@ -3,6 +3,7 @@ import { withFirm, type Tx } from "../with-firm";
 import {
   caseAssignments,
   caseCounters,
+  caseFees,
   cases,
   clients,
   users,
@@ -172,9 +173,15 @@ export async function createCase(
   userId: string,
   data: Omit<NewCase, "firmId" | "id" | "code" | "createdAt" | "updatedAt" | "deletedAt"> & {
     assignments?: Array<Pick<NewCaseAssignment, "userId" | "roleInCase">>;
+    fees?: Array<{
+      feeType: "flat_fee" | "retainer" | "success_fee" | "other";
+      description?: string;
+      amount: string;
+      currency: string;
+    }>;
   },
 ): Promise<Case> {
-  const { assignments, ...caseData } = data;
+  const { assignments, fees, ...caseData } = data;
   const year = new Date(caseData.openedAt ?? new Date()).getUTCFullYear();
 
   return withFirm(firmId, userId, async (tx) => {
@@ -195,7 +202,36 @@ export async function createCase(
         })),
       );
     }
+
+    if (fees && fees.length > 0) {
+      await tx.insert(caseFees).values(
+        fees.map((f) => ({
+          firmId,
+          caseId: row.id,
+          feeType: f.feeType,
+          description: f.description ?? null,
+          amount: f.amount,
+          currency: f.currency,
+        })),
+      );
+    }
+
     return row;
+  });
+}
+
+/** Trae los honorarios de un caso, ordenados por orden de creación. */
+export async function listCaseFees(
+  firmId: string,
+  userId: string,
+  caseId: string,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select()
+      .from(caseFees)
+      .where(eq(caseFees.caseId, caseId))
+      .orderBy(caseFees.createdAt);
   });
 }
 
