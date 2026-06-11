@@ -21,7 +21,7 @@ import { crearCasoAction, type CasoFormState } from "@/app/_actions/casos/crear"
 import { MATTER_LABEL } from "@/lib/schemas/caso";
 import { ConflictAlert } from "@/components/conflictos/conflict-alert";
 import { CaseFeesInput } from "./case-fees-input";
-import { ClienteQuickCreate } from "./cliente-quick-create";
+import { ClienteFormDrawer } from "@/app/(app)/clientes/_components/cliente-form-drawer";
 
 type Cliente = { id: string; displayName: string };
 type User = { id: string; name: string; role: string };
@@ -102,7 +102,23 @@ export function CasoFormDrawer({
                 label={
                   <div className="flex items-center justify-between gap-2">
                     <span>Cliente *</span>
-                    <ClienteQuickCreate
+                    {/*
+                      Trigger del form COMPLETO de cliente (mismo que /clientes).
+                      Cuando se crea desde acá, onCreated mete el cliente al
+                      dropdown y lo selecciona — el caso sigue sin perder estado.
+                    */}
+                    <ClienteFormDrawer
+                      trigger={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          title="Crear cliente sin salir del formulario del caso"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Nuevo cliente
+                        </Button>
+                      }
                       onCreated={(c) => {
                         setClienteList((prev) =>
                           // Evita duplicados si por alguna razón ya estaba.

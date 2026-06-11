@@ -14,6 +14,9 @@ import {
 
 const Schema = z.object({
   caseId: z.string().uuid(),
+  // null o ausente = raíz del caso. Cuando el user está dentro de una carpeta,
+  // el cliente lo pasa para que el doc aterrice en la carpeta correcta.
+  folderId: z.string().uuid().nullable().default(null),
   tags: z.array(z.string().min(1).max(40)).default([]),
 });
 
@@ -48,7 +51,14 @@ export async function uploadDocumentAction(
       ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
-  const parsed = Schema.safeParse({ caseId: formData.get("caseId"), tags });
+  const folderIdRaw = formData.get("folderId");
+  const folderId =
+    typeof folderIdRaw === "string" && folderIdRaw.trim() ? folderIdRaw.trim() : null;
+  const parsed = Schema.safeParse({
+    caseId: formData.get("caseId"),
+    folderId,
+    tags,
+  });
   if (!parsed.success) {
     return { ok: false, error: "Datos inválidos." };
   }
@@ -78,6 +88,7 @@ export async function uploadDocumentAction(
 
   const doc = await createDocument(user.firmId, user.userId, {
     caseId: parsed.data.caseId,
+    folderId: parsed.data.folderId,
     name: finalFilename,
     mimeType: realMime,
     sizeBytes: file.size,

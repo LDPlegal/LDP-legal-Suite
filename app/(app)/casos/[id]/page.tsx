@@ -21,6 +21,11 @@ import { listExpensesForCase, totalAmount } from "@/lib/db/queries/expenses";
 import { listTasksForCase } from "@/lib/db/queries/tasks";
 import { listEventsForCase } from "@/lib/db/queries/events";
 import { listDocumentsForCase } from "@/lib/db/queries/documents";
+import {
+  getFolderBreadcrumb,
+  listDocumentsInFolder,
+  listFolderChildren,
+} from "@/lib/db/queries/folders";
 import { listNotesForCase } from "@/lib/db/queries/notes";
 import { listBillableForCase, listInvoices } from "@/lib/db/queries/invoices";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
@@ -34,6 +39,7 @@ import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
 import { aprobarGastoAction } from "@/app/_actions/gastos/aprobar";
 import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
 import { CaseDocumentsSection } from "./_components/case-documents-section";
+import { CaseFolderBrowser } from "./_components/case-folder-browser";
 import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
@@ -78,18 +84,25 @@ function fmtDuration(seconds: number): string {
 
 export default async function CasoDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string; folder?: string }>;
 }) {
   const user = await requireUser();
   const aiEnabled = isAiEnabled();
   const { id } = await params;
+  const sp = await searchParams;
   const detail = await getCaseById(user.firmId, user.userId, id);
   if (!detail) notFound();
 
   const { case: c, client, leadLawyer, assignments } = detail;
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios] = await Promise.all([
+  // Carpetas para el tab documentos. folderId del query string; null = raíz.
+  const folderId = sp.folder ?? null;
+  const folderScope = { kind: "case" as const, caseId: c.id };
+
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios, folderChildren, docsInFolder, folderBreadcrumb] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -102,6 +115,11 @@ export default async function CasoDetailPage({
     listNcfRanges(user.firmId, user.userId),
     listAuditFor(user.firmId, user.userId, { caseId: c.id, limit: 100 }),
     listCaseFees(user.firmId, user.userId, c.id),
+    listFolderChildren(user.firmId, user.userId, folderId, folderScope),
+    listDocumentsInFolder(user.firmId, user.userId, folderId, folderScope),
+    folderId
+      ? getFolderBreadcrumb(user.firmId, user.userId, folderId)
+      : Promise.resolve([]),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges
@@ -205,7 +223,7 @@ export default async function CasoDetailPage({
         </div>
       </div>
 
-      <Tabs defaultValue="resumen">
+      <Tabs defaultValue={sp.tab ?? "resumen"}>
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="tiempos">Tiempos ({tiempos.length})</TabsTrigger>
@@ -647,26 +665,61 @@ export default async function CasoDetailPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="documentos" className="space-y-3">
-          <div className="flex items-center justify-between">
+        <TabsContent value="documentos" className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-muted-foreground">
-              {documentos.length} {documentos.length === 1 ? "archivo" : "archivos"}
+              {documentos.length} {documentos.length === 1 ? "archivo" : "archivos"} en total
             </p>
             <DocumentUploadDrawer
               caseId={c.id}
+              folderId={folderId}
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="h-3.5 w-3.5" />
-                  Subir documentos
+                  Subir archivo
                 </Button>
               }
             />
           </div>
-          <CaseDocumentsSection
-            docs={documentos}
+          {/*
+            Vista por carpetas (default). Mantiene el ?tab=documentos en cada
+            link para que las Tabs sigan en "Documentos" tras navegar.
+          */}
+          <CaseFolderBrowser
             caseId={c.id}
-            aiEnabled={aiEnabled}
+            folderId={folderId}
+            breadcrumb={folderBreadcrumb.map((b) => ({ id: b.id, name: b.name }))}
+            folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
+            documents={docsInFolder.map((d) => ({
+              id: d.id,
+              name: d.name,
+              mimeType: d.mimeType,
+              sizeBytes: d.sizeBytes,
+              tags: d.tags,
+              ocrStatus: d.ocrStatus,
+              version: d.version,
+              sharedWithClient: d.sharedWithClient,
+              createdAt: d.createdAt,
+            }))}
           />
+          {/*
+            Mantengo la vista plana con búsqueda interna como fallback —
+            útil cuando alguien recuerda parte del nombre pero no en qué
+            carpeta lo dejó. Aparece debajo del browser de carpetas.
+          */}
+          <details className="rounded-md border bg-muted/30 p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Ver todos los archivos del caso como lista plana (búsqueda
+              instantánea)
+            </summary>
+            <div className="mt-3">
+              <CaseDocumentsSection
+                docs={documentos}
+                caseId={c.id}
+                aiEnabled={aiEnabled}
+              />
+            </div>
+          </details>
         </TabsContent>
         <TabsContent value="notas" className="space-y-3">
           <div className="flex items-center justify-between">

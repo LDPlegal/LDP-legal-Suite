@@ -1,13 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { ClienteSchema } from "@/lib/schemas/cliente";
 import { createClient } from "@/lib/db/queries/clients";
 
+// Importante: la action ya NO redirige. Retorna el cliente creado para que el
+// caller decida — el caller "natural" (Sheet en /clientes) navega a /clientes/<id>;
+// el caller "embedded" (creación inline desde caso form drawer) usa el cliente
+// para popular su dropdown sin perder contexto.
 export type ClienteFormState =
-  | { ok: true }
+  | { ok: true; client?: { id: string; displayName: string } }
   | {
       ok: false;
       error: string;
@@ -30,6 +33,7 @@ export async function crearClienteAction(
     phone: formData.get("phone"),
     address: formData.get("address"),
     billingAddress: formData.get("billingAddress"),
+    registroMercantil: formData.get("registroMercantil"),
     status: formData.get("status") || "active",
   });
   if (!parsed.success) {
@@ -42,5 +46,8 @@ export async function crearClienteAction(
 
   const created = await createClient(user.firmId, user.userId, parsed.data);
   revalidatePath("/clientes");
-  redirect(`/clientes/${created.id}`);
+  return {
+    ok: true,
+    client: { id: created.id, displayName: created.displayName },
+  };
 }

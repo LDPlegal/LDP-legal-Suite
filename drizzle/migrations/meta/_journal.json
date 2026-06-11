@@ -176,6 +176,20 @@
       "when": 1780800000000,
       "tag": "0024_case_fees_dual_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1781187071845,
+      "tag": "0025_glossy_sunspot",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1781200000000,
+      "tag": "0026_folders",
+      "breakpoints": true
     }
   ]
 }

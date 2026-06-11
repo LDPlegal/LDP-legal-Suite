@@ -37,20 +37,35 @@ export type ClienteInitial = {
   phone: string | null;
   address: string | null;
   billingAddress: string | null;
+  registroMercantil: string | null;
   status: "active" | "prospect" | "closed";
 };
 
 export function ClienteFormDrawer({
   trigger,
   cliente,
+  onCreated,
 }: {
   trigger: ReactNode;
   /** When provided, the drawer edits the existing client instead of creating. */
   cliente?: ClienteInitial;
+  /**
+   * Cuando se provee, después de crear (no edit), llama el callback con el
+   * cliente recién creado y NO navega a /clientes/<id>. Permite que un caller
+   * como el formulario de creación de caso use el form completo sin perder
+   * su propio contexto. Si no se provee, el comportamiento por defecto es
+   * navegar a la ficha del cliente.
+   */
+  onCreated?: (client: { id: string; displayName: string }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const isEdit = !!cliente;
+  // Tipo controlado para poder mostrar/ocultar campos específicos de persona
+  // jurídica (registro mercantil, razón social) sin re-render del Sheet.
+  const [type, setType] = useState<"individual" | "corporate">(
+    cliente?.type ?? "individual",
+  );
   // Live values for the conflict-check alert. They mirror the inputs below
   // via uncontrolled→controlled bridge: form keeps name=, the alert reads
   // local state. Saving still goes through the form action.
@@ -64,7 +79,26 @@ export function ClienteFormDrawer({
       if (result.ok) {
         toast.success(isEdit ? "Cliente actualizado" : "Cliente creado");
         setOpen(false);
-        router.refresh();
+        // En modo creación, ClienteFormState retorna `client: {id, displayName}`.
+        // El narrowing por `"client" in` sobre el union de ambos states no
+        // converge bien en TS (cuando ClienteEditState.ok no tiene la prop),
+        // así que castiamos: cuando !isEdit y result.ok, result es del
+        // shape de ClienteFormState.ok.
+        const createdClient = !isEdit
+          ? (result as ClienteFormState & { ok: true }).client
+          : undefined;
+        if (createdClient) {
+          // Creación: si el caller embebido provee callback, pásale el cliente
+          // y dejá que él decida (típicamente: agregarlo al dropdown del caso).
+          // Si no, navegamos a la ficha como antes.
+          if (onCreated) {
+            onCreated(createdClient);
+          } else {
+            router.push(`/clientes/${createdClient.id}`);
+          }
+        } else {
+          router.refresh();
+        }
       }
       return result;
     },
@@ -90,7 +124,10 @@ export function ClienteFormDrawer({
               <select
                 name="type"
                 required
-                defaultValue={cliente?.type ?? "individual"}
+                value={type}
+                onChange={(e) =>
+                  setType(e.currentTarget.value as "individual" | "corporate")
+                }
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="individual">Persona física</option>
@@ -98,7 +135,14 @@ export function ClienteFormDrawer({
               </select>
             </Field>
 
-            <Field label="Nombre / Razón comercial *" error={errFor(state, "displayName")}>
+            <Field
+              label={
+                type === "corporate"
+                  ? "Nombre comercial *"
+                  : "Nombre completo *"
+              }
+              error={errFor(state, "displayName")}
+            >
               <Input
                 name="displayName"
                 required
@@ -107,13 +151,35 @@ export function ClienteFormDrawer({
               />
             </Field>
 
-            <Field label="Razón social legal" error={errFor(state, "legalName")}>
-              <Input
-                name="legalName"
-                placeholder="Solo personas jurídicas"
-                defaultValue={cliente?.legalName ?? ""}
-              />
-            </Field>
+            {type === "corporate" ? (
+              <>
+                <Field label="Razón social legal *" error={errFor(state, "legalName")}>
+                  <Input
+                    name="legalName"
+                    placeholder="Ej. Constructora Caribe, S.R.L."
+                    defaultValue={cliente?.legalName ?? ""}
+                  />
+                </Field>
+                <Field
+                  label="Registro Mercantil (opcional)"
+                  error={errFor(state, "registroMercantil")}
+                >
+                  <Input
+                    name="registroMercantil"
+                    placeholder="Ej. 12345SD"
+                    defaultValue={cliente?.registroMercantil ?? ""}
+                  />
+                </Field>
+              </>
+            ) : (
+              // Cuando no es corporate, igual emitimos los campos como hidden
+              // vacíos para que la action reciba "" (Zod los transforma a
+              // undefined) y no haya valores "fantasma" del cliente previo.
+              <>
+                <input type="hidden" name="legalName" value="" />
+                <input type="hidden" name="registroMercantil" value="" />
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo de ID" error={errFor(state, "taxIdType")}>

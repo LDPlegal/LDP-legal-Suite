@@ -261,6 +261,11 @@ export const clients = pgTable(
     phone: text("phone"),
     address: text("address"),
     billingAddress: text("billing_address"),
+    // Registro Mercantil (RM) — número del registro en la Cámara de Comercio
+    // y Producción correspondiente. Opcional; sólo aplica a personas
+    // jurídicas (type='corporate') pero no se restringe en schema porque
+    // un cliente podría reclasificar y queremos preservar el histórico.
+    registroMercantil: text("registro_mercantil"),
     notes: jsonb("notes").$type<Record<string, unknown>>(), // richtext json (Tiptap)
     status: clientStatusEnum("status").notNull().default("active"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -980,6 +985,54 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 // reflects the state. Search joins `documents.ocr_text` once it's populated.
 // =============================================================================
 
+// =============================================================================
+// folders — organización tipo explorador de archivos (jerarquía ilimitada)
+// =============================================================================
+// Una firma puede tener carpetas a nivel global (case_id=null, client_id=null)
+// y a nivel de caso (case_id NOT NULL). El parent_folder_id es self-FK; null
+// significa raíz dentro de su scope (firm o caso). Los documentos pueden
+// vivir en una carpeta (folder_id NOT NULL) o sueltos en la raíz.
+//
+// El campo `path` se mantiene actualizado por la app al crear/mover carpetas
+// para permitir búsquedas tipo "/Demandas/2026" sin recursión; queries de
+// children siguen usando parent_folder_id.
+// =============================================================================
+
+export const folders = pgTable(
+  "folders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    // Scope opcional — case_id NOT NULL → carpeta dentro del caso.
+    // case_id NULL y client_id NULL → carpeta global del firm.
+    caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    parentFolderId: uuid("parent_folder_id"), // self-FK, declarada en SQL para evitar circularidad
+    name: text("name").notNull(),
+    // Path materializada — "/Demandas/2026/Caso-X". Se reconstruye al mover.
+    // Útil para buscar por path y para el breadcrumb sin recursión.
+    path: text("path").notNull().default("/"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("folders_firm_idx").on(t.firmId),
+    index("folders_firm_parent_idx").on(t.firmId, t.parentFolderId),
+    index("folders_firm_case_idx").on(t.firmId, t.caseId),
+    index("folders_firm_client_idx").on(t.firmId, t.clientId),
+    // Unicidad: dentro del mismo parent (o raíz) no puede haber dos carpetas
+    // con el mismo nombre (case-sensitive). Se enforza en SQL con índice
+    // único parcial considerando NULL en parent_folder_id como root.
+    uniqueIndex("folders_unique_name_per_parent")
+      .on(t.firmId, t.parentFolderId, t.name)
+      .where(sql`${t.deletedAt} IS NULL`),
+  ],
+);
+
 export const documents = pgTable(
   "documents",
   {
@@ -989,6 +1042,10 @@ export const documents = pgTable(
       .references(() => firms.id, { onDelete: "cascade" }),
     caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+    // Carpeta donde vive el documento. NULL = raíz del scope (firm-wide o
+    // de un caso). FK declarada solo en SQL para evitar circularidad con
+    // la self-FK de folders.parent_folder_id.
+    folderId: uuid("folder_id"),
     name: text("name").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
@@ -1037,6 +1094,7 @@ export const documents = pgTable(
     index("documents_firm_case_idx").on(t.firmId, t.caseId),
     index("documents_firm_client_idx").on(t.firmId, t.clientId),
     index("documents_parent_idx").on(t.parentDocumentId),
+    index("documents_firm_folder_idx").on(t.firmId, t.folderId),
     uniqueIndex("documents_firm_scan_id_unique")
       .on(t.firmId, t.scanId)
       .where(sql`${t.scanId} IS NOT NULL`),
@@ -1289,6 +1347,9 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
+
+export type Folder = typeof folders.$inferSelect;
+export type NewFolder = typeof folders.$inferInsert;
 
 export type Note = typeof notes.$inferSelect;
 export type NewNote = typeof notes.$inferInsert;

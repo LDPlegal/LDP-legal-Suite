@@ -22,6 +22,7 @@ import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-
 import { DocumentSummaryDrawer } from "./document-summary-drawer";
 import { ReprocessOneButton } from "./reprocess-buttons";
 import { DocumentPreviewDrawer } from "./document-preview-drawer";
+import { DocumentNewVersionButton } from "./document-new-version-button";
 import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
@@ -194,6 +195,11 @@ export function DocumentGlobalRow({
           />
         ) : null}
         <ReprocessOneButton docId={doc.id} />
+        <DocumentNewVersionButton
+          documentId={doc.id}
+          documentName={doc.name}
+          currentVersion={doc.version}
+        />
         <DocumentEditDrawer
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}

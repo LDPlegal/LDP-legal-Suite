@@ -14,6 +14,7 @@ import {
 
 const Schema = z.object({
   caseId: z.string().uuid().nullable().optional(),
+  folderId: z.string().uuid().nullable().default(null),
   tags: z.array(z.string().min(1).max(40)).default([]),
 });
 
@@ -52,7 +53,11 @@ export async function uploadDocumentGlobalAction(
   const caseId =
     typeof rawCaseId === "string" && rawCaseId.trim() ? rawCaseId.trim() : null;
 
-  const parsed = Schema.safeParse({ caseId, tags });
+  const rawFolderId = formData.get("folderId");
+  const folderId =
+    typeof rawFolderId === "string" && rawFolderId.trim() ? rawFolderId.trim() : null;
+
+  const parsed = Schema.safeParse({ caseId, folderId, tags });
   if (!parsed.success) {
     return { ok: false, error: "Datos inválidos." };
   }
@@ -79,6 +84,7 @@ export async function uploadDocumentGlobalAction(
 
     const doc = await createDocument(user.firmId, user.userId, {
       caseId: parsed.data.caseId ?? null,
+      folderId: parsed.data.folderId,
       name: finalFilename,
       mimeType: realMime,
       sizeBytes: file.size,

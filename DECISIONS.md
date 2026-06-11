@@ -1029,4 +1029,229 @@ nightly re-embed es el siguiente paso.
 - Cost tracking en `/reportes` (los `usage` ya vienen en cada response).
 - Auto-resumen on demand desde el dashboard ("¿qué pasó esta semana?").
 
+---
+
+# Fase 6 — Organización de documentos por carpetas + endurecimiento de headers
+
+Bloque ejecutado a pedido del jefe del firm: en una firma legal, el material
+de cada caso típicamente vive en una carpeta del filesystem que el cliente o
+contraparte entrega completa. Hasta acá, los documentos se subían "planos" al
+caso. F6 introduce un sistema de carpetas estilo explorador de archivos
+(Windows Explorer / macOS Finder) con jerarquía ilimitada y soporte para
+preservar la estructura al subir una carpeta entera.
+
+Migraciones nuevas:
+- `0025_glossy_sunspot.sql` — agrega `clients.registro_mercantil` (text
+  nullable). El nombre autogenerado se mantuvo, pero el contenido se reescribió
+  a mano porque drizzle-kit produjo una migración monstruosa que reflejaba el
+  drift entre `schema.ts` y el último snapshot (problema documentado abajo).
+- `0026_folders.sql` — nueva tabla `folders` + columna `documents.folder_id`
+  + RLS + índices.
+
+## F6.1 — Tabla `folders` con scope opcional (firm-wide / case / client)
+
+**Decisión:** un mismo registro `folders` puede vivir a nivel de firm (las
+dos columnas de scope `case_id` y `client_id` son NULL), a nivel de caso
+(`case_id NOT NULL`), o de cliente (`client_id NOT NULL`). La jerarquía
+ilimitada se modela con `parent_folder_id` self-FK + `ON DELETE CASCADE`. Una
+columna `path` materializada ("/Demandas/2026") sirve para breadcrumbs y
+búsquedas tipo "todo lo que cuelgue de /Demandas" sin CTE recursiva.
+
+**Implementación:**
+- Schema: [`lib/db/schema.ts`](./lib/db/schema.ts) — bloque "folders" justo
+  antes de "documents".
+- Self-FK declarada en SQL (no en Drizzle) para evitar circularidad de tipos.
+- Unicidad por nivel: `UNIQUE (firm_id, parent_folder_id, name) WHERE deleted_at IS NULL`.
+  Permite reusar el nombre tras borrar la carpeta.
+- Queries: [`lib/db/queries/folders.ts`](./lib/db/queries/folders.ts) expone
+  `listFolderChildren`, `getFolderBreadcrumb`, `createFolder`,
+  `findChildFolderByName` (idempotencia del upload), `softDeleteFolder` (con
+  CTE recursiva por subárbol) y `moveDocumentToFolder`.
+
+**Por qué scope múltiple en la misma tabla:** un firm legal mediano va a
+tener decenas de miles de carpetas distribuidas entre cientos de casos.
+Modelar tablas separadas por scope dispersaría la lógica de RLS y la UI
+sin ganancia. Una tabla bien indexada + una policy es más simple.
+
+**Pendientes:** mover carpetas entre niveles (firm → caso) requiere una
+operación que recalcule el `path` de todo el subárbol — F6.5.
+
+## F6.2 — RLS de `folders` reusa `app_user_can_see_case`
+
+**Decisión:** la policy de `folders` filtra por `firm_id` siempre + si la
+carpeta vive dentro de un caso, además respeta la visibilidad de ese caso
+(función `app_user_can_see_case` definida en `0001_fix_rls_recursion.sql`).
+Las carpetas firm-wide quedan visibles para todos los staff del firm.
+
+**Implementación:** [`drizzle/migrations/0026_folders.sql`](./drizzle/migrations/0026_folders.sql)
+— policy `folders_firm_visibility`. Reusar el helper SECURITY DEFINER
+evita la recursión con `case_assignments` que ya se resolvió en Fase 1.
+
+**Por qué:** si un caso es `restricted`, sus carpetas también deben
+ocultarse para abogados no asignados. Los documentos dentro de esas carpetas
+ya estaban protegidos via `documents.case_id` + helper, ahora las carpetas
+heredan el mismo régimen.
+
+**Pendientes:** test `tests/integration/folders-rls.test.ts` (no escrito
+en esta tanda — agregar antes de que la feature gane más complejidad).
+
+## F6.3 — Upload de carpeta entera con `webkitdirectory`
+
+**Decisión:** el browser ya entrega `webkitRelativePath` en cada `File`
+cuando el input usa `type="file" webkitdirectory`. Server-side parseamos
+esos paths para construir el árbol de carpetas que falta crear + bindear
+cada archivo a su carpeta correcta.
+
+**Implementación:**
+- [`app/_actions/carpetas/subir-carpeta.ts`](./app/_actions/carpetas/subir-carpeta.ts) —
+  ordena directorios por profundidad, crea con `findChildFolderByName +
+  createFolder` (idempotente: re-subir la misma estructura no falla), luego
+  itera files con su `folderId` resuelto.
+- [`app/(app)/documentos/_components/upload-folder-button.tsx`](./app/(app)/documentos/_components/upload-folder-button.tsx) —
+  el button + input(webkitdirectory) que arma el FormData.
+- Caps: 200 archivos, 500 MB total, 25 MB/archivo. Devuelve `filesFailed[]`
+  para que la UI muestre cuáles fallaron sin abortar el resto.
+
+**Por qué no diferencia ZIP:** soportar ZIP requiere descompresor server-side
++ manejo de paths sin separador estándar entre Win/Mac. `webkitdirectory`
+en cambio es nativo en Chrome/Edge/Safari/Firefox modernos. Si en algún
+momento un user necesita subir ZIP (ej. desde un device sin file picker
+recursivo), agregamos un endpoint que descomprima con `unzipper`.
+
+## F6.4 — UI estilo explorador: breadcrumb + grid + ?folder= URL state
+
+**Decisión:** la navegación entre carpetas usa query string `?folder=<id>`.
+Esto vuelve cada vista linkeable y respeta el back/forward del browser. El
+componente `FolderBrowser` muestra breadcrumb arriba, grid de carpetas, y
+lista de documentos en el nivel actual.
+
+**Implementación:**
+- [`app/(app)/documentos/_components/folder-browser.tsx`](./app/(app)/documentos/_components/folder-browser.tsx) —
+  componente genérico. Acepta `extraParams` para preservar query state del
+  caller (ej. la página de caso preserva `?tab=documentos`).
+- Página global: [`app/(app)/documentos/page.tsx`](./app/(app)/documentos/page.tsx) —
+  modo carpetas default. Cuando hay `?q=` o `?shared=1`, cae al modo
+  "búsqueda plana" con la tabla histórica.
+- Página por caso: [`app/(app)/casos/[id]/page.tsx`](./app/(app)/casos/%5Bid%5D/page.tsx) —
+  tab "Documentos" renderiza `CaseFolderBrowser` y deja `CaseDocumentsSection`
+  (vista plana con search en memoria) dentro de un `<details>` colapsable
+  abajo como fallback.
+
+**Por qué default carpetas y no flat:** una firma con miles de docs no
+puede usar la lista plana — se vuelve inmanejable. La búsqueda sigue ahí
+para cuando recuerdan el nombre pero no la ruta.
+
+## F6.5 — Versionado de documentos: UI implementada sobre schema existente
+
+**Decisión:** el schema ya tenía `documents.version` y `documents.parent_document_id`
+desde Fase 0 (modelado a futuro). F6 finalmente prendió la UI: cada fila
+muestra un botón "Nueva versión" que abre un dialog con file picker. La
+versión vieja queda intacta (no se borra), apuntada como `parent_document_id`
+de la nueva. Tags, caso, cliente, y permiso `shared_with_client` se heredan
+del padre.
+
+**Implementación:**
+- Action: [`app/_actions/documentos/nueva-version.ts`](./app/_actions/documentos/nueva-version.ts).
+- Componente: [`app/(app)/documentos/_components/document-new-version-button.tsx`](./app/(app)/documentos/_components/document-new-version-button.tsx).
+- Aparece en `DocumentGlobalRow` y `DocumentRow` (per-caso).
+
+**Por qué no auto-reemplazar la v1:** auditoría legal. Saber qué decía la
+v1 de un contrato cuando se firmó es crítico si después hay disputa. La
+v2 es para correcciones / addendums, no para "tapar" cambios.
+
+**Pendientes:** UI para diff entre versiones (F6.5 deferred).
+
+## F6.6 — `pnpm db:generate` no es confiable: hand-written migrations es la norma
+
+**Hallazgo durante F6:** ejecutar `pnpm db:generate` para crear la migración
+de `registro_mercantil` produjo un SQL gigantesco con 40+ cambios — todas
+las tablas y columnas que el schema acumuló desde la última `_meta` snapshot
+del journal de drizzle, que estaba muy desactualizada respecto a las
+migraciones efectivamente aplicadas (escritas a mano).
+
+**Decisión:** dejar `_journal.json` actualizado al agregar migraciones pero
+NO confiar en `db:generate` para producir SQL — las migraciones se siguen
+escribiendo a mano con el estilo existente (comentarios contextuales,
+`IF NOT EXISTS` para idempotencia, RLS explícita en la misma migración).
+
+**Mitigación:** el `0025_glossy_sunspot.sql` se reescribió manualmente
+después de generarse. El snapshot autogenerado (`meta/0025_snapshot.json`)
+se borró para no contaminar futuras comparaciones.
+
+**Acción pendiente:** documentar este patrón en `README.md` para que un
+contributor nuevo no asuma que `pnpm db:generate` "just works".
+
+## F6.7 — Endurecimiento de headers de seguridad
+
+**Decisión:** agregar Content-Security-Policy, restringir
+`Access-Control-Allow-Origin` al dominio del firm, y sumar las policies
+COOP/CORP. Hasta F6, Vercel servía `Access-Control-Allow-Origin: *` por
+default y no había CSP — gap detectado en la auditoría de la sesión.
+
+**Implementación:** [`vercel.json`](./vercel.json) → bloque `headers`
+matching `/(.*)`. CSP permisiva en `script-src` (incluye `'unsafe-inline'`
+porque Next.js inyecta scripts inline para hidratación) pero estricta en
+`frame-ancestors`, `object-src` y `connect-src`. Permitidos: self,
+`api.anthropic.com` (módulo IA), `vitals.vercel-insights.com`,
+fonts Google.
+
+**Por qué no nonce-based CSP:** requiere middleware que reemplace el nonce
+en cada request — trabajo no trivial y no ataca un threat realista para
+esta app (no recibe contenido de terceros). Si en el futuro se permitan
+embeds, evaluar.
+
+**Pendientes:** correr Mozilla Observatory contra el dominio después del
+próximo deploy para verificar el score.
+
+## F6.8 — Refactor del flujo "crear cliente desde caso"
+
+**Decisión:** eliminar el mini-form (`ClienteQuickCreate`) y la action
+inline (`crearClienteInlineAction`) que existían específicamente para crear
+clientes sin perder contexto del caso. Reemplazo: el `ClienteFormDrawer`
+completo acepta un prop `onCreated?: (client) => void`. Cuando se provee,
+después de crear no redirige a la ficha del cliente — llama el callback
+con el cliente recién creado y cierra. El form de caso usa esta variante.
+
+**Implementación:**
+- `crearClienteAction` ya no llama `redirect()` — retorna
+  `{ ok: true, client: { id, displayName } }`.
+- `ClienteFormDrawer` decide: si `onCreated`, lo llama; si no, navega.
+- Archivos eliminados: `app/(app)/casos/_components/cliente-quick-create.tsx`,
+  `app/_actions/clientes/crear-inline.ts`.
+
+**Por qué:** la queja directa del user fue UX — el quick-create capturaba
+solo 4 campos (tipo, nombre, email, teléfono) y el resto había que
+completarlo después desde la ficha. Ahora el form completo aparece como
+un Sheet encima del Sheet del caso (Radix lo soporta).
+
+## F6.9 — Campo `registro_mercantil` opcional en clientes
+
+**Decisión:** sumar columna `clients.registro_mercantil` (text nullable)
+para capturar el número de Registro Mercantil que las Cámaras de Comercio
+y Producción asignan a personas jurídicas en RD. Hasta ahora el sistema
+solo guardaba RNC en `tax_id`, lo que obligaba a meter el RM en `notes`
+o al margen.
+
+**UI:** el form de cliente ahora hace el `type` controlado por estado.
+Cuando `corporate`, aparecen **Razón social** (obligatoria, ya estaba) +
+**Registro Mercantil** (opcional, nueva). Cuando `individual`, ambos
+se ocultan y se envían vacíos en hidden inputs para no dejar valores
+"fantasma" del cliente previo.
+
+**Por qué opcional:** clientes existentes pueden no tenerlo capturado;
+forzarlo rompería el form en edit. Si más adelante se quiere obligatorio
+para nuevos corporates, se cambia el `superRefine` en el Zod schema.
+
+## F6.10 — Diferidos a F6.5+
+
+- Mover carpetas entre niveles + recálculo del `path` materializado del
+  subárbol.
+- Diff visual entre versiones de documento.
+- Drag & drop para mover documentos entre carpetas (la lib `@dnd-kit`
+  ya está instalada por Fase 1 — solo falta el handler).
+- Folders compartidas con el cliente vía portal (hoy solo documentos
+  individuales con `shared_with_client`).
+- Tests RLS para folders + E2E del flujo "crear cliente desde caso".
+- Paginación del listado global de documentos (hoy capeado en 100).
+
 

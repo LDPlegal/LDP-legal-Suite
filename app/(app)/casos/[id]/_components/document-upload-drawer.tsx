@@ -61,9 +61,13 @@ function formatBytes(n: number): string {
 export function DocumentUploadDrawer({
   trigger,
   caseId,
+  folderId = null,
 }: {
   trigger: ReactNode;
   caseId: string;
+  /** Si el user está navegando dentro de una carpeta, los archivos van a esa
+   *  carpeta. null = raíz del caso. */
+  folderId?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -143,6 +147,7 @@ export function DocumentUploadDrawer({
     const fd = new FormData();
     fd.set("caseId", caseId);
     fd.set("file", item.file);
+    if (folderId) fd.set("folderId", folderId);
     if (tags.trim()) fd.set("tags", tags.trim());
 
     try {

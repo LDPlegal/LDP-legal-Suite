@@ -31,6 +31,15 @@ export const ClienteSchema = z
       .max(400)
       .optional()
       .or(z.literal("").transform(() => undefined)),
+    // Registro Mercantil — opcional, generalmente sólo para personas jurídicas.
+    // No se enforza tipo corporate aquí porque permitimos que cualquiera lo
+    // tenga (raro pero posible: persona física con RM por actividad comercial).
+    registroMercantil: z
+      .string()
+      .trim()
+      .max(60)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
     status: z.enum(["active", "prospect", "closed"]).default("active"),
   })
   .superRefine((val, ctx) => {

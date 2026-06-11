@@ -80,6 +80,7 @@ export default async function ClienteDetailPage({
                 phone: cliente.phone,
                 address: cliente.address,
                 billingAddress: cliente.billingAddress,
+                registroMercantil: cliente.registroMercantil,
                 status: cliente.status,
               }}
               trigger={

@@ -33,6 +33,7 @@ export async function editarClienteAction(
     phone: formData.get("phone"),
     address: formData.get("address"),
     billingAddress: formData.get("billingAddress"),
+    registroMercantil: formData.get("registroMercantil"),
     status: formData.get("status") || "active",
   });
   if (!parsed.success) {

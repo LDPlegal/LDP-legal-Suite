@@ -49,8 +49,11 @@ function formatBytes(n: number): string {
 
 export function DocumentUploadGlobalDrawer({
   trigger,
+  folderId = null,
 }: {
   trigger: ReactNode;
+  /** Carpeta destino opcional (si el user está navegando dentro de una). */
+  folderId?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -124,6 +127,7 @@ export function DocumentUploadGlobalDrawer({
 
     const fd = new FormData();
     fd.set("file", item.file);
+    if (folderId) fd.set("folderId", folderId);
     if (tags.trim()) fd.set("tags", tags.trim());
 
     try {
