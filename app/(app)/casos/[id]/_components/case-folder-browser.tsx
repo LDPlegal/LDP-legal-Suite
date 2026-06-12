@@ -13,6 +13,7 @@ export function CaseFolderBrowser({
   breadcrumb,
   folders,
   documents,
+  aiEnabled = false,
 }: {
   caseId: string;
   folderId: string | null;
@@ -28,7 +29,10 @@ export function CaseFolderBrowser({
     version: number;
     sharedWithClient: boolean;
     createdAt: Date;
+    caseId: string | null;
+    clientId: string | null;
   }>;
+  aiEnabled?: boolean;
 }) {
   const scope: FolderScope = { kind: "case", caseId };
 
@@ -45,6 +49,7 @@ export function CaseFolderBrowser({
         documents={documents}
         rootLabel="Raíz del caso"
         extraParams={{ tab: "documentos" }}
+        aiEnabled={aiEnabled}
       />
     </div>
   );

@@ -184,11 +184,22 @@ export async function findChildFolderByName(
   });
 }
 
+/**
+ * Soft-delete una carpeta + sus descendientes.
+ *
+ * `deleteDocuments`:
+ *   - false (default): los documentos que vivían en esas carpetas vuelven a
+ *     la raíz (folder_id = NULL). Se preservan, el user puede re-organizar.
+ *   - true: los documentos también se soft-deletean (deleted_at = now()).
+ *     Quedan recuperables desde papelera (Fase futura), no se hard-borra.
+ */
 export async function softDeleteFolder(
   firmId: string,
   userId: string,
   folderId: string,
+  options: { deleteDocuments?: boolean } = {},
 ): Promise<boolean> {
+  const deleteDocuments = options.deleteDocuments === true;
   return withFirm(firmId, userId, async (tx) => {
     // PASO 1: marcar el folder y todos sus descendientes como soft-deleted.
     // CTE recursiva enfocada al subárbol del folder dado.
@@ -206,28 +217,42 @@ export async function softDeleteFolder(
       WHERE id IN (SELECT id FROM descendants);
     `);
 
-    // PASO 2: sacar los docs SOLO de esos folders al root (folder_id = NULL).
-    // Los docs no se borran, se quedan accesibles en la raíz.
+    // PASO 2: tratar los documentos según opción.
     //
-    // BUG anterior: la query tenía `WHERE path LIKE '%' OR parent_folder_id = …`
-    // — `LIKE '%'` matchea TODAS las filas con path no-null (que son todas
-    // por DEFAULT '/'), así que nulleaba folder_id de TODOS los documentos
-    // del firm. Bug catastrófico que hacía perder organización completa.
+    // BUG anterior: usaba `WHERE path LIKE '%' OR parent_folder_id = …`
+    // donde `LIKE '%'` matchea TODO. Eso nulleaba folder_id de TODOS los
+    // docs del firm — catastrófico.
     //
-    // Fix: misma CTE recursiva del paso 1 (sin filtrar deleted_at — los
-    // folders recién marcados aún están en la tabla, los encontramos igual).
-    await tx.execute(sql`
-      WITH RECURSIVE descendants AS (
-        SELECT id FROM folders WHERE id = ${folderId}
-        UNION ALL
-        SELECT f.id
-        FROM folders f
-        INNER JOIN descendants d ON f.parent_folder_id = d.id
-      )
-      UPDATE documents
-      SET folder_id = NULL, updated_at = now()
-      WHERE folder_id IN (SELECT id FROM descendants);
-    `);
+    // Fix: mismo CTE del paso 1 (sin filtrar deleted_at — los folders
+    // recién marcados aún están en la tabla, los encontramos igual).
+    if (deleteDocuments) {
+      await tx.execute(sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM folders WHERE id = ${folderId}
+          UNION ALL
+          SELECT f.id
+          FROM folders f
+          INNER JOIN descendants d ON f.parent_folder_id = d.id
+        )
+        UPDATE documents
+        SET deleted_at = now(), updated_at = now()
+        WHERE folder_id IN (SELECT id FROM descendants)
+          AND deleted_at IS NULL;
+      `);
+    } else {
+      await tx.execute(sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM folders WHERE id = ${folderId}
+          UNION ALL
+          SELECT f.id
+          FROM folders f
+          INNER JOIN descendants d ON f.parent_folder_id = d.id
+        )
+        UPDATE documents
+        SET folder_id = NULL, updated_at = now()
+        WHERE folder_id IN (SELECT id FROM descendants);
+      `);
+    }
     return true;
   });
 }

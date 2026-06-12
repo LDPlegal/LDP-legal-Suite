@@ -228,7 +228,10 @@ export default async function DocumentosPage({
             version: d.version,
             sharedWithClient: d.sharedWithClient,
             createdAt: d.createdAt,
+            caseId: d.caseId,
+            clientId: d.clientId,
           }))}
+          aiEnabled={isAiEnabled()}
         />
       )}
     </div>

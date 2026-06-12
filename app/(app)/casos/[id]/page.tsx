@@ -700,7 +700,10 @@ export default async function CasoDetailPage({
               version: d.version,
               sharedWithClient: d.sharedWithClient,
               createdAt: d.createdAt,
+              caseId: d.caseId,
+              clientId: d.clientId,
             }))}
+            aiEnabled={aiEnabled}
           />
           {/*
             Mantengo la vista plana con búsqueda interna como fallback —
