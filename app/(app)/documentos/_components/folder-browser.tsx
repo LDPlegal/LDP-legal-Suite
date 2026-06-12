@@ -3,9 +3,25 @@
 // Browser estilo explorador de archivos: breadcrumb + grid de carpetas + lista
 // de documentos en el nivel actual. La navegación se hace por query string
 // (?folder=<id>) para que sea linkeable y respete back/forward del browser.
+//
+// Fase 8 — D&D: items son arrastrables sobre carpetas y breadcrumbs.
+// El "Mover a..." dialog se mantiene como alternativa accesible (teclado,
+// mobile sin precisión de drag).
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { toast } from "sonner";
 import {
   ChevronRight,
   Download,
@@ -14,6 +30,7 @@ import {
   FileText,
   Folder as FolderIcon,
   FolderInput,
+  GripVertical,
   Home,
   Image as ImageIcon,
   Pencil,
@@ -28,6 +45,8 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { eliminarCarpetaAction } from "@/app/_actions/carpetas/eliminar";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
+import { moverDocumentoAction } from "@/app/_actions/carpetas/mover-documento";
+import { moverCarpetaAction } from "@/app/_actions/carpetas/mover";
 import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
 import { DocumentPreviewDrawer } from "./document-preview-drawer";
 import { DocumentSummaryDrawer } from "./document-summary-drawer";
@@ -43,8 +62,6 @@ import type { FolderScope } from "@/lib/db/queries/folders";
 export type FolderListItem = {
   id: string;
   name: string;
-  /** Número de docs directos (sin recursión) — para mostrar al user
-   *  antes de eliminar. Opcional; si no se pasa, no se muestra. */
   documentCount?: number;
 };
 
@@ -58,7 +75,6 @@ export type DocumentListItem = {
   version: number;
   sharedWithClient: boolean;
   createdAt: Date;
-  /** Necesarios para construir scope (preview, edit, share, new version). */
   caseId: string | null;
   clientId: string | null;
 };
@@ -67,6 +83,24 @@ export type BreadcrumbItem = {
   id: string;
   name: string;
 };
+
+// — IDs convencionados para D&D —
+//   draggable doc:    "doc:<uuid>"
+//   draggable folder: "folder:<uuid>"
+//   droppable folder: "folder:<uuid>"
+//   droppable breadcrumb root:  "bc:root"
+//   droppable breadcrumb path:  "bc:<uuid>"
+// Como folder es BOTH draggable AND droppable con el mismo prefijo, los
+// distinguimos por el campo `data.role` del descriptor.
+
+function parseDroppableId(
+  id: string,
+): { kind: "folder"; folderId: string } | { kind: "bc-root" } | { kind: "bc-folder"; folderId: string } | null {
+  if (id === "bc:root") return { kind: "bc-root" };
+  if (id.startsWith("bc:")) return { kind: "bc-folder", folderId: id.slice(3) };
+  if (id.startsWith("folder:")) return { kind: "folder", folderId: id.slice(7) };
+  return null;
+}
 
 export function FolderBrowser({
   basePath,
@@ -79,25 +113,23 @@ export function FolderBrowser({
   scope,
   currentFolderId,
 }: {
-  /** Path base para construir los hrefs de navegación. Ej: "/documentos" o "/casos/abc". */
   basePath: string;
-  /** Path desde la raíz a la carpeta actual. Vacío si estamos en la raíz. */
   breadcrumb: BreadcrumbItem[];
-  /** Carpetas hijas directas. */
   folders: FolderListItem[];
-  /** Documentos en este nivel. */
   documents: DocumentListItem[];
   rootLabel?: string;
-  /** Query params extra para preservar (ej: ?tab=documentos en página de caso). */
   extraParams?: Record<string, string>;
-  /** Si el módulo de IA está habilitado, mostramos botones de resumen IA. */
   aiEnabled?: boolean;
-  /** Scope del browser (firm/case/client) — usado para el "Mover a..." dialog. */
   scope: FolderScope;
-  /** Carpeta actual donde está parado el browser. null = raíz. Necesario
-   *  para que "Mover a..." no liste la carpeta actual como destino. */
   currentFolderId: string | null;
 }) {
+  const router = useRouter();
+  // Activation con 8px de distancia — clicks casuales en links no disparan
+  // drag, solo si el user mantiene apretado y se mueve.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
   function folderHref(folderId: string | null) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(extraParams)) {
@@ -108,81 +140,155 @@ export function FolderBrowser({
     return qs ? `${basePath}?${qs}` : basePath;
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1 text-sm">
-        <Link
-          href={folderHref(null)}
-          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-        >
-          <Home className="h-3.5 w-3.5" />
-          {rootLabel}
-        </Link>
-        {breadcrumb.map((b, i) => {
-          const isLast = i === breadcrumb.length - 1;
-          return (
-            <span key={b.id} className="flex items-center gap-1">
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              {isLast ? (
-                <span className="font-medium">{b.name}</span>
-              ) : (
-                <Link
-                  href={folderHref(b.id)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  {b.name}
-                </Link>
-              )}
-            </span>
-          );
-        })}
-      </nav>
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-      {/* Grid de carpetas */}
-      {folders.length > 0 ? (
+    const target = parseDroppableId(String(over.id));
+    if (!target) return;
+
+    // No drop a la misma carpeta donde ya está el item.
+    const activeData = active.data.current as { type: "doc" | "folder"; id: string } | undefined;
+    if (!activeData) return;
+    const sourceId = activeData.id;
+
+    let targetFolderId: string | null;
+    if (target.kind === "bc-root") {
+      targetFolderId = null;
+    } else if (target.kind === "bc-folder") {
+      targetFolderId = target.folderId;
+    } else {
+      targetFolderId = target.folderId;
+    }
+
+    // No drop sobre sí misma (folder al droppable de su propio card).
+    if (activeData.type === "folder" && sourceId === targetFolderId) return;
+
+    try {
+      const result =
+        activeData.type === "doc"
+          ? await moverDocumentoAction({ documentId: sourceId, folderId: targetFolderId })
+          : await moverCarpetaAction({ folderId: sourceId, newParentFolderId: targetFolderId });
+
+      if (result.ok) {
+        toast.success(targetFolderId ? "Movido a la carpeta" : "Movido a raíz");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Error moviendo: ${msg}`);
+    }
+  }
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div className="space-y-4">
+        {/* Breadcrumb con drop zones por segmento */}
+        <nav className="flex items-center gap-1 text-sm">
+          <BreadcrumbDroppable id="bc:root" href={folderHref(null)}>
+            <Home className="h-3.5 w-3.5" />
+            {rootLabel}
+          </BreadcrumbDroppable>
+          {breadcrumb.map((b, i) => {
+            const isLast = i === breadcrumb.length - 1;
+            return (
+              <span key={b.id} className="flex items-center gap-1">
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                {isLast ? (
+                  <span className="font-medium">{b.name}</span>
+                ) : (
+                  <BreadcrumbDroppable id={`bc:${b.id}`} href={folderHref(b.id)}>
+                    {b.name}
+                  </BreadcrumbDroppable>
+                )}
+              </span>
+            );
+          })}
+        </nav>
+
+        {/* Grid de carpetas */}
+        {folders.length > 0 ? (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Carpetas
+            </h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {folders.map((f) => (
+                <FolderCard
+                  key={f.id}
+                  folder={f}
+                  href={folderHref(f.id)}
+                  scope={scope}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Lista de documentos */}
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Carpetas
+            Documentos {documents.length > 0 ? `(${documents.length})` : ""}
           </h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {folders.map((f) => (
-              <FolderCard
-                key={f.id}
-                folder={f}
-                href={folderHref(f.id)}
-                scope={scope}
-              />
-            ))}
-          </div>
+          {documents.length === 0 ? (
+            <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+              {folders.length === 0
+                ? "Carpeta vacía. Subí archivos o creá una sub-carpeta."
+                : "Sin documentos en este nivel. Hay sub-carpetas arriba."}
+            </p>
+          ) : (
+            <ul className="divide-y rounded-md border">
+              {documents.map((d) => (
+                <DocumentItem
+                  key={d.id}
+                  doc={d}
+                  aiEnabled={aiEnabled}
+                  currentFolderId={currentFolderId}
+                />
+              ))}
+            </ul>
+          )}
         </div>
-      ) : null}
 
-      {/* Lista de documentos */}
-      <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Documentos {documents.length > 0 ? `(${documents.length})` : ""}
-        </h3>
-        {documents.length === 0 ? (
-          <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-            {folders.length === 0
-              ? "Carpeta vacía. Subí archivos o creá una sub-carpeta."
-              : "Sin documentos en este nivel. Hay sub-carpetas arriba."}
+        {/* Hint visible para el user */}
+        {folders.length > 0 || documents.length > 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            💡 Tip: arrastrá un documento o carpeta sobre una carpeta destino
+            (o sobre el breadcrumb) para moverlo. También funciona el botón
+            &quot;Mover a...&quot;
           </p>
-        ) : (
-          <ul className="divide-y rounded-md border">
-            {documents.map((d) => (
-              <DocumentItem
-                key={d.id}
-                doc={d}
-                aiEnabled={aiEnabled}
-                currentFolderId={currentFolderId}
-              />
-            ))}
-          </ul>
-        )}
+        ) : null}
       </div>
-    </div>
+    </DndContext>
+  );
+}
+
+// — Breadcrumb segment como drop zone —
+function BreadcrumbDroppable({
+  id,
+  href,
+  children,
+}: {
+  id: string;
+  href: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <Link
+      ref={setNodeRef as unknown as React.Ref<HTMLAnchorElement>}
+      href={href}
+      className={[
+        "inline-flex items-center gap-1 rounded px-1 py-0.5 transition-colors",
+        isOver
+          ? "bg-primary/15 text-primary"
+          : "text-muted-foreground hover:text-foreground",
+      ].join(" ")}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -195,25 +301,61 @@ function FolderCard({
   href: string;
   scope: FolderScope;
 }) {
-  // Estado local del checkbox "también eliminar los documentos dentro".
-  // Vive en el FolderCard porque el dialog del ConfirmButton lo monta abajo.
   const [deleteDocs, setDeleteDocs] = useState(false);
 
+  // El folder es BOTH draggable (lo podés mover) Y droppable (otros items
+  // se le pueden tirar encima).
+  const drag = useDraggable({
+    id: `folder:${folder.id}`,
+    data: { type: "folder", id: folder.id },
+  });
+  const drop = useDroppable({ id: `folder:${folder.id}` });
+
+  // Combinar refs.
+  function combinedRef(node: HTMLDivElement | null) {
+    drag.setNodeRef(node);
+    drop.setNodeRef(node);
+  }
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(drag.transform),
+    opacity: drag.isDragging ? 0.5 : 1,
+  };
+
   return (
-    <Card className="group relative flex items-center gap-2 p-3 hover:bg-accent">
+    <Card
+      ref={combinedRef}
+      style={style}
+      className={[
+        "group relative flex items-center gap-2 p-3 transition-colors",
+        drop.isOver
+          ? "border-primary bg-primary/10"
+          : "hover:bg-accent",
+        drag.isDragging ? "ring-2 ring-primary" : "",
+      ].join(" ")}
+    >
+      {/* Drag handle — solo este icono triggers el drag, los demás clicks van al Link. */}
+      <button
+        type="button"
+        {...drag.listeners}
+        {...drag.attributes}
+        className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+        aria-label="Arrastrar para mover"
+        title="Arrastrá para mover"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
       <Link href={href} className="flex flex-1 items-center gap-2 truncate">
         <FolderIcon className="h-5 w-5 shrink-0 text-amber-500" />
         <span className="truncate text-sm font-medium">{folder.name}</span>
       </Link>
-      {/* Compartir todo el contenido con cliente del portal. */}
       <ShareFolderButton folderId={folder.id} folderName={folder.name} />
-      {/* Mover carpeta a otro padre. */}
       <MoveToDialog
         itemKind="folder"
         itemId={folder.id}
         itemName={folder.name}
         scope={scope}
-        currentFolderId={folder.id /* la carpeta misma no se lista como destino */}
+        currentFolderId={folder.id}
         trigger={
           <Button
             variant="ghost"
@@ -282,8 +424,6 @@ function DocumentItem({
 }) {
   const isImage = doc.mimeType.startsWith("image/");
 
-  // El scope para el "nueva versión" y para "mover a..." depende de dónde
-  // vive este doc.
   const docScope: FolderScope = doc.caseId
     ? { kind: "case", caseId: doc.caseId }
     : doc.clientId
@@ -291,16 +431,43 @@ function DocumentItem({
       : { kind: "firm" };
   const newVersionScope: UploadScope = docScope;
 
+  const drag = useDraggable({
+    id: `doc:${doc.id}`,
+    data: { type: "doc", id: doc.id },
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(drag.transform),
+    opacity: drag.isDragging ? 0.5 : 1,
+  };
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 p-3 hover:bg-accent/50">
+    <li
+      ref={drag.setNodeRef}
+      style={style}
+      className={[
+        "flex flex-wrap items-center justify-between gap-3 p-3 transition-colors",
+        drag.isDragging ? "bg-primary/5 ring-1 ring-primary" : "hover:bg-accent/50",
+      ].join(" ")}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* Drag handle */}
+        <button
+          type="button"
+          {...drag.listeners}
+          {...drag.attributes}
+          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Arrastrar para mover"
+          title="Arrastrá para mover"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
         {isImage ? (
           <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         ) : (
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <div className="min-w-0 flex-1">
-          {/* Click en el nombre abre el preview drawer (no descarga). */}
           <DocumentPreviewDrawer
             documentId={doc.id}
             documentName={doc.name}
@@ -332,13 +499,11 @@ function DocumentItem({
         ) : null}
       </div>
 
-      {/* Action bar — espejo del DocumentGlobalRow para tener parity. */}
       <div className="flex items-center gap-0.5">
         <Badge variant="outline" className="mr-1 text-[10px]">
           {OCR_STATUS_LABEL[doc.ocrStatus]}
         </Badge>
 
-        {/* Toggle compartir con cliente (solo si vive en un caso). */}
         {doc.caseId ? (
           <form action={compartirDocumentoAction} className="inline-block">
             <input type="hidden" name="documentId" value={doc.id} />
@@ -384,7 +549,6 @@ function DocumentItem({
           </Button>
         )}
 
-        {/* Preview (sin descargar). */}
         <DocumentPreviewDrawer
           documentId={doc.id}
           documentName={doc.name}
@@ -402,7 +566,6 @@ function DocumentItem({
           }
         />
 
-        {/* Descargar. */}
         <Link
           href={`/api/documentos/${doc.id}/download`}
           target="_blank"
@@ -415,7 +578,6 @@ function DocumentItem({
           <Download className="h-3.5 w-3.5" />
         </Link>
 
-        {/* Resumen IA si está habilitado y el OCR ya terminó. */}
         {aiEnabled && doc.ocrStatus === "done" ? (
           <DocumentSummaryDrawer
             documentId={doc.id}
@@ -433,10 +595,8 @@ function DocumentItem({
           />
         ) : null}
 
-        {/* Re-process OCR. */}
         <ReprocessOneButton docId={doc.id} />
 
-        {/* Mover a otra carpeta. */}
         <MoveToDialog
           itemKind="document"
           itemId={doc.id}
@@ -456,7 +616,6 @@ function DocumentItem({
           }
         />
 
-        {/* Nueva versión. */}
         <DocumentNewVersionButton
           documentId={doc.id}
           documentName={doc.name}
@@ -464,7 +623,6 @@ function DocumentItem({
           scope={newVersionScope}
         />
 
-        {/* Editar (nombre + tags + shared). */}
         <DocumentEditDrawer
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
@@ -480,7 +638,6 @@ function DocumentItem({
           }
         />
 
-        {/* Eliminar. */}
         <ConfirmButton
           action={eliminarDocumentoAction}
           title="¿Eliminar este documento?"
