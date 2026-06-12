@@ -15,11 +15,13 @@
 // El cron tampoco lee data ajena: solo procesa docs que el propio sistema
 // dejó marcados como 'skipped'.
 
+import { NextResponse } from "next/server";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import { documents } from "@/lib/db/schema";
 import { getStorage } from "@/lib/storage";
 import { getOcr, OCR_MAX_BYTES_CLAUDE } from "@/lib/ocr";
+import { isCronAuthorized } from "@/lib/cron/auth";
 
 // Hobby plan: 10s function timeout. Pro: 60s. Procesamos pocos por
 // invocación para no agotar el tiempo y darle margen al storage.get.
@@ -31,16 +33,17 @@ const BATCH_SIZE = 3;
 const CRON_MAX_BYTES = 25 * 1024 * 1024;
 
 export const runtime = "nodejs";
-// Function timeout configurable — el default es 10s en Hobby. Vercel.json
-// permite extender por path con `functions` config. Lo dejamos default
-// por ahora.
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-export async function GET(req: Request): Promise<Response> {
+// Vercel Cron envía POST por default. Aceptamos también GET para
+// triggers manuales desde curl.
+async function handler(req: Request): Promise<Response> {
   // ── Auth ──
-  const auth = req.headers.get("authorization");
-  const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
-  if (!process.env.CRON_SECRET || auth !== expected) {
-    return new Response("Unauthorized", { status: 401 });
+  // Usamos el helper compartido (mismo patrón que los otros crons).
+  // timingSafeEqual evita timing side channels.
+  if (!isCronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   // ── Buscar candidatos ──
@@ -137,7 +140,7 @@ export async function GET(req: Request): Promise<Response> {
     }
   }
 
-  return Response.json({
+  return NextResponse.json({
     ok: true,
     attempted: candidates.length,
     done,
@@ -146,3 +149,7 @@ export async function GET(req: Request): Promise<Response> {
     errors,
   });
 }
+
+// Vercel Cron usa POST por default; GET para curl manual.
+export const POST = handler;
+export const GET = handler;

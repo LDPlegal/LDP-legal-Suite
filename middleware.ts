@@ -31,6 +31,13 @@ export const config = {
     // los endpoints de download de documentos (que sirven archivos desde
     // iframes/img-tags donde los cookies con SameSite no siempre llegan;
     // esos endpoints hacen su propio auth con getCurrentUser).
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/documentos|api/portal/documentos|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
+    //
+    // `api/cron` también queda excluido: los crons usan Bearer CRON_SECRET
+    // (ver lib/cron/auth.ts), no session cookie. Si pasaran por este
+    // middleware se redirigirían a /login y el work nunca correría.
+    //
+    // `api/uploads/local` también — usa HMAC en query string (dev only),
+    // no cookies.
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/documentos|api/portal/documentos|api/cron|api/uploads/local|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
   ],
 };
