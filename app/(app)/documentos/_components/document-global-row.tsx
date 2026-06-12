@@ -199,6 +199,11 @@ export function DocumentGlobalRow({
           documentId={doc.id}
           documentName={doc.name}
           currentVersion={doc.version}
+          scope={
+            doc.caseId
+              ? { kind: "case", caseId: doc.caseId }
+              : { kind: "firm" }
+          }
         />
         <DocumentEditDrawer
           caseId={doc.caseId}

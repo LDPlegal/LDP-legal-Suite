@@ -156,6 +156,7 @@ export function DocumentRow({
           documentId={doc.id}
           documentName={doc.name}
           currentVersion={doc.version}
+          scope={{ kind: "case", caseId }}
         />
         <DocumentEditDrawer
           caseId={caseId}

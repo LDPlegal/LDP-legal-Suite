@@ -1254,4 +1254,107 @@ para nuevos corporates, se cambia el `superRefine` en el Zod schema.
 - Tests RLS para folders + E2E del flujo "crear cliente desde caso".
 - Paginación del listado global de documentos (hoy capeado en 100).
 
+---
+
+# Fase 7 — Direct upload via presigned URLs (hasta 500 MB)
+
+Pedido del usuario: "el tope de 25 MB me queda chico, necesito subir
+escaneos de expedientes de 100+ MB". Auditoría rápida descubrió varios
+chokepoints en cascada (los 5 caps de cliente, server, Next, Vercel y
+memoria de función). Bumpear números no escala — la arquitectura tenía
+que cambiar.
+
+## F7.1 — Direct upload del browser al storage, no via Vercel function
+
+**Decisión:** el archivo viaja **directo** del browser al storage
+(R2/S3 en prod, endpoint local con HMAC en dev). La Vercel function
+solo emite la URL firmada y registra el documento en DB después. Cero
+bytes del archivo pasan por la función.
+
+**Por qué:** Vercel Hobby tiene 4.5 MB de body cap por request. Pro
+permite hasta 100 MB con config. Para una firma con escaneos de
+expedientes de 200-500 MB la única opción viable es bypaso del
+function — el patrón estándar de la industria (S3 presigned URLs).
+
+**Implementación:**
+- Interface: [`lib/storage/index.ts`](./lib/storage/index.ts)
+  `presignedPut(key, contentType, sizeBytes)` añadido al StorageProvider.
+- S3Storage: usa `getSignedUrl` de `@aws-sdk/s3-request-presigner`
+  (paquete nuevo en este commit) con un `PutObjectCommand`. URL válida
+  15 min por default.
+- LocalStorage: emite `/api/uploads/local?key=...&exp=...&sig=...` donde
+  `sig` es HMAC-SHA256 de `${key}:${exp}` con `BETTER_AUTH_SECRET`.
+  Endpoint [`/api/uploads/local/route.ts`](./app/api/uploads/local/route.ts)
+  verifica + acepta el PUT. Esto deja que dev ejercite el mismo flow
+  sin necesitar R2 corriendo local.
+- Acción `prepararUploadAction`
+  ([`app/_actions/documentos/preparar-upload.ts`](./app/_actions/documentos/preparar-upload.ts)) —
+  recibe metadatos (filename, contentType, sizeBytes, scope), devuelve
+  presigned URL + storageKey. Tope 500 MB en el schema Zod.
+- Acción `completarUploadAction`
+  ([`app/_actions/documentos/completar-upload.ts`](./app/_actions/documentos/completar-upload.ts)) —
+  recibe storageKey + metadatos, crea record en `documents`, dispara
+  OCR si el size cabe en el cap del OCR module.
+- Helper client-side [`lib/uploads/client.ts`](./lib/uploads/client.ts)
+  `uploadFileDirect(opts)` — encapsula los 3 pasos: preparar → PUT XHR
+  con `upload.onprogress` para barra de progreso → completar.
+
+**Resultado:** tope efectivo 500 MB por archivo (configurable en el
+schema). El proceso de Vercel function dura segundos (genera URL +
+registro DB), no minutos (no buffereo del archivo). Cero memoria
+consumida por archivo en la función.
+
+## F7.2 — OCR sigue funcionando, con corte de seguridad
+
+**Decisión:** archivos ≤ `OCR_MAX_BYTES_CLAUDE` (10 MB) siguen pasando
+por OCR. Para archivos más grandes el record se crea con
+`ocr_status='skipped'` sin descargar — no tiene sentido bajar 200 MB
+a la function solo para que `getOcr()` los tire.
+
+**Implementación:** `completarUploadAction` chequea size antes del
+`after()`. Si excede el cap, hace solo `updateDocumentOcr(skipped)`.
+Si cabe, descarga via `storage.get(key)` y corre OCR como antes.
+
+## F7.3 — CSP actualizada para permitir conexiones a R2
+
+**Decisión:** agregar `https://*.r2.cloudflarestorage.com` y
+`https://*.amazonaws.com` a `connect-src` del CSP en
+[`vercel.json`](./vercel.json). Sin esto, el browser rechaza el PUT al
+storage (CSP bloquea XHR a domains no listados).
+
+## F7.4 — Validación post-upload diferida
+
+**Decisión:** `completarUploadAction` NO verifica que los bytes en el
+storage coincidan con lo declarado (filename/mime/sizeBytes). El cliente
+podría declarar 1 MB y subir 500 MB — el record en DB tendría
+`sizeBytes=1MB` pero el storage el archivo real.
+
+**Por qué se acepta hoy:**
+- El storageKey lo generó el server (firmId/scope/entityId — el cliente
+  no elige el path).
+- R2 firma con SigV4 + ContentType — si el cliente intenta cambiar el
+  type, la firma falla.
+- El audit_log captura el upload, así que cualquier abuso queda
+  rastreado.
+
+**Pendiente F7.5:** worker async que descarga, detecta magic bytes,
+actualiza `mimeType` real, y marca el doc como `mismatch_flagged` si
+hay discrepancia grande con lo declarado.
+
+## F7.5 — Diferidos a F7+
+
+- Worker async para verificar bytes vs metadata declarada (F7.4).
+- Multipart upload para archivos > 5 GB (R2 lo soporta nativo, hay que
+  implementar el lado cliente).
+- Borrar `app/_actions/documentos/upload.ts`, `upload-global.ts`,
+  `nueva-version.ts` cuando confirmemos que no hay referencias externas
+  (hoy solo se referencian a sí mismas).
+- Re-process OCR de docs > 10 MB cuando llegue un OCR worker en
+  background (post-Fase 7).
+
+## F7.6 — Setup operacional
+
+Ver [`docs/R2-SETUP.md`](./docs/R2-SETUP.md) para la guía de configuración
+de Cloudflare R2 (bucket + CORS + API token + env vars en Vercel).
+
 

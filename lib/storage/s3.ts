@@ -17,7 +17,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import type { StorageProvider } from "./index";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { PresignedPut, StorageProvider } from "./index";
 
 function sanitizeFilename(name: string): string {
   const base = name.replace(/[\\/]/g, "_").replace(/\.{2,}/g, "_");
@@ -124,5 +125,36 @@ export class S3Storage implements StorageProvider {
       }
       throw e;
     }
+  }
+
+  async presignedPut(
+    key: string,
+    contentType: string,
+    _sizeBytes: number,
+    expiresInSeconds = 15 * 60,
+  ): Promise<PresignedPut> {
+    // El browser va a hacer PUT directo al storage con este URL. Importante:
+    // ContentType en el command DEBE coincidir con el header Content-Type que
+    // el browser envíe — la firma SigV4 lo incluye, y si no calza S3 rechaza
+    // con SignatureDoesNotMatch.
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: contentType,
+    });
+    // Cast: @aws-sdk/client-s3 y @aws-sdk/s3-request-presigner pullan
+    // versiones distintas de @smithy/types en el árbol de deps, lo que
+    // hace que TypeScript no reconcilie los types nominalmente. El runtime
+    // funciona — usamos un cast estrecho para desbloquear el typecheck.
+    // Issue conocido: https://github.com/aws/aws-sdk-js-v3/issues/6435
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const uploadUrl = await getSignedUrl(this.client as any, command as any, {
+      expiresIn: expiresInSeconds,
+    });
+    return {
+      uploadUrl,
+      requiredHeaders: { "Content-Type": contentType },
+      expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
+    };
   }
 }

@@ -37,7 +37,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { uploadDocumentAction } from "@/app/_actions/documentos/upload";
+import { uploadFileDirect } from "@/lib/uploads/client";
+import { MAX_UPLOAD_BYTES } from "@/app/_actions/documentos/preparar-upload";
 
 type QueueItem = {
   id: string; // stable per file durante esta sesión del drawer
@@ -49,7 +50,7 @@ type QueueItem = {
   error?: string;
 };
 
-const MAX_PER_FILE_BYTES = 25 * 1024 * 1024; // 25 MB — match server limit
+const MAX_PER_FILE_BYTES = MAX_UPLOAD_BYTES; // 500 MB con direct upload (Fase 7)
 const MAX_BATCH_FILES = 200; // soft cap para evitar lockear el browser
 
 function formatBytes(n: number): string {
@@ -132,7 +133,7 @@ export function DocumentUploadDrawer({
             ? {
                 ...q,
                 status: "error",
-                error: `Excede 25MB (${formatBytes(item.file.size)})`,
+                error: `Excede ${MAX_PER_FILE_BYTES / 1024 / 1024} MB (${formatBytes(item.file.size)})`,
               }
             : q,
         ),
@@ -144,14 +145,18 @@ export function DocumentUploadDrawer({
       prev.map((q) => (q.id === item.id ? { ...q, status: "uploading" } : q)),
     );
 
-    const fd = new FormData();
-    fd.set("caseId", caseId);
-    fd.set("file", item.file);
-    if (folderId) fd.set("folderId", folderId);
-    if (tags.trim()) fd.set("tags", tags.trim());
+    const tagList =
+      tags.trim().length > 0
+        ? tags.split(",").map((t) => t.trim()).filter(Boolean)
+        : [];
 
     try {
-      const r = await uploadDocumentAction(undefined, fd);
+      const r = await uploadFileDirect({
+        scope: { kind: "case", caseId },
+        file: item.file,
+        folderId: folderId ?? null,
+        tags: tagList,
+      });
       if (r.ok) {
         setQueue((prev) =>
           prev.map((q) => (q.id === item.id ? { ...q, status: "done" } : q)),

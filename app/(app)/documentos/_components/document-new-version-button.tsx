@@ -2,18 +2,11 @@
 
 // Botón "Nueva versión" para reemplazar el contenido de un documento.
 //
-// UX:
-//   - Botón de icono (Upload) en la fila del documento.
-//   - Click abre un Dialog con file input + nombre del doc actual + caja
-//     informativa explicando qué pasa con la versión vieja (se mantiene
-//     en histórico).
-//   - Al confirmar, sube el archivo y revalida — el listado refresca y
-//     el badge de versión sube a v2/v3/etc.
-//
-// Diferencia con upload normal: este action NO pide caseId — lo hereda
-// del parent. Tampoco pide tags — los hereda. Es un "reemplazo en línea".
+// Fase 7 — usa direct upload via presigned URL (R2/S3 en prod). El archivo
+// va directo al storage; este botón solo crea el record en DB apuntando al
+// padre. Tope 500 MB.
 
-import { useRef, useState, useActionState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Loader2, FileUp, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,46 +20,78 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  nuevaVersionAction,
-  type NuevaVersionState,
-} from "@/app/_actions/documentos/nueva-version";
+import { uploadFileDirect, type UploadScope } from "@/lib/uploads/client";
+import { MAX_UPLOAD_BYTES } from "@/app/_actions/documentos/preparar-upload";
 import { formatBytes } from "@/lib/documents/format";
-
-const initial: NuevaVersionState = { ok: true, documentId: "", version: 0 };
 
 export function DocumentNewVersionButton({
   documentId,
   documentName,
   currentVersion,
+  scope,
 }: {
   documentId: string;
   documentName: string;
   currentVersion: number;
+  /** Scope donde vive el padre (case / client / firm). Necesario para
+   *  el storage key del nuevo upload. */
+  scope: UploadScope;
 }) {
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [state, action, pending] = useActionState<NuevaVersionState, FormData>(
-    async (_prev, fd) => {
-      const result = await nuevaVersionAction(_prev, fd);
-      if (result.ok) {
-        toast.success(`Nueva versión subida (v${result.version})`);
-        setOpen(false);
-        setSelectedFile(null);
+  function submit() {
+    if (!selectedFile) return;
+    if (selectedFile.size > MAX_UPLOAD_BYTES) {
+      setError(
+        `Archivo excede ${MAX_UPLOAD_BYTES / 1024 / 1024} MB (${formatBytes(selectedFile.size)}).`,
+      );
+      return;
+    }
+
+    setError(null);
+    setProgress(0);
+
+    startTransition(async () => {
+      try {
+        const result = await uploadFileDirect({
+          scope,
+          file: selectedFile,
+          parentDocumentId: documentId,
+          onProgress: (pct) => setProgress(pct),
+        });
+        if (result.ok) {
+          toast.success(`Nueva versión subida (v${currentVersion + 1})`);
+          setOpen(false);
+          setSelectedFile(null);
+          setProgress(null);
+        } else {
+          setError(result.error);
+          setProgress(null);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[DocumentNewVersionButton] uncaught:", err);
+        setError(`Error inesperado: ${msg}`);
+        setProgress(null);
       }
-      return result;
-    },
-    initial,
-  );
+    });
+  }
 
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (!v) setSelectedFile(null);
+        if (!v) {
+          setSelectedFile(null);
+          setError(null);
+          setProgress(null);
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -88,23 +113,22 @@ export function DocumentNewVersionButton({
             Subí un archivo de reemplazo para{" "}
             <span className="font-medium">{documentName}</span>. La versión
             actual (v{currentVersion}) queda en histórico — nunca se borra,
-            podés volver a ella si hace falta.
+            podés volver a ella si hace falta. Tope: {MAX_UPLOAD_BYTES / 1024 / 1024} MB.
           </DialogDescription>
         </DialogHeader>
 
-        <form action={action} className="space-y-4">
-          <input type="hidden" name="parentDocumentId" value={documentId} />
-
+        <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="file-input-new-version">Archivo *</Label>
             <input
               ref={fileInputRef}
               id="file-input-new-version"
               type="file"
-              name="file"
-              required
-              onChange={(e) => setSelectedFile(e.currentTarget.files?.[0] ?? null)}
+              onChange={(e) =>
+                setSelectedFile(e.currentTarget.files?.[0] ?? null)
+              }
               className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+              disabled={pending}
             />
             {selectedFile ? (
               <p className="text-xs text-muted-foreground">
@@ -112,15 +136,27 @@ export function DocumentNewVersionButton({
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Hasta 25 MB. Los tags, caso, y permisos de compartir con
-                cliente se heredan automáticamente.
+                Los tags, caso, y permisos de compartir con cliente se heredan
+                automáticamente del documento original.
               </p>
             )}
           </div>
 
-          {!state.ok && state.error ? (
-            <p className="text-sm text-destructive">{state.error}</p>
+          {progress !== null && pending ? (
+            <div className="space-y-1">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Subiendo… {progress}%
+              </p>
+            </div>
           ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
           <DialogFooter>
             <Button
@@ -131,7 +167,11 @@ export function DocumentNewVersionButton({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending || !selectedFile}>
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={pending || !selectedFile}
+            >
               {pending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -140,7 +180,7 @@ export function DocumentNewVersionButton({
               Subir versión {currentVersion + 1}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
