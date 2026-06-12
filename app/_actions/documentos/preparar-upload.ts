@@ -61,15 +61,18 @@ export async function prepararUploadAction(
         ? scope.clientId
         : "general";
 
-  const storage = getStorage();
-  const storageKey = storage.buildKey({
-    firmId: user.firmId,
-    scope: "documents",
-    entityId,
-    filename,
-  });
-
+  // Wrap getStorage() + presignedPut() en el mismo try/catch — el
+  // constructor de S3Storage tira si faltan env vars (S3_BUCKET, etc.) y
+  // sin este wrapper la excepción se propaga al React tree como
+  // "server-side exception" (en vez de mostrarse como toast claro).
   try {
+    const storage = getStorage();
+    const storageKey = storage.buildKey({
+      firmId: user.firmId,
+      scope: "documents",
+      entityId,
+      filename,
+    });
     const presigned = await storage.presignedPut(
       storageKey,
       contentType,
@@ -84,7 +87,7 @@ export async function prepararUploadAction(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[prepararUploadAction] presignedPut falló:", msg);
+    console.error("[prepararUploadAction] storage error:", msg);
     return {
       ok: false,
       error: `No se pudo generar URL de subida: ${msg}`,

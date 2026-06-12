@@ -190,7 +190,7 @@ export async function softDeleteFolder(
   folderId: string,
 ): Promise<boolean> {
   return withFirm(firmId, userId, async (tx) => {
-    // Marca el folder y todos sus descendientes como soft-deleted.
+    // PASO 1: marcar el folder y todos sus descendientes como soft-deleted.
     // CTE recursiva enfocada al subárbol del folder dado.
     await tx.execute(sql`
       WITH RECURSIVE descendants AS (
@@ -205,15 +205,28 @@ export async function softDeleteFolder(
       SET deleted_at = now(), updated_at = now()
       WHERE id IN (SELECT id FROM descendants);
     `);
-    // También sacamos los docs de esos folders del listado de carpeta (los
-    // dejamos sueltos en la raíz, no los borramos — el usuario puede
-    // re-organizarlos). Si quisiera eliminarlos, lo hace explícito.
+
+    // PASO 2: sacar los docs SOLO de esos folders al root (folder_id = NULL).
+    // Los docs no se borran, se quedan accesibles en la raíz.
+    //
+    // BUG anterior: la query tenía `WHERE path LIKE '%' OR parent_folder_id = …`
+    // — `LIKE '%'` matchea TODAS las filas con path no-null (que son todas
+    // por DEFAULT '/'), así que nulleaba folder_id de TODOS los documentos
+    // del firm. Bug catastrófico que hacía perder organización completa.
+    //
+    // Fix: misma CTE recursiva del paso 1 (sin filtrar deleted_at — los
+    // folders recién marcados aún están en la tabla, los encontramos igual).
     await tx.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM folders WHERE id = ${folderId}
+        UNION ALL
+        SELECT f.id
+        FROM folders f
+        INNER JOIN descendants d ON f.parent_folder_id = d.id
+      )
       UPDATE documents
       SET folder_id = NULL, updated_at = now()
-      WHERE folder_id = ${folderId} OR folder_id IN (
-        SELECT id FROM folders WHERE path LIKE '%' OR parent_folder_id = ${folderId}
-      );
+      WHERE folder_id IN (SELECT id FROM descendants);
     `);
     return true;
   });

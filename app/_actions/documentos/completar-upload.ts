@@ -59,6 +59,20 @@ export type CompletarUploadState =
 export async function completarUploadAction(
   input: CompletarUploadInput,
 ): Promise<CompletarUploadState> {
+  try {
+    return await completarUploadInner(input);
+  } catch (err) {
+    // Safety net: cualquier error inesperado se devuelve como toast claro
+    // en vez de propagar al React tree como "server-side exception".
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[completarUploadAction] uncaught:", msg);
+    return { ok: false, error: `Error inesperado: ${msg}` };
+  }
+}
+
+async function completarUploadInner(
+  input: CompletarUploadInput,
+): Promise<CompletarUploadState> {
   const user = await requireUser();
 
   const parsed = InputSchema.safeParse(input);
