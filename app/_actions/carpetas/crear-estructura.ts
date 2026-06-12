@@ -5,9 +5,10 @@
 //
 // Por qué separar esta acción de la subida:
 //   - El payload es chiquito (texto, kBs), pasa cualquier body limit.
-//   - El cliente luego sube cada archivo con uploadDocumentAction /
-//     uploadDocumentGlobalAction (que ya existen, validadas, con OCR).
-//   - Cada archivo es un POST independiente → no choca con bodySizeLimit
+//   - El cliente luego sube cada archivo directo al storage via
+//     uploadFileDirect (lib/uploads/client) — flow de Fase 7 con
+//     presigned URLs, no toca Vercel function.
+//   - Cada archivo es un PUT independiente al storage → no choca con bodySizeLimit
 //     ni memory limit de Vercel functions.
 //
 // Idempotencia: si la carpeta ya existe a ese nivel y nombre, se reusa.

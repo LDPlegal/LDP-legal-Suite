@@ -98,7 +98,7 @@ Ver [`docker-compose.yml`](./docker-compose.yml) para detalles.
 | `pnpm typecheck` | `tsc --noEmit` (TS estricto) |
 | `pnpm test` | Suite de Vitest (incluye `tests/integration/rls.test.ts`) |
 | `pnpm test:e2e` | Suite de Playwright (incluye cross-tenant) |
-| `pnpm db:generate` | Genera SQL desde el schema Drizzle |
+| `pnpm db:generate` | Genera SQL desde el schema Drizzle — **NO usar a ciegas**, ver nota abajo |
 | `pnpm db:migrate` | Bootstrap completo de DB (idempotente) |
 | `pnpm db:seed` | Carga seeds dominicanos |
 | `pnpm db:studio` | Abre Drizzle Studio |
@@ -126,6 +126,26 @@ pnpm test:e2e                     # Playwright (E2E equivalente)
 Si esos tests fallan, no avanzar a Fase 1.
 
 ---
+
+## ⚠️ Migraciones se escriben a mano
+
+**No usar `pnpm db:generate` de forma confiable.** Durante Fase 6
+descubrimos que el journal de drizzle-kit estaba muy desactualizado
+respecto al `schema.ts` (muchos cambios se hicieron manualmente sin
+generar). Una llamada a `db:generate` produjo una migración de 40+
+cambios mezclando lo nuevo con cosas ya aplicadas — peligrosa de correr
+en producción.
+
+**Patrón del proyecto:**
+1. Editar `lib/db/schema.ts`.
+2. Escribir a mano `drizzle/migrations/NNNN_descripcion.sql` con
+   `IF NOT EXISTS` / `IF EXISTS` donde corresponda (idempotente).
+3. Agregar entrada manual en `drizzle/migrations/meta/_journal.json`
+   con el tag exacto del filename.
+4. Correr `pnpm db:migrate` (que ejecuta lo nuevo del journal).
+
+Ver `drizzle/migrations/0023_case_fees.sql` como ejemplo del estilo
+(comentarios contextuales, RLS en la misma migración, idempotencia).
 
 ## Convenciones
 

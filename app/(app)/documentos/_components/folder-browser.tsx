@@ -13,6 +13,7 @@ import {
   EyeOff,
   FileText,
   Folder as FolderIcon,
+  FolderInput,
   Home,
   Image as ImageIcon,
   Pencil,
@@ -32,9 +33,12 @@ import { DocumentPreviewDrawer } from "./document-preview-drawer";
 import { DocumentSummaryDrawer } from "./document-summary-drawer";
 import { DocumentNewVersionButton } from "./document-new-version-button";
 import { ReprocessOneButton } from "./reprocess-buttons";
+import { MoveToDialog } from "./move-to-dialog";
+import { ShareFolderButton } from "./share-folder-button";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
+import type { FolderScope } from "@/lib/db/queries/folders";
 
 export type FolderListItem = {
   id: string;
@@ -72,6 +76,8 @@ export function FolderBrowser({
   rootLabel = "Documentos",
   extraParams = {},
   aiEnabled = false,
+  scope,
+  currentFolderId,
 }: {
   /** Path base para construir los hrefs de navegación. Ej: "/documentos" o "/casos/abc". */
   basePath: string;
@@ -86,6 +92,11 @@ export function FolderBrowser({
   extraParams?: Record<string, string>;
   /** Si el módulo de IA está habilitado, mostramos botones de resumen IA. */
   aiEnabled?: boolean;
+  /** Scope del browser (firm/case/client) — usado para el "Mover a..." dialog. */
+  scope: FolderScope;
+  /** Carpeta actual donde está parado el browser. null = raíz. Necesario
+   *  para que "Mover a..." no liste la carpeta actual como destino. */
+  currentFolderId: string | null;
 }) {
   function folderHref(folderId: string | null) {
     const params = new URLSearchParams();
@@ -136,7 +147,12 @@ export function FolderBrowser({
           </h3>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {folders.map((f) => (
-              <FolderCard key={f.id} folder={f} href={folderHref(f.id)} />
+              <FolderCard
+                key={f.id}
+                folder={f}
+                href={folderHref(f.id)}
+                scope={scope}
+              />
             ))}
           </div>
         </div>
@@ -156,7 +172,12 @@ export function FolderBrowser({
         ) : (
           <ul className="divide-y rounded-md border">
             {documents.map((d) => (
-              <DocumentItem key={d.id} doc={d} aiEnabled={aiEnabled} />
+              <DocumentItem
+                key={d.id}
+                doc={d}
+                aiEnabled={aiEnabled}
+                currentFolderId={currentFolderId}
+              />
             ))}
           </ul>
         )}
@@ -168,9 +189,11 @@ export function FolderBrowser({
 function FolderCard({
   folder,
   href,
+  scope,
 }: {
   folder: FolderListItem;
   href: string;
+  scope: FolderScope;
 }) {
   // Estado local del checkbox "también eliminar los documentos dentro".
   // Vive en el FolderCard porque el dialog del ConfirmButton lo monta abajo.
@@ -182,6 +205,27 @@ function FolderCard({
         <FolderIcon className="h-5 w-5 shrink-0 text-amber-500" />
         <span className="truncate text-sm font-medium">{folder.name}</span>
       </Link>
+      {/* Compartir todo el contenido con cliente del portal. */}
+      <ShareFolderButton folderId={folder.id} folderName={folder.name} />
+      {/* Mover carpeta a otro padre. */}
+      <MoveToDialog
+        itemKind="folder"
+        itemId={folder.id}
+        itemName={folder.name}
+        scope={scope}
+        currentFolderId={folder.id /* la carpeta misma no se lista como destino */}
+        trigger={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+            aria-label="Mover carpeta a..."
+            title="Mover a otra carpeta"
+          >
+            <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        }
+      />
       <ConfirmButton
         action={eliminarCarpetaAction}
         title="¿Eliminar esta carpeta?"
@@ -230,18 +274,22 @@ function FolderCard({
 function DocumentItem({
   doc,
   aiEnabled,
+  currentFolderId,
 }: {
   doc: DocumentListItem;
   aiEnabled: boolean;
+  currentFolderId: string | null;
 }) {
   const isImage = doc.mimeType.startsWith("image/");
 
-  // El scope para el "nueva versión" depende de dónde vive este doc.
-  const newVersionScope: UploadScope = doc.caseId
+  // El scope para el "nueva versión" y para "mover a..." depende de dónde
+  // vive este doc.
+  const docScope: FolderScope = doc.caseId
     ? { kind: "case", caseId: doc.caseId }
     : doc.clientId
       ? { kind: "client", clientId: doc.clientId }
       : { kind: "firm" };
+  const newVersionScope: UploadScope = docScope;
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 p-3 hover:bg-accent/50">
@@ -387,6 +435,26 @@ function DocumentItem({
 
         {/* Re-process OCR. */}
         <ReprocessOneButton docId={doc.id} />
+
+        {/* Mover a otra carpeta. */}
+        <MoveToDialog
+          itemKind="document"
+          itemId={doc.id}
+          itemName={doc.name}
+          scope={docScope}
+          currentFolderId={currentFolderId}
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Mover a..."
+              title="Mover a otra carpeta"
+            >
+              <FolderInput className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
 
         {/* Nueva versión. */}
         <DocumentNewVersionButton

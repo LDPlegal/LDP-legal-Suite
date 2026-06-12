@@ -1341,14 +1341,60 @@ podría declarar 1 MB y subir 500 MB — el record en DB tendría
 actualiza `mimeType` real, y marca el doc como `mismatch_flagged` si
 hay discrepancia grande con lo declarado.
 
-## F7.5 — Diferidos a F7+
+## F7.5 — Bug: `export const` desde un archivo `"use server"` rompe el bundle
+
+**Síntoma:** después del primer deploy de Fase 7, TODOS los uploads (hasta
+archivos de 159 KB) fallaban con el error genérico de React "An error
+occurred in the Server Components render". No quedaba claro qué fallaba.
+
+**Causa raíz:** `prepararUploadAction` vivía en un archivo con directiva
+`"use server"` al tope, pero también exportaba `MAX_UPLOAD_BYTES` como
+`const`. La spec de Next.js Server Actions exige que TODOS los exports de
+un archivo "use server" sean **funciones async**. Mezclar un `const` causa
+comportamiento indefinido en el bundle de producción:
+- El build pasa sin error (Next.js no enforza estrictamente).
+- En runtime, los client components que importan el `const` reciben algo
+  inesperado (typicamente `undefined` o un proxy roto).
+- Cuando el client component evalúa el import, tira en producción con la
+  exception genérica de React.
+
+**Fix:** mover el `const` a `lib/uploads/limits.ts` (archivo SIN "use
+server"). Las server actions y los client components pueden importarlo
+sin violar la regla.
+
+**Regla del proyecto a futuro:** un archivo con `"use server"` SOLO
+exporta funciones async (los `export type` son OK porque se erasen en
+compile time, pero `const`/`let`/`var`/`class` no).
+
+## F7.6 — Bug: `softDeleteFolder` con `LIKE '%'` nullaba folder_id de TODO el firm
+
+**Síntoma:** al borrar UNA carpeta, los documentos de TODAS las carpetas
+del firm volvían a la raíz (folder_id = NULL). Datos de organización
+silenciosamente destruidos.
+
+**Causa raíz:** mi query del paso 2 (mover docs a root al borrar folder)
+tenía un OR mal escrito:
+```sql
+WHERE folder_id = X OR folder_id IN (
+  SELECT id FROM folders WHERE path LIKE '%' OR parent_folder_id = X
+)
+```
+`LIKE '%'` matchea TODAS las filas con `path` no-null. Como `path` tiene
+default `'/'` (no nullable), todos los folders del firm calificaban.
+Entonces la inner select devolvía TODOS los folder IDs → el outer UPDATE
+nulleaba folder_id de TODOS los docs del firm.
+
+**Fix:** usar CTE recursiva (la misma del paso 1) que solo enumera el
+subárbol del folder a borrar. Sin `LIKE '%'`.
+
+**Diferidos a F7.5+:**
 
 - Worker async para verificar bytes vs metadata declarada (F7.4).
 - Multipart upload para archivos > 5 GB (R2 lo soporta nativo, hay que
   implementar el lado cliente).
-- Borrar `app/_actions/documentos/upload.ts`, `upload-global.ts`,
-  `nueva-version.ts` cuando confirmemos que no hay referencias externas
-  (hoy solo se referencian a sí mismas).
+- ✅ ~~Borrar~~ `app/_actions/documentos/upload.ts`, `upload-global.ts`,
+  `nueva-version.ts` — borradas en cleanup post-F7. Sólo viven en git
+  history.
 - Re-process OCR de docs > 10 MB cuando llegue un OCR worker en
   background (post-Fase 7).
 

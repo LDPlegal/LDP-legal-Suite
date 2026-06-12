@@ -50,6 +50,8 @@ export function CaseFolderBrowser({
         rootLabel="Raíz del caso"
         extraParams={{ tab: "documentos" }}
         aiEnabled={aiEnabled}
+        scope={scope}
+        currentFolderId={folderId}
       />
     </div>
   );

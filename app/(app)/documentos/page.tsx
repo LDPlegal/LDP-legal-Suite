@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Upload } from "lucide-react";
+import { Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,19 +27,30 @@ import { ReprocessAllButton } from "./_components/reprocess-buttons";
 import { FolderBrowser } from "./_components/folder-browser";
 import { NewFolderDialog } from "./_components/new-folder-dialog";
 import { UploadFolderButton } from "./_components/upload-folder-button";
+import { PaginationStrip } from "./_components/pagination-strip";
 
 export const metadata = { title: "Documentos · LDP Legal Suite" };
 
 export default async function DocumentosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; shared?: string; folder?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    shared?: string;
+    folder?: string;
+    page?: string;
+  }>;
 }) {
   const user = await requireUser();
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const onlyShared = sp.shared === "1";
   const folderId = sp.folder ?? null;
+  // Paginación — solo aplica en search mode. Page 1-indexed; default 50/page.
+  const PAGE_SIZE = 50;
+  const pageParam = Number.parseInt(sp.page ?? "1", 10);
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const offset = (page - 1) * PAGE_SIZE;
 
   // Modo búsqueda: si el usuario buscó por texto o filtró por compartidos,
   // mostramos la tabla plana clásica con resultados. La navegación por
@@ -67,7 +78,8 @@ export default async function DocumentosPage({
         ? listAllDocuments(user.firmId, user.userId, {
             search: q || undefined,
             onlyShared,
-            limit: 100,
+            limit: PAGE_SIZE,
+            offset,
           })
         : Promise.resolve({ rows: [], total: 0 }),
     ]);
@@ -92,6 +104,14 @@ export default async function DocumentosPage({
         countLabel={{ singular: "archivo", plural: "archivos" }}
       >
         <div className="flex items-center gap-2">
+          <Link
+            href="/documentos/papelera"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
+            title="Papelera (elementos eliminados)"
+          >
+            <Trash2 className="h-4 w-4" />
+            Papelera
+          </Link>
           <ReprocessAllButton />
           {!isSearchMode ? (
             <>
@@ -151,13 +171,16 @@ export default async function DocumentosPage({
 
       {isSearchMode ? (
         <>
-          <p className="text-xs text-muted-foreground">
-            {searchResults.total}{" "}
-            {searchResults.total === 1 ? "resultado" : "resultados"}
-            {searchResults.rows.length < searchResults.total
-              ? ` · mostrando los primeros ${searchResults.rows.length}`
-              : ""}
-          </p>
+          <PaginationStrip
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={searchResults.total}
+            shown={searchResults.rows.length}
+            searchParams={{
+              q,
+              shared: onlyShared ? "1" : undefined,
+            }}
+          />
 
           <Card className="overflow-hidden">
             <CardContent className="p-0">
@@ -204,6 +227,20 @@ export default async function DocumentosPage({
               )}
             </CardContent>
           </Card>
+
+          {/* Paginación inferior — repetida para que el user no scrollee arriba */}
+          {searchResults.rows.length > 0 ? (
+            <PaginationStrip
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={searchResults.total}
+              shown={searchResults.rows.length}
+              searchParams={{
+                q,
+                shared: onlyShared ? "1" : undefined,
+              }}
+            />
+          ) : null}
         </>
       ) : folderId && !currentFolder ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
@@ -232,6 +269,8 @@ export default async function DocumentosPage({
             clientId: d.clientId,
           }))}
           aiEnabled={isAiEnabled()}
+          scope={scope}
+          currentFolderId={folderId}
         />
       )}
     </div>

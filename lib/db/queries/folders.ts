@@ -280,6 +280,228 @@ export async function moveDocumentToFolder(
  * Lista documentos directamente dentro de una carpeta (no recursivo).
  * folderId=null trae los de la raíz del scope.
  */
+/**
+ * Devuelve TODAS las carpetas activas del firm, por scope (case/client/firm).
+ * Útil para el picker de "Mover a..." donde el user elige destino.
+ */
+export async function listAllFoldersInScope(
+  firmId: string,
+  userId: string,
+  scope: FolderScope,
+): Promise<Folder[]> {
+  return withFirm(firmId, userId, async (tx) => {
+    const conds = [isNull(folders.deletedAt)];
+    if (scope.kind === "firm") {
+      conds.push(isNull(folders.caseId), isNull(folders.clientId));
+    } else if (scope.kind === "case") {
+      conds.push(eq(folders.caseId, scope.caseId));
+    } else {
+      conds.push(eq(folders.clientId, scope.clientId));
+    }
+    return tx
+      .select()
+      .from(folders)
+      .where(and(...conds))
+      .orderBy(asc(folders.path), asc(folders.name));
+  });
+}
+
+/**
+ * Cascada: setea `shared_with_client` para TODOS los docs en una carpeta
+ * y sus subcarpetas. Reqs:
+ *   - El doc tiene que estar en un caso (sharedWithClient solo aplica
+ *     cuando el caso tiene client_id; portal filtra por client_id).
+ *   - Docs sin case_id quedan exentos (no aparecen en portal igual).
+ *
+ * Devuelve cuántos docs cambiaron.
+ */
+export async function setFolderSharedWithClient(
+  firmId: string,
+  userId: string,
+  folderId: string,
+  shared: boolean,
+): Promise<{ updated: number }> {
+  return withFirm(firmId, userId, async (tx) => {
+    const result = await tx.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM folders WHERE id = ${folderId} AND deleted_at IS NULL
+        UNION ALL
+        SELECT f.id FROM folders f
+        INNER JOIN descendants d ON f.parent_folder_id = d.id
+        WHERE f.deleted_at IS NULL
+      )
+      UPDATE documents
+      SET shared_with_client = ${shared}, updated_at = now()
+      WHERE folder_id IN (SELECT id FROM descendants)
+        AND case_id IS NOT NULL
+        AND deleted_at IS NULL
+        AND shared_with_client IS DISTINCT FROM ${shared}
+      RETURNING id;
+    `);
+    return { updated: result.rows.length };
+  });
+}
+
+/**
+ * Mueve una carpeta a otro padre. newParentFolderId = null → raíz del scope.
+ * Recalcula path materializada de la carpeta y TODOS sus descendientes.
+ * Valida no-cycle: no se puede mover una carpeta dentro de su propio subárbol.
+ */
+export async function moveFolder(
+  firmId: string,
+  userId: string,
+  folderId: string,
+  newParentFolderId: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  return withFirm(firmId, userId, async (tx) => {
+    if (folderId === newParentFolderId) {
+      return { ok: false, error: "No se puede mover una carpeta dentro de sí misma." };
+    }
+
+    // Cargar la carpeta a mover.
+    const [folder] = await tx
+      .select()
+      .from(folders)
+      .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)))
+      .limit(1);
+    if (!folder) return { ok: false, error: "Carpeta no encontrada." };
+
+    // Validar no-cycle: si newParentFolderId es descendiente de folderId,
+    // estaríamos creando un ciclo.
+    if (newParentFolderId) {
+      const cycle = await tx.execute(sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM folders WHERE id = ${folderId}
+          UNION ALL
+          SELECT f.id FROM folders f
+          INNER JOIN descendants d ON f.parent_folder_id = d.id
+        )
+        SELECT 1 FROM descendants WHERE id = ${newParentFolderId} LIMIT 1
+      `);
+      if (cycle.rows.length > 0) {
+        return { ok: false, error: "No se puede mover una carpeta dentro de su propio subárbol." };
+      }
+    }
+
+    // Calcular el nuevo path materializado del folder.
+    let newParentPath = "/";
+    let newCaseId: string | null = null;
+    let newClientId: string | null = null;
+    if (newParentFolderId) {
+      const [parent] = await tx
+        .select()
+        .from(folders)
+        .where(and(eq(folders.id, newParentFolderId), isNull(folders.deletedAt)))
+        .limit(1);
+      if (!parent) return { ok: false, error: "Carpeta destino no existe." };
+      newParentPath = parent.path === "/" ? `/${parent.name}` : `${parent.path}/${parent.name}`;
+      newCaseId = parent.caseId;
+      newClientId = parent.clientId;
+    } else {
+      // Mover a raíz: heredamos el scope original del folder.
+      newCaseId = folder.caseId;
+      newClientId = folder.clientId;
+    }
+
+    // Update del folder principal.
+    await tx
+      .update(folders)
+      .set({
+        parentFolderId: newParentFolderId,
+        path: newParentPath,
+        caseId: newCaseId,
+        clientId: newClientId,
+        updatedAt: new Date(),
+      })
+      .where(eq(folders.id, folderId));
+
+    // Recalcular path de los descendientes. Necesitamos hacerlo en SQL
+    // recursivo para no traer todo a JS. Truco: calculamos el path nuevo
+    // de cada descendiente como replace(path antiguo, prefijo viejo del
+    // folder movido, prefijo nuevo).
+    const oldPrefix =
+      folder.path === "/" ? `/${folder.name}` : `${folder.path}/${folder.name}`;
+    const newPrefix =
+      newParentPath === "/" ? `/${folder.name}` : `${newParentPath}/${folder.name}`;
+
+    await tx.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM folders WHERE parent_folder_id = ${folderId}
+        UNION ALL
+        SELECT f.id FROM folders f
+        INNER JOIN descendants d ON f.parent_folder_id = d.id
+      )
+      UPDATE folders
+      SET
+        path = ${newPrefix} || substring(path FROM length(${oldPrefix}) + 1),
+        case_id = ${newCaseId},
+        client_id = ${newClientId},
+        updated_at = now()
+      WHERE id IN (SELECT id FROM descendants);
+    `);
+
+    return { ok: true };
+  });
+}
+
+/**
+ * Lista carpetas soft-deleted (papelera). Filtra por firm vía withFirm.
+ * Las RLS policies del folders ya filtran por firm, así que basta con
+ * deleted_at IS NOT NULL.
+ */
+export async function listDeletedFolders(
+  firmId: string,
+  userId: string,
+): Promise<Folder[]> {
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select()
+      .from(folders)
+      .where(sql`${folders.deletedAt} IS NOT NULL`)
+      .orderBy(desc(folders.deletedAt));
+  });
+}
+
+/**
+ * Restaura una carpeta soft-deleted. NO restaura los docs que estaban
+ * adentro — si el user quiere los docs también, tiene que restaurarlos
+ * uno por uno desde la papelera.
+ */
+export async function restoreFolder(
+  firmId: string,
+  userId: string,
+  folderId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(folders)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(and(eq(folders.id, folderId), sql`${folders.deletedAt} IS NOT NULL`))
+      .returning({ id: folders.id });
+    return !!row;
+  });
+}
+
+/**
+ * Hard delete: elimina la carpeta de la DB definitivamente. Los documentos
+ * con folder_id apuntando a esta carpeta quedan con folder_id = NULL gracias
+ * al ON DELETE SET NULL del FK. Subcarpetas hijas también se hard-deletan
+ * gracias al ON DELETE CASCADE del self-FK.
+ */
+export async function hardDeleteFolder(
+  firmId: string,
+  userId: string,
+  folderId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const result = await tx
+      .delete(folders)
+      .where(and(eq(folders.id, folderId), sql`${folders.deletedAt} IS NOT NULL`))
+      .returning({ id: folders.id });
+    return result.length > 0;
+  });
+}
+
 export async function listDocumentsInFolder(
   firmId: string,
   userId: string,

@@ -279,6 +279,61 @@ export async function softDeleteDocument(
   });
 }
 
+/**
+ * Lista docs soft-deleted del firm (papelera). RLS filtra por firm via withFirm.
+ */
+export async function listDeletedDocuments(
+  firmId: string,
+  userId: string,
+): Promise<Document[]> {
+  return withFirm(firmId, userId, async (tx) => {
+    return tx
+      .select()
+      .from(documents)
+      .where(sql`${documents.deletedAt} IS NOT NULL`)
+      .orderBy(desc(documents.deletedAt));
+  });
+}
+
+export async function restoreDocument(
+  firmId: string,
+  userId: string,
+  documentId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(documents)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(and(eq(documents.id, documentId), sql`${documents.deletedAt} IS NOT NULL`))
+      .returning({ id: documents.id });
+    return !!row;
+  });
+}
+
+/**
+ * Hard delete del documento. NO borra del storage — el archivo en R2/S3
+ * queda huérfano. Si se quiere también limpiar storage, hay que llamar
+ * storage.remove(storageKey) ANTES (lo hace la action).
+ */
+export async function hardDeleteDocument(
+  firmId: string,
+  userId: string,
+  documentId: string,
+): Promise<{ ok: boolean; storageKey?: string }> {
+  return withFirm(firmId, userId, async (tx) => {
+    // Necesitamos el storageKey para que la action lo borre del bucket.
+    const [doc] = await tx
+      .select({ storageKey: documents.storageKey })
+      .from(documents)
+      .where(and(eq(documents.id, documentId), sql`${documents.deletedAt} IS NOT NULL`))
+      .limit(1);
+    if (!doc) return { ok: false };
+
+    await tx.delete(documents).where(eq(documents.id, documentId));
+    return { ok: true, storageKey: doc.storageKey };
+  });
+}
+
 // Toggle whether a document is visible in the client's portal. Idempotent:
 // passing the same value as the current one is a no-op write.
 export async function setDocumentSharedWithClient(
