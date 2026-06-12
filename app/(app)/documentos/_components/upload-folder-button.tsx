@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { crearEstructuraCarpetasAction } from "@/app/_actions/carpetas/crear-estructura";
 import { uploadFileDirect } from "@/lib/uploads/client";
-import { MAX_UPLOAD_BYTES } from "@/app/_actions/documentos/preparar-upload";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 import type { FolderScope } from "@/lib/db/queries/folders";
 
 const MAX_FILES = 500;

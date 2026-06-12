@@ -31,6 +31,7 @@ import {
 } from "@/lib/db/queries/documents";
 import { getStorage } from "@/lib/storage";
 import { getOcr, OCR_MAX_BYTES_CLAUDE } from "@/lib/ocr";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 
 const ScopeSchema = z.union([
   z.object({ kind: z.literal("case"), caseId: z.string().uuid() }),
@@ -43,7 +44,7 @@ const InputSchema = z.object({
   storageKey: z.string().min(1).max(500),
   filename: z.string().trim().min(1).max(255),
   mimeType: z.string().trim().min(1).max(255),
-  sizeBytes: z.number().int().positive().max(500 * 1024 * 1024),
+  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
   folderId: z.string().uuid().nullable().default(null),
   tags: z.array(z.string().min(1).max(40)).default([]),
   /** Cuando es una nueva versión, apunta al doc anterior. */

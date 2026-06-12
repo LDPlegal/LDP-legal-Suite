@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { uploadFileDirect, type UploadScope } from "@/lib/uploads/client";
-import { MAX_UPLOAD_BYTES } from "@/app/_actions/documentos/preparar-upload";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 import { formatBytes } from "@/lib/documents/format";
 
 export function DocumentNewVersionButton({

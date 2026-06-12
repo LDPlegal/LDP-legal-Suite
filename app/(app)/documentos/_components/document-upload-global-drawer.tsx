@@ -29,7 +29,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { uploadFileDirect } from "@/lib/uploads/client";
-import { MAX_UPLOAD_BYTES } from "@/app/_actions/documentos/preparar-upload";
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 
 type QueueItem = {
   id: string;
