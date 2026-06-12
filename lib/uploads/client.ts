@@ -83,10 +83,27 @@ export async function uploadFileDirect(
           );
         }
       };
-      xhr.onerror = () =>
-        reject(new Error("Falló el PUT al storage (network error)."));
+      xhr.onerror = () => {
+        // El browser nunca expone "esto fue CORS" vs "esto fue DNS" por
+        // razones de seguridad — ambos terminan en onerror sin info. Pero
+        // 99% de las veces que llegamos acá en prod es CORS del bucket.
+        // Damos un mensaje accionable con el host que intentamos.
+        let host = "el storage";
+        try {
+          host = new URL(prep.uploadUrl, window.location.origin).host;
+        } catch {
+          // ignore
+        }
+        reject(
+          new Error(
+            `PUT a "${host}" falló. Lo más probable: el bucket no tiene ` +
+              `"${window.location.origin}" en su CORS AllowedOrigins. ` +
+              `Revisá Cloudflare R2 → bucket → Settings → CORS Policy.`,
+          ),
+        );
+      };
       xhr.ontimeout = () =>
-        reject(new Error("Timeout subiendo al storage."));
+        reject(new Error("Timeout subiendo al storage. Probá con archivo más chico."));
       xhr.send(file);
     });
   } catch (err) {
