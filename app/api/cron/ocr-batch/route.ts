@@ -18,7 +18,7 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
-import { documents } from "@/lib/db/schema";
+import { documents, users } from "@/lib/db/schema";
 import { getStorage } from "@/lib/storage";
 import { getOcr, OCR_MAX_BYTES_CLAUDE } from "@/lib/ocr";
 import { isCronAuthorized } from "@/lib/cron/auth";
@@ -48,6 +48,11 @@ async function handler(req: Request): Promise<Response> {
 
   // ── Buscar candidatos ──
   // status='skipped' + size razonable + no soft-deleted, más recientes primero.
+  // Traemos uploadedBy porque el OCR module necesita un userId REAL para
+  // atribuir el costo de Claude Vision en ai_usage (FK a users.id). Pasar
+  // el firmId como userId — como hacía la versión anterior — rompía el
+  // insert de tracking (FK violation, swallowed pero perdía el registro
+  // de costo). Ver fix abajo: resolveUserId().
   const candidates = await adminDb
     .select({
       id: documents.id,
@@ -56,6 +61,7 @@ async function handler(req: Request): Promise<Response> {
       mimeType: documents.mimeType,
       sizeBytes: documents.sizeBytes,
       name: documents.name,
+      uploadedBy: documents.uploadedBy,
     })
     .from(documents)
     .where(
@@ -69,7 +75,26 @@ async function handler(req: Request): Promise<Response> {
     .limit(BATCH_SIZE);
 
   if (candidates.length === 0) {
-    return Response.json({ ok: true, attempted: 0, message: "No pending docs." });
+    return NextResponse.json({ ok: true, attempted: 0, message: "No pending docs." });
+  }
+
+  // Cache firmId → userId real (cualquier usuario activo del firm), para no
+  // hacer un lookup por doc cuando uploadedBy es null.
+  const firmUserCache = new Map<string, string | null>();
+  async function resolveUserId(
+    firmId: string,
+    uploadedBy: string | null,
+  ): Promise<string | null> {
+    if (uploadedBy) return uploadedBy;
+    if (firmUserCache.has(firmId)) return firmUserCache.get(firmId)!;
+    const [u] = await adminDb
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.firmId, firmId), isNull(users.deletedAt)))
+      .limit(1);
+    const resolved = u?.id ?? null;
+    firmUserCache.set(firmId, resolved);
+    return resolved;
   }
 
   const storage = getStorage();
@@ -94,6 +119,12 @@ async function handler(req: Request): Promise<Response> {
         continue;
       }
 
+      // Resolver un userId REAL del firm para atribución de costo correcta.
+      // Si el firm no tiene ningún usuario (caso raro), userId queda null —
+      // el OCR module skipea Claude Vision (necesita user para tracking) y
+      // los PDFs con capa de texto / DOCX se procesan igual sin costo IA.
+      const realUserId = await resolveUserId(doc.firmId, doc.uploadedBy);
+
       const bytes = await storage.get(doc.storageKey);
       const result = await ocr.recognize({
         mimeType: doc.mimeType,
@@ -101,7 +132,7 @@ async function handler(req: Request): Promise<Response> {
         sizeBytes: doc.sizeBytes,
         filename: doc.name,
         firmId: doc.firmId,
-        userId: doc.firmId, // user del firm — no tenemos uno real acá
+        userId: realUserId ?? undefined,
       });
 
       if (result.status === "done") {
