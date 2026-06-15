@@ -55,6 +55,7 @@ import { ReprocessOneButton } from "./reprocess-buttons";
 import { MoveToDialog } from "./move-to-dialog";
 import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
+import { BulkActionsBar } from "./bulk-actions-bar";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
@@ -131,6 +132,44 @@ export function FolderBrowser({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  // — Estado de selección múltiple —
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
+
+  function toggleDoc(id: string) {
+    setSelectedDocIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleFolder(id: string) {
+    setSelectedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function clearSelection() {
+    setSelectedDocIds(new Set());
+    setSelectedFolderIds(new Set());
+  }
+  // Select-all por sección (toggle: si todos están seleccionados, deselecciona).
+  const allDocsSelected =
+    documents.length > 0 && documents.every((d) => selectedDocIds.has(d.id));
+  const allFoldersSelected =
+    folders.length > 0 && folders.every((f) => selectedFolderIds.has(f.id));
+  function toggleAllDocs() {
+    setSelectedDocIds(allDocsSelected ? new Set() : new Set(documents.map((d) => d.id)));
+  }
+  function toggleAllFolders() {
+    setSelectedFolderIds(allFoldersSelected ? new Set() : new Set(folders.map((f) => f.id)));
+  }
+
+  const hasSelection = selectedDocIds.size + selectedFolderIds.size > 0;
+
   function folderHref(folderId: string | null) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(extraParams)) {
@@ -186,6 +225,17 @@ export function FolderBrowser({
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
+        {/* Barra de acciones bulk — sticky, solo cuando hay selección */}
+        {hasSelection ? (
+          <BulkActionsBar
+            selectedDocIds={[...selectedDocIds]}
+            selectedFolderIds={[...selectedFolderIds]}
+            scope={scope}
+            currentFolderId={currentFolderId}
+            onClear={clearSelection}
+          />
+        ) : null}
+
         {/* Breadcrumb con drop zones por segmento */}
         <nav className="flex items-center gap-1 text-sm">
           <BreadcrumbDroppable id="bc:root" href={folderHref(null)}>
@@ -212,7 +262,15 @@ export function FolderBrowser({
         {/* Grid de carpetas */}
         {folders.length > 0 ? (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={allFoldersSelected}
+                onChange={toggleAllFolders}
+                className="h-3.5 w-3.5 cursor-pointer"
+                aria-label="Seleccionar todas las carpetas"
+                title="Seleccionar todas"
+              />
               Carpetas
             </h3>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -222,6 +280,8 @@ export function FolderBrowser({
                   folder={f}
                   href={folderHref(f.id)}
                   scope={scope}
+                  selected={selectedFolderIds.has(f.id)}
+                  onToggleSelect={() => toggleFolder(f.id)}
                 />
               ))}
             </div>
@@ -230,7 +290,17 @@ export function FolderBrowser({
 
         {/* Lista de documentos */}
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {documents.length > 0 ? (
+              <input
+                type="checkbox"
+                checked={allDocsSelected}
+                onChange={toggleAllDocs}
+                className="h-3.5 w-3.5 cursor-pointer"
+                aria-label="Seleccionar todos los documentos"
+                title="Seleccionar todos"
+              />
+            ) : null}
             Documentos {documents.length > 0 ? `(${documents.length})` : ""}
           </h3>
           {documents.length === 0 ? (
@@ -247,6 +317,8 @@ export function FolderBrowser({
                   doc={d}
                   aiEnabled={aiEnabled}
                   currentFolderId={currentFolderId}
+                  selected={selectedDocIds.has(d.id)}
+                  onToggleSelect={() => toggleDoc(d.id)}
                 />
               ))}
             </ul>
@@ -297,10 +369,14 @@ function FolderCard({
   folder,
   href,
   scope,
+  selected,
+  onToggleSelect,
 }: {
   folder: FolderListItem;
   href: string;
   scope: FolderScope;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const [deleteDocs, setDeleteDocs] = useState(false);
 
@@ -329,12 +405,23 @@ function FolderCard({
       style={style}
       className={[
         "group relative flex items-center gap-2 p-3 transition-colors",
-        drop.isOver
-          ? "border-primary bg-primary/10"
-          : "hover:bg-accent",
+        selected
+          ? "border-primary bg-primary/5"
+          : drop.isOver
+            ? "border-primary bg-primary/10"
+            : "hover:bg-accent",
         drag.isDragging ? "ring-2 ring-primary" : "",
       ].join(" ")}
     >
+      {/* Checkbox de selección */}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        onClick={(e) => e.stopPropagation()}
+        className="h-4 w-4 shrink-0 cursor-pointer"
+        aria-label={`Seleccionar carpeta ${folder.name}`}
+      />
       {/* Drag handle — solo este icono triggers el drag, los demás clicks van al Link. */}
       <button
         type="button"
@@ -419,10 +506,14 @@ function DocumentItem({
   doc,
   aiEnabled,
   currentFolderId,
+  selected,
+  onToggleSelect,
 }: {
   doc: DocumentListItem;
   aiEnabled: boolean;
   currentFolderId: string | null;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
   const isImage = doc.mimeType.startsWith("image/");
 
@@ -449,10 +540,22 @@ function DocumentItem({
       style={style}
       className={[
         "flex flex-wrap items-center justify-between gap-3 p-3 transition-colors",
-        drag.isDragging ? "bg-primary/5 ring-1 ring-primary" : "hover:bg-accent/50",
+        selected
+          ? "bg-primary/5"
+          : drag.isDragging
+            ? "bg-primary/5 ring-1 ring-primary"
+            : "hover:bg-accent/50",
       ].join(" ")}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* Checkbox de selección */}
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="h-4 w-4 shrink-0 cursor-pointer"
+          aria-label={`Seleccionar documento ${doc.name}`}
+        />
         {/* Drag handle */}
         <button
           type="button"

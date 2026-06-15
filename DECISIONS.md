@@ -1459,11 +1459,30 @@ vive cada doc. `listAllDocuments` ahora hace left join a `folders` y
 devuelve folderName/folderPath; `DocumentGlobalRow` muestra la carpeta
 con un icono bajo el caso.
 
-## F8.7 — Diferidos a F8+
+## F8.7 — Selección múltiple + acciones bulk
 
-- Selección múltiple + acciones bulk (mover/borrar/compartir N docs a la
-  vez). Es un proyecto de UX más grande (estado de selección, checkboxes,
-  toolbar contextual) — vale la pena cuando el volumen lo justifique.
+Estado de selección en `FolderBrowser` (dos Sets: docs y carpetas) con
+checkboxes por item + select-all por sección. Cuando hay ≥1 seleccionado
+aparece una `BulkActionsBar` sticky con:
+- **Mover**: dialog picker (reusa `listarCarpetasScopeAction`), excluye las
+  carpetas seleccionadas de los destinos.
+- **Compartir / Quitar**: solo afecta docs (botones disabled si no hay docs
+  seleccionados).
+- **Eliminar**: confirm con opción "también docs dentro de las carpetas".
+
+Server: `app/_actions/carpetas/bulk.ts` con `moverItemsBulkAction`,
+`eliminarItemsBulkAction`, `compartirDocsBulkAction`. Cada una itera sobre
+los IDs reusando las queries single existentes (moveFolder valida no-cycle
+per-item, softDeleteFolder cascada per-item) y acumula `{ moved/deleted/
+shared, failed }`. Errores parciales no abortan el resto.
+
+Los checkboxes conviven con el D&D: el drag sigue en el grip handle
+dedicado, el checkbox es un control aparte.
+
+## F8.8 — Diferidos a F8+
+
 - Filtro por tags dentro de la vista de carpeta.
+- Selección que persista al navegar entre carpetas (hoy se limpia al
+  cambiar de nivel — intencional para evitar mover algo sin querer).
 
 
