@@ -1403,4 +1403,67 @@ subárbol del folder a borrar. Sin `LIKE '%'`.
 Ver [`docs/R2-SETUP.md`](./docs/R2-SETUP.md) para la guía de configuración
 de Cloudflare R2 (bucket + CORS + API token + env vars en Vercel).
 
+---
+
+# Fase 8 — Cierre de gaps post-auditoría
+
+Revisión de calidad con Opus 4.8 que encontró un CRUD incompleto + bordes
+ásperos. Todo cerrado en este bloque.
+
+## F8.1 — Rename de carpetas (CRUD que faltaba)
+
+Teníamos crear/borrar/mover/compartir carpetas pero NO renombrar. Agregado:
+- `renameFolder` query: el `path` propio de la carpeta no cambia (path =
+  ruta hasta el padre, sin incluirse), pero los descendientes sí — su path
+  incluye el nombre de esta carpeta. Recalculo con substring replace SQL
+  (mismo patrón que `moveFolder`). Captura colisión de nombre (unique idx).
+- `renombrarCarpetaAction` + `RenameFolderDialog` inline en el FolderCard.
+
+## F8.2 — Verificación post-upload (cierra F7.4)
+
+El direct-upload confía en el `sizeBytes` declarado por el cliente. Ahora
+`completarUploadAction` hace `storage.head(key)` y compara el tamaño real:
+- Si el objeto no existe → rechaza ("el archivo no llegó al storage").
+- Si el real difiere del declarado en >1% y >1 KB → rechaza + limpia el
+  objeto huérfano del storage.
+- Si el head() falla por problema transitorio → NO bloquea (degrada con
+  log; el OCR/preview validan después).
+- Nuevo método `head()` en StorageProvider (S3: HeadObjectCommand,
+  Local: fs.stat).
+
+## F8.3 — Cron OCR: budget-exceeded queda retriable
+
+`recognize()` devuelve `failed` cuando la firma agotó su presupuesto IA.
+El cron marcaba el doc como `failed` → no se reintentaba nunca. Ahora
+detecta el caso budget (regex sobre el reason) y lo deja en `skipped`,
+para que cuando el admin aumente el límite o resetee el mes, el doc se
+reprocese. BATCH_SIZE bajado de 3 a 2 (menos timeouts en Hobby; cada
+update commitea individual así que un batch incompleto no corrompe).
+
+## F8.4 — Cron OCR: atribución de costo correcta
+
+`userId: doc.firmId` rompía el insert de `ai_usage` (FK a users.id),
+swallowed pero perdiendo el registro de costo. Ahora `resolveUserId()`
+usa el `uploadedBy` del doc con fallback a cualquier usuario del firm.
+
+## F8.5 — Vaciar papelera (bulk)
+
+`vaciarPapeleraAction` hard-deletea todos los soft-deleted del firm
+(docs primero, borrando del storage; luego carpetas). Botón con doble
+confirmación en `/documentos/papelera`.
+
+## F8.6 — Contexto de carpeta en búsqueda
+
+Los resultados de búsqueda global eran planos, sin indicar en qué carpeta
+vive cada doc. `listAllDocuments` ahora hace left join a `folders` y
+devuelve folderName/folderPath; `DocumentGlobalRow` muestra la carpeta
+con un icono bajo el caso.
+
+## F8.7 — Diferidos a F8+
+
+- Selección múltiple + acciones bulk (mover/borrar/compartir N docs a la
+  vez). Es un proyecto de UX más grande (estado de selección, checkboxes,
+  toolbar contextual) — vale la pena cuando el volumen lo justifique.
+- Filtro por tags dentro de la vista de carpeta.
+
 

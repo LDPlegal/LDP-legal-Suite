@@ -4,6 +4,7 @@ import {
   cases,
   clients,
   documents,
+  folders,
   users,
   type Document,
   type NewDocument,
@@ -24,6 +25,11 @@ export type GlobalDocumentRow = DocumentListRow & {
   caseCode: string | null;
   caseTitle: string | null;
   ocrTextSnippet: string | null;
+  // Contexto de carpeta — para que en búsqueda el user sepa DÓNDE está el
+  // doc. folderName null = está en la raíz del scope.
+  folderId: string | null;
+  folderName: string | null;
+  folderPath: string | null;
 };
 
 export async function listAllDocuments(
@@ -84,6 +90,9 @@ export async function listAllDocuments(
           caseId: documents.caseId,
           caseCode: cases.code,
           caseTitle: cases.title,
+          folderId: documents.folderId,
+          folderName: folders.name,
+          folderPath: folders.path,
           // Truncated context around the search term — best-effort, just
           // takes the first 200 chars when there's a hit on ocr_text.
           ocrTextSnippet: term
@@ -94,6 +103,7 @@ export async function listAllDocuments(
         .leftJoin(users, eq(users.id, documents.uploadedBy))
         .leftJoin(cases, eq(cases.id, documents.caseId))
         .leftJoin(clients, eq(clients.id, cases.clientId))
+        .leftJoin(folders, eq(folders.id, documents.folderId))
         .where(where)
         .orderBy(desc(documents.createdAt))
         .limit(limit)

@@ -13,10 +13,12 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import {
   hardDeleteFolder,
+  listDeletedFolders,
   restoreFolder,
 } from "@/lib/db/queries/folders";
 import {
   hardDeleteDocument,
+  listDeletedDocuments,
   restoreDocument,
 } from "@/lib/db/queries/documents";
 import { getStorage } from "@/lib/storage";
@@ -83,5 +85,51 @@ export async function eliminarDefinitivoDocumentoAction(formData: FormData): Pro
     revalidatePath("/documentos/papelera");
   } catch (err) {
     console.error("[eliminarDefinitivoDocumentoAction] uncaught:", err);
+  }
+}
+
+// — Vaciar papelera (bulk) —
+// Elimina definitivamente TODOS los items soft-deleted del firm: primero
+// los docs (borrando del storage), después las carpetas. Irreversible.
+export async function vaciarPapeleraAction(): Promise<{
+  ok: boolean;
+  deletedDocs: number;
+  deletedFolders: number;
+}> {
+  try {
+    const user = await requireUser();
+
+    const [docs, folders] = await Promise.all([
+      listDeletedDocuments(user.firmId, user.userId),
+      listDeletedFolders(user.firmId, user.userId),
+    ]);
+
+    let deletedDocs = 0;
+    for (const d of docs) {
+      const result = await hardDeleteDocument(user.firmId, user.userId, d.id);
+      if (result.ok) {
+        deletedDocs += 1;
+        if (result.storageKey) {
+          try {
+            await getStorage().remove(result.storageKey);
+          } catch {
+            // best-effort
+          }
+        }
+      }
+    }
+
+    let deletedFolders = 0;
+    for (const f of folders) {
+      const ok = await hardDeleteFolder(user.firmId, user.userId, f.id);
+      if (ok) deletedFolders += 1;
+    }
+
+    revalidatePath("/documentos/papelera");
+    revalidatePath("/documentos");
+    return { ok: true, deletedDocs, deletedFolders };
+  } catch (err) {
+    console.error("[vaciarPapeleraAction] uncaught:", err);
+    return { ok: false, deletedDocs: 0, deletedFolders: 0 };
   }
 }

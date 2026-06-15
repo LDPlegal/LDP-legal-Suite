@@ -25,7 +25,11 @@ import { isCronAuthorized } from "@/lib/cron/auth";
 
 // Hobby plan: 10s function timeout. Pro: 60s. Procesamos pocos por
 // invocación para no agotar el tiempo y darle margen al storage.get.
-const BATCH_SIZE = 3;
+// 2 por invocación: en Hobby el function timeout es ajustado y cada doc
+// escaneado puede tardar 5-20s en Claude Vision. Si el batch no alcanza a
+// terminar no se corrompe nada (cada update commitea individual; el resto
+// se reintenta al día siguiente). Bajamos de 3 a 2 para menos timeouts.
+const BATCH_SIZE = 2;
 
 // Tope efectivo del cron: 25 MB. Por encima, el OCR igual va a skip por
 // los caps internos del módulo. Acá filtramos para ni descargar archivos
@@ -152,11 +156,21 @@ async function handler(req: Request): Promise<Response> {
           .where(eq(documents.id, doc.id));
         stillSkipped += 1;
       } else {
+        // result.status === "failed". Distinguir el caso "firma sin
+        // presupuesto IA" — ese NO es un fallo permanente del doc; cuando
+        // el admin aumente el límite o resetee el mes, el doc debe poder
+        // reintentarse. Por eso lo dejamos en 'skipped', no 'failed'.
+        const reason = "reason" in result ? result.reason : "";
+        const isBudget = /presupuesto|budget/i.test(reason);
         await adminDb
           .update(documents)
-          .set({ ocrStatus: "failed", updatedAt: new Date() })
+          .set({
+            ocrStatus: isBudget ? "skipped" : "failed",
+            updatedAt: new Date(),
+          })
           .where(eq(documents.id, doc.id));
-        failed += 1;
+        if (isBudget) stillSkipped += 1;
+        else failed += 1;
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -34,6 +34,12 @@ export interface StorageProvider {
   put(key: string, data: Uint8Array | Buffer, mimeType: string): Promise<string>;
   /** Trae los bytes de `key`. Tira error si no existe. */
   get(key: string): Promise<Uint8Array>;
+  /**
+   * Devuelve metadata del objeto (tamaño real en bytes) sin descargar el
+   * contenido. Null si el objeto no existe. Usado para verificar que un
+   * direct-upload realmente subió lo que el cliente declaró.
+   */
+  head(key: string): Promise<{ sizeBytes: number } | null>;
   /** Borra `key`. Idempotente — keys faltantes no tiran. */
   remove(key: string): Promise<void>;
   /**

@@ -54,6 +54,7 @@ import { DocumentNewVersionButton } from "./document-new-version-button";
 import { ReprocessOneButton } from "./reprocess-buttons";
 import { MoveToDialog } from "./move-to-dialog";
 import { ShareFolderButton } from "./share-folder-button";
+import { RenameFolderDialog } from "./rename-folder-dialog";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
@@ -349,6 +350,7 @@ function FolderCard({
         <FolderIcon className="h-5 w-5 shrink-0 text-amber-500" />
         <span className="truncate text-sm font-medium">{folder.name}</span>
       </Link>
+      <RenameFolderDialog folderId={folder.id} currentName={folder.name} />
       <ShareFolderButton folderId={folder.id} folderName={folder.name} />
       <MoveToDialog
         itemKind="folder"

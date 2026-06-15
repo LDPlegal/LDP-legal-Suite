@@ -83,6 +83,47 @@ async function completarUploadInner(
 
   const data = parsed.data;
 
+  // ── Verificación post-upload (F7.4) ──
+  // El cliente declaró sizeBytes en preparar-upload, pero el PUT va directo
+  // al storage sin pasar por el server. Verificamos que el objeto realmente
+  // existe y que su tamaño coincide razonablemente con lo declarado. Esto
+  // ataca: (a) "completar" sin haber subido nada, (b) declarar 1 MB y subir
+  // 500 MB para evadir el cap. El storageKey lo generó el server en
+  // preparar, así que no hay riesgo de apuntar a un objeto ajeno.
+  try {
+    const head = await getStorage().head(data.storageKey);
+    if (!head) {
+      return {
+        ok: false,
+        error:
+          "El archivo no llegó al storage. Reintentá la subida (puede ser CORS o conexión).",
+      };
+    }
+    // Tolerancia: algunos backends reportan tamaños con padding mínimo.
+    // Si el real excede el declarado en >1% (y por más de 1 KB), rechazamos.
+    const declared = data.sizeBytes;
+    const real = head.sizeBytes;
+    const drift = Math.abs(real - declared);
+    if (drift > 1024 && drift > declared * 0.01) {
+      // Limpiamos el objeto huérfano — no quedó ningún record apuntándolo.
+      try {
+        await getStorage().remove(data.storageKey);
+      } catch {
+        // best-effort
+      }
+      return {
+        ok: false,
+        error: `El tamaño subido (${(real / 1024 / 1024).toFixed(1)} MB) no coincide con lo declarado (${(declared / 1024 / 1024).toFixed(1)} MB). Subida rechazada.`,
+      };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[completarUpload] head() falló:", msg);
+    // Si el head falla por un problema transitorio del storage, NO bloqueamos
+    // el upload — preferimos registrar el doc (el OCR/preview lo validarán
+    // después). Solo logueamos.
+  }
+
   // Si es nueva versión, heredar metadata del padre (caseId, clientId,
   // sharedWithClient, tags si no se pasaron) y incrementar version.
   let caseId: string | null =

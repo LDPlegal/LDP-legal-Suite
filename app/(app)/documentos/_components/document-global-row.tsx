@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Folder,
   Image as ImageIcon,
   Pencil,
   ScanEye,
@@ -44,6 +45,9 @@ export type GlobalDocRow = {
   caseId: string | null;
   caseCode: string | null;
   ocrTextSnippet: string | null;
+  // Contexto de carpeta para resultados de búsqueda. null = raíz.
+  folderName?: string | null;
+  folderPath?: string | null;
 };
 
 export function DocumentGlobalRow({
@@ -114,6 +118,21 @@ export function DocumentGlobalRow({
         ) : (
           <Badge variant="secondary" className="text-[10px]">General</Badge>
         )}
+        {/* Ubicación de carpeta — para que en búsqueda el user sepa dónde
+            está el doc sin abrirlo. */}
+        {doc.folderName ? (
+          <div
+            className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground"
+            title={
+              doc.folderPath && doc.folderPath !== "/"
+                ? `${doc.folderPath}/${doc.folderName}`
+                : `/${doc.folderName}`
+            }
+          >
+            <Folder className="h-3 w-3 shrink-0 text-amber-500" />
+            <span className="truncate">{doc.folderName}</span>
+          </div>
+        ) : null}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {doc.uploadedByName ?? "—"}

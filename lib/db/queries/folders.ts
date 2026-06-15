@@ -150,6 +150,69 @@ export async function createFolder(
 }
 
 /**
+ * Renombra una carpeta. Su propio `path` NO cambia (path = ruta hasta el
+ * padre, sin incluir el nombre propio), pero los descendientes SÍ porque
+ * su path incluye el nombre de esta carpeta. Recalculamos en SQL con un
+ * substring replace, igual que moveFolder.
+ *
+ * Devuelve { ok, error? }. El error típico es colisión de nombre con un
+ * hermano (unique index folders_unique_name_per_parent).
+ */
+export async function renameFolder(
+  firmId: string,
+  userId: string,
+  folderId: string,
+  newName: string,
+): Promise<{ ok: boolean; error?: string }> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [folder] = await tx
+      .select()
+      .from(folders)
+      .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)))
+      .limit(1);
+    if (!folder) return { ok: false, error: "Carpeta no encontrada." };
+    if (folder.name === newName) return { ok: true }; // no-op
+
+    // Prefijos viejo/nuevo para reescribir los paths de los descendientes.
+    // El path de un hijo directo es `folder.path + "/" + folder.name`.
+    const oldPrefix =
+      folder.path === "/" ? `/${folder.name}` : `${folder.path}/${folder.name}`;
+    const newPrefix =
+      folder.path === "/" ? `/${newName}` : `${folder.path}/${newName}`;
+
+    try {
+      // 1) Renombrar la carpeta.
+      await tx
+        .update(folders)
+        .set({ name: newName, updatedAt: new Date() })
+        .where(eq(folders.id, folderId));
+
+      // 2) Reescribir el path de TODO el subárbol.
+      await tx.execute(sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM folders WHERE parent_folder_id = ${folderId}
+          UNION ALL
+          SELECT f.id FROM folders f
+          INNER JOIN descendants d ON f.parent_folder_id = d.id
+        )
+        UPDATE folders
+        SET path = ${newPrefix} || substring(path FROM length(${oldPrefix}) + 1),
+            updated_at = now()
+        WHERE id IN (SELECT id FROM descendants);
+      `);
+
+      return { ok: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("folders_unique_name_per_parent")) {
+        return { ok: false, error: "Ya existe una carpeta con ese nombre en este nivel." };
+      }
+      return { ok: false, error: "No se pudo renombrar la carpeta." };
+    }
+  });
+}
+
+/**
  * Busca una carpeta hermana por nombre dentro del mismo parent. Útil para
  * el upload-folder: si el usuario sube "Caso-X/Anexos" y ya existe "Caso-X",
  * reusamos la carpeta existente en vez de fallar por unique constraint.

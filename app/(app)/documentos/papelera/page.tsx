@@ -25,6 +25,7 @@ import {
   restaurarCarpetaAction,
   restaurarDocumentoAction,
 } from "@/app/_actions/papelera";
+import { EmptyTrashButton } from "./_components/empty-trash-button";
 
 export const metadata = { title: "Papelera · Documentos · LDP Legal Suite" };
 
@@ -51,7 +52,9 @@ export default async function PapeleraPage() {
         description="Carpetas y documentos eliminados. Restaurá o eliminá definitivamente."
         count={folders.length + docs.length}
         countLabel={{ singular: "item", plural: "items" }}
-      />
+      >
+        <EmptyTrashButton itemCount={folders.length + docs.length} />
+      </PageHeader>
 
       {folders.length === 0 && docs.length === 0 ? (
         <Card className="p-12 text-center text-sm text-muted-foreground">

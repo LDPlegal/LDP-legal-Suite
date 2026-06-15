@@ -14,6 +14,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -106,6 +107,21 @@ export class S3Storage implements StorageProvider {
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
     );
     return streamToBuffer(res.Body as ReadableStream | NodeJS.ReadableStream | null);
+  }
+
+  async head(key: string): Promise<{ sizeBytes: number } | null> {
+    try {
+      const res = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return { sizeBytes: res.ContentLength ?? 0 };
+    } catch (e) {
+      const err = e as { name?: string; $metadata?: { httpStatusCode?: number } };
+      if (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404) {
+        return null;
+      }
+      throw e;
+    }
   }
 
   async remove(key: string): Promise<void> {

@@ -218,6 +218,8 @@ export default async function DocumentosPage({
                           caseId: d.caseId,
                           caseCode: d.caseCode,
                           ocrTextSnippet: d.ocrTextSnippet,
+                          folderName: d.folderName,
+                          folderPath: d.folderPath,
                         }}
                         aiEnabled={isAiEnabled()}
                       />

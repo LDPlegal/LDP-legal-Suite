@@ -88,6 +88,17 @@ export class LocalStorage implements StorageProvider {
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 
+  async head(key: string): Promise<{ sizeBytes: number } | null> {
+    const abs = this.absoluteFor(key);
+    try {
+      const st = await fs.stat(abs);
+      return { sizeBytes: st.size };
+    } catch (e: unknown) {
+      if ((e as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+      throw e;
+    }
+  }
+
   async remove(key: string): Promise<void> {
     const abs = this.absoluteFor(key);
     try {
