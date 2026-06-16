@@ -464,11 +464,33 @@ function PreviewFrame({
   children: React.ReactNode;
 }) {
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  let PREVIEW_WIDTH = 620;
-  if (template.kind === "story") PREVIEW_WIDTH = 350;
-  if (template.kind === "cover") PREVIEW_WIDTH = 720;
+  // Ancho DESEADO del preview por tipo de plantilla.
+  let DESIRED_WIDTH = 620;
+  if (template.kind === "story") DESIRED_WIDTH = 350;
+  if (template.kind === "cover") DESIRED_WIDTH = 720;
+
+  // Ancho disponible real del contenedor (mobile-safe). Medimos el frame con
+  // ResizeObserver y capeamos el preview para que NUNCA exceda el viewport.
+  // Inicializamos en DESIRED_WIDTH para evitar un flash en SSR/primer render.
+  const [availWidth, setAvailWidth] = useState(DESIRED_WIDTH);
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const measure = () => {
+      // El contenedor tiene padding p-6 (24px por lado) — descontamos 48px.
+      const inner = Math.max(0, el.clientWidth - 48);
+      if (inner > 0) setAvailWidth(inner);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const PREVIEW_WIDTH = Math.min(DESIRED_WIDTH, availWidth);
   const scale = PREVIEW_WIDTH / template.size.w;
   const scaledH = template.size.h * scale;
 
@@ -506,7 +528,10 @@ function PreviewFrame({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-sm p-6">
+      <div
+        ref={frameRef}
+        className="rounded-2xl border border-border bg-card/40 backdrop-blur-sm p-6"
+      >
         <div
           className="mx-auto overflow-hidden rounded-lg shadow-[0_8px_30px_-8px_rgba(11,25,41,0.30)] ring-1 ring-black/5"
           style={{ width: PREVIEW_WIDTH, height: scaledH }}

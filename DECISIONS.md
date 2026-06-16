@@ -1485,4 +1485,61 @@ dedicado, el checkbox es un control aparte.
 - Selección que persista al navegar entre carpetas (hoy se limpia al
   cambiar de nivel — intencional para evitar mover algo sin querer).
 
+---
+
+# Fase 9 — Responsive mobile
+
+Bug reportado desde iPhone: varias páginas (dashboard, documentos,
+configuración, publicaciones) "se sobre-expandían a la derecha" (overflow
+horizontal → la página se podía panear) y el calendario se veía mal (toolbar
+encimado). Tres causas concretas + una red de seguridad sistémica.
+
+## F9.1 — Red de seguridad: main con overflow-x-hidden
+
+**Causa transversal:** `<main>` tenía `overflow-y-auto` sin controlar el eje
+X. Por CSS, cuando un eje es `auto` y el otro `visible`, el `visible` pasa a
+`auto` — así que cualquier hijo apenas más ancho que el viewport (un chart de
+recharts, un fondo, una sticky bar) volvía TODO el `main` paneable en X.
+
+**Fix:** `overflow-x-hidden` en `<main>` (app/(app)/layout.tsx). El scroll
+horizontal que SÍ queremos (tablas anchas) vive en wrappers internos con su
+propio `overflow-x-auto` (el primitivo Table ya los tiene). Los menús/popovers
+de Radix portalan a body, no se clippean.
+
+## F9.2 — Calendario: toolbar responsive
+
+**Causa:** el headerToolbar de FullCalendar pone 3 grupos (prev/next+hoy ·
+título · vistas) en una fila con space-between. En mobile se enciman (el botón
+"Hoy" tapaba el título).
+
+**Fix:** CSS en app/globals.css con @media (max-width: 640px) que apila
+.fc-toolbar.fc-header-toolbar en columna, centra cada chunk, achica botones y
+números de día, y clampea .fc a max-width 100%. Puro CSS, sin tocar el componente.
+
+## F9.3 — Publicaciones: preview con ancho responsive
+
+**Causa:** PreviewFrame usaba PREVIEW_WIDTH fijo (620px post, 720px cover,
+350px story). En viewport de ~375px desbordaba.
+
+**Fix:** ResizeObserver mide el ancho real del contenedor y
+PREVIEW_WIDTH = min(deseado, disponible). El export NO pierde calidad: usa
+canvasWidth/canvasHeight fijos al tamaño real de la plantilla con
+pixelRatio 1/scale → PNG full-res sin importar el escalado del preview.
+
+## F9.4 — Tabs scrollables en mobile
+
+**Causa:** TabsList era inline-flex sin overflow. Configuración tiene 7 tabs →
+desbordaban. (También afectaba las tabs del detalle de caso.)
+
+**Fix:** components/ui/tabs.tsx — base class ahora max-w-full overflow-x-auto
+con scrollbar oculto. El bar scrollea horizontal en vez de empujar la página.
+Fix global → beneficia todas las TabsList.
+
+## F9.5 — Verificación
+
+No se pudo previsualizar localmente (preview tool + extensión Chrome rooteados
+en otro proyecto del workspace; las páginas afectadas están detrás de auth).
+Verificado con typecheck + lint verdes y deploy a producción; confirmación
+visual final en el dispositivo del usuario.
+
 

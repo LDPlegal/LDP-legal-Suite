@@ -477,3 +477,56 @@
     transform: perspective(800px) translateZ(8px) rotateX(2deg);
   }
 }
+
+/* =============================================================================
+   FullCalendar — responsive mobile
+   =============================================================================
+   El toolbar de FullCalendar pone 3 grupos (prev/next+hoy · título · vistas)
+   en una sola fila con space-between. En pantallas chicas se enciman (el
+   botón "Hoy" tapaba el título). Acá apilamos verticalmente en mobile y
+   ajustamos tamaños para que entre sin overflow horizontal. */
+@media (max-width: 640px) {
+  .fc .fc-toolbar.fc-header-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  /* Título centrado, sin wrapping feo en 3 líneas */
+  .fc .fc-toolbar-title {
+    font-size: 1.05rem;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+  }
+  /* Botones un poco más compactos para que las 3 vistas entren en una fila */
+  .fc .fc-button {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.8rem;
+  }
+  /* Números de día más chicos + celdas con menos alto para que el mes
+     completo entre sin scroll exagerado */
+  .fc .fc-daygrid-day-number {
+    font-size: 0.8rem;
+    padding: 2px 4px;
+  }
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.75rem;
+    padding: 4px 2px;
+  }
+  /* Eventos en mes: texto más chico para que no desborden la celda */
+  .fc .fc-daygrid-event {
+    font-size: 0.7rem;
+  }
+}
+
+/* El grid del calendario nunca debe forzar scroll horizontal del contenedor:
+   sus tablas son width:100%, pero por seguridad clampeamos. */
+.fc {
+  max-width: 100%;
+}

@@ -16,6 +16,10 @@ const TabsList = React.forwardRef<
       // Glass pill bar — segmented control estilo Apple.
       "inline-flex items-center justify-start gap-0.5 rounded-xl p-1",
       "glass text-muted-foreground",
+      // Mobile-safe: si hay muchos tabs (ej. Configuración tiene 7), en vez
+      // de desbordar la página el bar scrollea horizontalmente. max-w-full lo
+      // confina al ancho del contenedor; el scrollbar se oculta por estética.
+      "max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
       className,
     )}
     {...props}

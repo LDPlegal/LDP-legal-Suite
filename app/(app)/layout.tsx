@@ -36,7 +36,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           />
           <div className="flex min-w-0 flex-1 flex-col h-full">
             <Header user={{ name: user.name, email: user.email, role: user.role }} />
-            <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+            {/* overflow-x-hidden: red de seguridad para que ningún hijo apenas
+                más ancho que el viewport (charts, fondos, sticky bars) vuelva
+                paneable toda la página en mobile. El scroll horizontal real
+                que SÍ queremos (tablas anchas) vive en wrappers internos con
+                su propio overflow-x-auto. */}
+            <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6">
               <PageTransition>{children}</PageTransition>
             </main>
           </div>
