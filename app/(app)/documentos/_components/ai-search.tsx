@@ -53,9 +53,9 @@ export function AiDocumentSearch() {
             placeholder="Ej. ¿Qué documentos mencionan retención del 10%?"
             maxLength={500}
             disabled={pending}
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
-          <Button type="submit" disabled={pending || query.trim().length < 2}>
+          <Button type="submit" disabled={pending || query.trim().length < 2} className="shrink-0">
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             Buscar
           </Button>

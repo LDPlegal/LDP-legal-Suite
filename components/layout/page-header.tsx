@@ -37,18 +37,23 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-end justify-between gap-4 pb-2",
+        // Mobile: apila vertical (título arriba, acciones abajo en su propia
+        // fila full-width). Desde sm: vuelve a fila con space-between.
+        // Antes era flex-wrap+justify-between siempre: en mobile el grupo de
+        // acciones crecía a su contenido (varios botones) y NO envolvía
+        // porque su ancho no estaba limitado → desbordaba la página.
+        "flex flex-col gap-3 pb-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4",
         className,
       )}
     >
-      <div className="space-y-1">
+      <div className="min-w-0 space-y-1">
         {eyebrow ? (
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {eyebrow}
           </p>
         ) : null}
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-[24px] font-semibold leading-tight tracking-tight text-foreground">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[24px]">
             {title}
           </h1>
           {countText ? (
@@ -64,7 +69,11 @@ export function PageHeader({
         ) : null}
       </div>
       {children ? (
-        <div className="flex flex-wrap items-center gap-2">{children}</div>
+        // w-full en mobile para que el flex-wrap interno SÍ tenga un ancho
+        // limitado y envuelva los botones; en sm: ancho automático.
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          {children}
+        </div>
       ) : null}
     </div>
   );

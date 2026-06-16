@@ -134,7 +134,10 @@ export default async function DocumentosPage({
       {isAiEnabled() ? <AiDocumentSearch /> : null}
 
       <form className="flex flex-wrap items-center gap-2" action="/documentos">
-        <div className="relative flex-1 min-w-[260px]">
+        {/* w-full en mobile (ocupa toda la fila y los controles caen debajo),
+            flex-1 con min-w razonable desde sm. Antes min-w-[260px] forzaba
+            ancho que no encajaba con el checkbox+botón en pantallas chicas. */}
+        <div className="relative w-full min-w-0 sm:w-auto sm:flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             name="q"
