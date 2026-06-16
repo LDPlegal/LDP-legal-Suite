@@ -103,32 +103,33 @@ export default async function DocumentosPage({
         count={isSearchMode ? searchResults.total : undefined}
         countLabel={{ singular: "archivo", plural: "archivos" }}
       >
-        <div className="flex items-center gap-2">
-          <Link
-            href="/documentos/papelera"
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
-            title="Papelera (elementos eliminados)"
-          >
-            <Trash2 className="h-4 w-4" />
-            Papelera
-          </Link>
-          <ReprocessAllButton />
-          {!isSearchMode ? (
-            <>
-              <NewFolderDialog parentFolderId={folderId} scope={scope} />
-              <UploadFolderButton parentFolderId={folderId} scope={scope} />
-            </>
-          ) : null}
-          <DocumentUploadGlobalDrawer
-            folderId={folderId}
-            trigger={
-              <Button id="upload-global-doc-btn">
-                <Upload className="mr-2 h-4 w-4" />
-                Subir documento
-              </Button>
-            }
-          />
-        </div>
+        {/* Botones directos (sin wrapper flex extra) para que el flex-wrap
+            de PageHeader los envuelva uno por uno en mobile en vez de
+            dejarlos en una fila que se corta. */}
+        <Link
+          href="/documentos/papelera"
+          className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
+          title="Papelera (elementos eliminados)"
+        >
+          <Trash2 className="h-4 w-4" />
+          Papelera
+        </Link>
+        <ReprocessAllButton />
+        {!isSearchMode ? (
+          <>
+            <NewFolderDialog parentFolderId={folderId} scope={scope} />
+            <UploadFolderButton parentFolderId={folderId} scope={scope} />
+          </>
+        ) : null}
+        <DocumentUploadGlobalDrawer
+          folderId={folderId}
+          trigger={
+            <Button id="upload-global-doc-btn">
+              <Upload className="mr-2 h-4 w-4" />
+              Subir documento
+            </Button>
+          }
+        />
       </PageHeader>
 
       {isAiEnabled() ? <AiDocumentSearch /> : null}

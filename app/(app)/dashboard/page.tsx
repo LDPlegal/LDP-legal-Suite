@@ -128,7 +128,7 @@ export default async function DashboardPage() {
 
       <AiHero pendingPromptsCount={sugerencias.length} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 [&>*]:min-w-0 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Casos abiertos"
           href="/casos"
@@ -290,7 +290,7 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* Mis tareas + Actividad reciente */}
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base">

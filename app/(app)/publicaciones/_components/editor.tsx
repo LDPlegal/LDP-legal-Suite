@@ -238,9 +238,13 @@ export function Editor({
   if (!template) return null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+    // grid-cols-1 base → la columna mobile usa minmax(0,1fr) (Tailwind) y SÍ
+    // puede encogerse bajo su contenido (evita el "grid blowout" que hacía
+    // que el preview de 620px expandiera la página). lg: usa minmax(0,1fr)
+    // explícito por la misma razón. min-w-0 en las columnas de refuerzo.
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       {/* Preview */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <TemplateTabs templates={TEMPLATES} active={templateId} onChange={(id) => {
           setTemplateId(id);
           setCurrentPresetId(null);
@@ -263,7 +267,7 @@ export function Editor({
       </div>
 
       {/* Tweaks */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <TweaksPanel
           template={template}
           values={values}
