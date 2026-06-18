@@ -10,6 +10,8 @@ import { notifications, userEmailPrefs, users, type Notification } from "../sche
 import { isEmailableKind, getKindMeta } from "@/lib/notifications/catalog";
 import { sendEmail } from "@/lib/email";
 import { buildNotificationEmail } from "@/lib/email/templates";
+import { resolveFirmGraphSenderUserId } from "@/lib/notifications/sender";
+import { sendMail } from "@/lib/oauth/microsoft-graph";
 
 export type NotificationInput = {
   firmId: string;
@@ -83,6 +85,28 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
     actionUrl,
     categoryLabel: meta?.label ?? "Notificación",
   });
+
+  // Preferimos enviar desde el Microsoft 365 del firm (cero DNS, sale del
+  // dominio real). Si no hay cuenta conectada o Graph falla, caemos al
+  // proveedor genérico (Resend/console) sin romper nada.
+  const senderUserId = await resolveFirmGraphSenderUserId(input.firmId).catch(
+    () => null,
+  );
+  if (senderUserId) {
+    try {
+      await sendMail(senderUserId, {
+        to: [{ email: u.email, name: u.name ?? undefined }],
+        subject,
+        bodyHtml: html,
+        // No guardamos cada notificación en "Enviados" del emisor — sería
+        // ruido en su Outlook.
+        saveToSentItems: false,
+      });
+      return;
+    } catch {
+      // Graph falló (token revocado, throttle, etc.) → fallback abajo.
+    }
+  }
 
   await sendEmail({ to: u.email, subject, html });
 }

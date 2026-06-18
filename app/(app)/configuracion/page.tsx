@@ -33,6 +33,7 @@ import { MutedKindsPanel } from "./_components/muted-kinds-panel";
 import { EmailSignaturePanel } from "./_components/email-signature-panel";
 import { NotificationsPanel } from "./_components/notifications-panel";
 import { listEnabledEmailKinds } from "@/lib/db/queries/email-prefs";
+import { listGraphCapableUsers } from "@/lib/notifications/sender";
 import { calendarIntegrations } from "@/lib/db/schema";
 import { isNull } from "drizzle-orm";
 import { isProviderConfigured } from "@/lib/oauth";
@@ -91,6 +92,12 @@ export default async function ConfiguracionPage() {
       ),
     );
   const isAdmin = user.role === "admin" || user.role === "partner";
+  const senderUsers = isAdmin ? await listGraphCapableUsers(user.firmId) : [];
+  const currentSenderId =
+    typeof (firm?.settings as Record<string, unknown> | undefined)
+      ?.notificationSenderUserId === "string"
+      ? ((firm!.settings as Record<string, unknown>).notificationSenderUserId as string)
+      : null;
   const aiEnabled = isAiEnabled();
   const aiModel = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
   const twoFactorEnabled = twoFactorRow[0]?.twoFactorEnabled ?? false;
@@ -293,7 +300,12 @@ export default async function ConfiguracionPage() {
               <CardTitle>Notificaciones por correo</CardTitle>
             </CardHeader>
             <CardContent>
-              <NotificationsPanel enabledKinds={enabledEmailKinds} />
+              <NotificationsPanel
+                enabledKinds={enabledEmailKinds}
+                senderUsers={senderUsers}
+                currentSenderId={currentSenderId}
+                canEditSender={isAdmin}
+              />
             </CardContent>
           </Card>
         </TabsContent>
