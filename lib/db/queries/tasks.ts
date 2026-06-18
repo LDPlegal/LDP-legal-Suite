@@ -69,26 +69,27 @@ export async function createTask(
     return r;
   });
 
-  // Fire-and-forget notification when the task is assigned to someone other
-  // than the creator. Lazy import to avoid circular deps with notifications.
+  // Notificación cuando la tarea se asigna a alguien distinto del creador.
+  // AWAIT (no void floating): notify() inserta la notificación in-app (rápido)
+  // y difiere el email con after() internamente. El patrón anterior
+  // `void (async()=>{})()` se moría al terminar la lambda en serverless, así
+  // que la notificación podía no dispararse nunca. Lazy import por circular dep.
   if (data.assigneeId && data.assigneeId !== userId) {
-    void (async () => {
-      try {
-        const { notify } = await import("./notifications");
-        await notify({
-          firmId,
-          userId: data.assigneeId!,
-          type: "task_assigned",
-          title: `Nueva tarea: ${row.title}`,
-          body: data.dueAt
-            ? `Vence el ${new Date(data.dueAt).toLocaleDateString("es-DO")}`
-            : "Sin fecha de vencimiento",
-          href: data.caseId ? `/casos/${data.caseId}?tab=tareas` : "/tareas",
-        });
-      } catch {
-        // best-effort
-      }
-    })();
+    try {
+      const { notify } = await import("./notifications");
+      await notify({
+        firmId,
+        userId: data.assigneeId,
+        type: "task_assigned",
+        title: `Nueva tarea: ${row.title}`,
+        body: data.dueAt
+          ? `Vence el ${new Date(data.dueAt).toLocaleDateString("es-DO")}`
+          : "Sin fecha de vencimiento",
+        href: data.caseId ? `/casos/${data.caseId}?tab=tareas` : "/tareas",
+      });
+    } catch {
+      // best-effort — un fallo de notificación no rompe la creación.
+    }
   }
 
   return row;
