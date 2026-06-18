@@ -96,9 +96,20 @@ async function graphFetchJson<T>(
     }
     throw new MicrosoftGraphError(res.status, code, message);
   }
-  // 204 No Content (DELETE, etc.) → null
+  // 204 No Content (DELETE, etc.) → null.
   if (res.status === 204) return null as T;
-  return (await res.json()) as T;
+  // Algunos endpoints 2xx devuelven body VACÍO — el caso clásico es
+  // POST /me/sendMail, que responde 202 Accepted sin contenido. Hacer
+  // res.json() sobre un body vacío tira "Unexpected end of JSON input".
+  // Leemos como texto y solo parseamos si hay algo.
+  const text = await res.text();
+  if (!text) return null as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // Respuesta 2xx que no es JSON — la tratamos como sin contenido.
+    return null as T;
+  }
 }
 
 // ============================================================================
