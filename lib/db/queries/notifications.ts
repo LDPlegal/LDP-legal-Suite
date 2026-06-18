@@ -3,6 +3,7 @@
 // task, paying an invoice). Read goes through withFirm with the user's
 // own identity; the unique partial index speeds up the unread count badge.
 
+import { after } from "next/server";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { adminDb } from "../admin";
 import { withFirm } from "../with-firm";
@@ -42,13 +43,31 @@ export async function notify(input: NotificationInput): Promise<void> {
   }
 
   // Email opt-in: si el kind es "emailable" y el usuario lo activó, mandamos
-  // correo. Fire-and-forget — un fallo de email nunca debe romper el flujo
-  // que disparó la notificación.
-  void maybeSendNotificationEmail(input).catch(() => {});
+  // correo. Lo corremos en after() para que el envío COMPLETE después de la
+  // respuesta — un floating promise (void) se mata cuando la lambda de Vercel
+  // termina, así que el fetch a Graph nunca llegaba a completarse.
+  try {
+    after(async () => {
+      try {
+        await maybeSendNotificationEmail(input);
+      } catch (e) {
+        console.error("[notify] email send failed:", e);
+      }
+    });
+  } catch {
+    // after() fuera de un request context (ej. corriendo desde un script):
+    // hacemos el envío inline como fallback.
+    void maybeSendNotificationEmail(input).catch((e) =>
+      console.error("[notify] email send failed (inline):", e),
+    );
+  }
 }
 
 async function maybeSendNotificationEmail(input: NotificationInput): Promise<void> {
-  if (!isEmailableKind(input.type)) return;
+  if (!isEmailableKind(input.type)) {
+    console.log(`[notify] kind '${input.type}' no es emailable — sin correo.`);
+    return;
+  }
 
   // ¿El usuario activó email para este kind?
   const pref = await adminDb
@@ -61,14 +80,22 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
       ),
     )
     .limit(1);
-  if (pref.length === 0) return;
+  if (pref.length === 0) {
+    console.log(
+      `[notify] user ${input.userId} no activó email para '${input.type}' — sin correo.`,
+    );
+    return;
+  }
 
   const [u] = await adminDb
     .select({ email: users.email, name: users.name })
     .from(users)
     .where(eq(users.id, input.userId))
     .limit(1);
-  if (!u?.email) return;
+  if (!u?.email) {
+    console.log(`[notify] user ${input.userId} sin email — sin correo.`);
+    return;
+  }
 
   const meta = getKindMeta(input.type);
   const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -102,13 +129,77 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
         // ruido en su Outlook.
         saveToSentItems: false,
       });
+      console.log(`[notify] email '${input.type}' enviado a ${u.email} vía M365.`);
       return;
-    } catch {
-      // Graph falló (token revocado, throttle, etc.) → fallback abajo.
+    } catch (e) {
+      // Graph falló (token revocado, throttle, scope Mail.Send faltante…).
+      // Logueamos el detalle para poder diagnosticar en los logs de Vercel,
+      // y caemos al proveedor genérico abajo.
+      console.error(
+        `[notify] Graph sendMail falló (sender ${senderUserId} → ${u.email}):`,
+        e,
+      );
     }
+  } else {
+    console.log(
+      `[notify] firm ${input.firmId} sin cuenta M365 emisora — uso fallback.`,
+    );
   }
 
   await sendEmail({ to: u.email, subject, html });
+  console.log(`[notify] email '${input.type}' enviado a ${u.email} vía fallback.`);
+}
+
+// Envía un correo de PRUEBA al propio usuario, ejercitando el mismo camino
+// que las notificaciones reales (resolver emisor M365 → Graph sendMail, con
+// fallback). A diferencia de notify(), NO chequea prefs ni el guard de
+// auto-notificación, y PROPAGA el error para que la UI muestre exactamente
+// qué falló (ej. scope Mail.Send faltante, token expirado).
+export async function sendTestNotificationEmail(
+  firmId: string,
+  userId: string,
+): Promise<{ ok: true; via: "m365" | "fallback"; to: string } | { ok: false; error: string }> {
+  const [u] = await adminDb
+    .select({ email: users.email, name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!u?.email) return { ok: false, error: "Tu usuario no tiene un email configurado." };
+
+  const { subject, html } = buildNotificationEmail({
+    recipientName: u.name ?? undefined,
+    title: "Correo de prueba de notificaciones",
+    body: "Si recibís este mensaje, las notificaciones por email están funcionando. 🎉",
+    categoryLabel: "Prueba",
+  });
+
+  const senderUserId = await resolveFirmGraphSenderUserId(firmId).catch(() => null);
+  if (senderUserId) {
+    try {
+      await sendMail(senderUserId, {
+        to: [{ email: u.email, name: u.name ?? undefined }],
+        subject,
+        bodyHtml: html,
+        saveToSentItems: false,
+      });
+      return { ok: true, via: "m365", to: u.email };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return {
+        ok: false,
+        error: `Microsoft Graph rechazó el envío: ${msg}. Reconectá Microsoft en Seguridad → Integraciones (puede faltar el permiso Mail.Send).`,
+      };
+    }
+  }
+
+  // Sin emisor M365 — intentamos el proveedor genérico (Resend/console).
+  try {
+    await sendEmail({ to: u.email, subject, html });
+    return { ok: true, via: "fallback", to: u.email };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: `No hay cuenta M365 conectada y el proveedor genérico falló: ${msg}` };
+  }
 }
 
 export async function listNotifications(

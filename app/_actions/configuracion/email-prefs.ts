@@ -6,6 +6,7 @@ import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { setEmailPref } from "@/lib/db/queries/email-prefs";
 import { isEmailableKind } from "@/lib/notifications/catalog";
 import { getCurrentFirm, updateFirm } from "@/lib/db/queries/firms";
+import { sendTestNotificationEmail } from "@/lib/db/queries/notifications";
 
 const Schema = z.object({
   kind: z.string().min(1).max(60),
@@ -72,6 +73,30 @@ export async function setNotificationSenderAction(input: {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[setNotificationSenderAction] uncaught:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+// Envía un correo de prueba al propio usuario para verificar el pipeline.
+export type TestEmailState =
+  | { ok: true; message: string }
+  | { ok: false; error: string };
+
+export async function sendTestEmailAction(): Promise<TestEmailState> {
+  try {
+    const user = await requireUser();
+    const r = await sendTestNotificationEmail(user.firmId, user.userId);
+    if (!r.ok) return { ok: false, error: r.error };
+    return {
+      ok: true,
+      message:
+        r.via === "m365"
+          ? `Correo de prueba enviado a ${r.to} desde Microsoft 365. Revisá tu bandeja (y spam).`
+          : `Correo de prueba enviado a ${r.to} vía proveedor genérico.`,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[sendTestEmailAction] uncaught:", msg);
     return { ok: false, error: msg };
   }
 }

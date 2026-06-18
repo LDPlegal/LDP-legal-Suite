@@ -9,9 +9,12 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { EMAILABLE_KINDS, type NotificationKind } from "@/lib/notifications/catalog";
+import { Button } from "@/components/ui/button";
+import { Loader2, Send } from "lucide-react";
 import {
   toggleEmailPrefAction,
   setNotificationSenderAction,
+  sendTestEmailAction,
 } from "@/app/_actions/configuracion/email-prefs";
 
 type SenderUser = { id: string; name: string; email: string; mailbox: string };
@@ -34,6 +37,17 @@ export function NotificationsPanel({
   const [enabled, setEnabled] = useState<Set<string>>(new Set(enabledKinds));
   const [sender, setSender] = useState<string>(currentSenderId ?? "");
   const [pending, startTransition] = useTransition();
+
+  const [testing, setTesting] = useState(false);
+  function sendTest() {
+    setTesting(true);
+    startTransition(async () => {
+      const r = await sendTestEmailAction();
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.error, { duration: 12000 });
+      setTesting(false);
+    });
+  }
 
   function changeSender(value: string) {
     setSender(value);
@@ -89,6 +103,26 @@ export function NotificationsPanel({
         notificaciones dentro de la app (la campanita) llegan siempre; esto solo
         controla el email. Todo arranca desactivado.
       </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={sendTest}
+          disabled={testing || pending}
+        >
+          {testing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          Enviar correo de prueba
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Te manda un correo a tu dirección para verificar que el envío funciona.
+        </span>
+      </div>
 
       {/* Casilla emisora (Microsoft 365) — admin only */}
       {canEditSender ? (
