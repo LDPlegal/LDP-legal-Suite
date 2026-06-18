@@ -37,7 +37,7 @@ export function EmailSignaturePanel({ initial }: { initial: string }) {
         value={value}
         onChange={(e) => setValue(e.currentTarget.value)}
         rows={6}
-        placeholder="<b>Lic. Gendrick Alvarez</b><br>LDP Legal Advisors<br>gendrick@ldplegal.com.do · +1 809 555 0100"
+        placeholder="<b>Lic. Gendrick Álvarez</b><br>LDP Legal Advisors<br>galvarez@ldplegal.com.do · +1 809 555 0100"
         className="font-mono text-xs"
         maxLength={2000}
       />

@@ -8,7 +8,7 @@
 //   pnpm tsx --env-file=.env scripts/seed-test-cases.ts <email>
 //
 //   Por ejemplo:
-//   pnpm tsx --env-file=.env scripts/seed-test-cases.ts gendrick@ldplegal.com.do
+//   pnpm tsx --env-file=.env scripts/seed-test-cases.ts galvarez@ldplegal.com.do
 //
 // El script:
 //   - Resuelve firm_id y user_id desde el email.

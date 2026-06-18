@@ -8,7 +8,7 @@
 //   pnpm tsx scripts/seed-demo-data.ts <email>
 //
 // Por ejemplo:
-//   pnpm tsx scripts/seed-demo-data.ts gendrick@ldplegal.com.do
+//   pnpm tsx scripts/seed-demo-data.ts galvarez@ldplegal.com.do
 //
 // Idempotente: detecta lo que ya existe por título/número y no duplica.
 
