@@ -8,6 +8,7 @@ import {
   invoiceItems,
   invoices,
   payments,
+  proformaCounters,
   timeEntries,
   users,
   type Invoice,
@@ -36,6 +37,23 @@ async function nextInvoiceNumber(tx: Tx, firmId: string, year: number): Promise<
   return `INV-${year}-${row.lastSeq.toString().padStart(3, "0")}`;
 }
 
+// Contador independiente para proformas — formato PRO-2026-001.
+async function nextProformaNumber(tx: Tx, firmId: string, year: number): Promise<string> {
+  const [row] = await tx
+    .insert(proformaCounters)
+    .values({ firmId, year, lastSeq: 1 })
+    .onConflictDoUpdate({
+      target: [proformaCounters.firmId, proformaCounters.year],
+      set: {
+        lastSeq: sql`${proformaCounters.lastSeq} + 1`,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ lastSeq: proformaCounters.lastSeq });
+  if (!row) throw new Error("nextProformaNumber: counter upsert returned no row");
+  return `PRO-${year}-${row.lastSeq.toString().padStart(3, "0")}`;
+}
+
 // =============================================================================
 // Listing & detail
 // =============================================================================
@@ -57,6 +75,7 @@ export async function listInvoices(
         .select({
           id: invoices.id,
           number: invoices.number,
+          kind: invoices.kind,
           ncf: invoices.ncf,
           ncfType: invoices.ncfType,
           issuedOn: invoices.issuedOn,
@@ -145,6 +164,9 @@ export type GenerateInvoiceInput = {
   // is configured or it's exhausted/expired.
   fiscal?: boolean;
   ncfType?: NcfType;
+  // 'proforma' = cotización sin NCF, su propio contador (PRO-). Si es
+  // proforma, `fiscal`/`ncfType` se ignoran (nunca lleva comprobante fiscal).
+  kind?: "standard" | "proforma";
 };
 
 // Legacy alias — kept so we don't churn imports.
@@ -164,16 +186,21 @@ export async function generateInvoiceFromCase(
       itbisWithholding: false,
     });
 
-    // 2. Reserve invoice number atomically.
+    const isProforma = input.kind === "proforma";
+
+    // 2. Reserve number atomically — contador separado para proformas.
     const issuedOn = new Date();
     const year = issuedOn.getUTCFullYear();
-    const number = await nextInvoiceNumber(tx, firmId, year);
+    const number = isProforma
+      ? await nextProformaNumber(tx, firmId, year)
+      : await nextInvoiceNumber(tx, firmId, year);
 
     // 2b. If fiscal mode, atomically assign the next NCF from the configured
     //     range. Throws NcfAssignmentError if range missing/exhausted/expired.
+    //     Una proforma NUNCA lleva NCF (no es comprobante fiscal).
     let ncf: string | null = null;
     let ncfType: NcfType | null = null;
-    if (input.fiscal) {
+    if (!isProforma && input.fiscal) {
       if (!input.ncfType) {
         throw new Error("Modo fiscal requiere ncfType.");
       }
@@ -189,6 +216,7 @@ export async function generateInvoiceFromCase(
         clientId: input.clientId,
         caseId: input.caseId,
         number,
+        kind: isProforma ? "proforma" : "standard",
         ncf,
         ncfType,
         issuedOn,

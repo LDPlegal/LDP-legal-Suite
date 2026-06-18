@@ -40,6 +40,7 @@ export async function GET(
     },
     invoice: {
       number: inv.invoice.number,
+      kind: inv.invoice.kind === "proforma" ? "proforma" : "standard",
       ncf: inv.invoice.ncf,
       issuedOn: inv.invoice.issuedOn,
       dueOn: inv.invoice.dueOn,

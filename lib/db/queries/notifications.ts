@@ -6,7 +6,10 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { adminDb } from "../admin";
 import { withFirm } from "../with-firm";
-import { notifications, type Notification } from "../schema";
+import { notifications, userEmailPrefs, users, type Notification } from "../schema";
+import { isEmailableKind, getKindMeta } from "@/lib/notifications/catalog";
+import { sendEmail } from "@/lib/email";
+import { buildNotificationEmail } from "@/lib/email/templates";
 
 export type NotificationInput = {
   firmId: string;
@@ -35,6 +38,53 @@ export async function notify(input: NotificationInput): Promise<void> {
   } catch {
     // Swallow — notifications are best-effort.
   }
+
+  // Email opt-in: si el kind es "emailable" y el usuario lo activó, mandamos
+  // correo. Fire-and-forget — un fallo de email nunca debe romper el flujo
+  // que disparó la notificación.
+  void maybeSendNotificationEmail(input).catch(() => {});
+}
+
+async function maybeSendNotificationEmail(input: NotificationInput): Promise<void> {
+  if (!isEmailableKind(input.type)) return;
+
+  // ¿El usuario activó email para este kind?
+  const pref = await adminDb
+    .select({ kind: userEmailPrefs.kind })
+    .from(userEmailPrefs)
+    .where(
+      and(
+        eq(userEmailPrefs.userId, input.userId),
+        eq(userEmailPrefs.kind, input.type),
+      ),
+    )
+    .limit(1);
+  if (pref.length === 0) return;
+
+  const [u] = await adminDb
+    .select({ email: users.email, name: users.name })
+    .from(users)
+    .where(eq(users.id, input.userId))
+    .limit(1);
+  if (!u?.email) return;
+
+  const meta = getKindMeta(input.type);
+  const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+  const actionUrl = input.href
+    ? input.href.startsWith("http")
+      ? input.href
+      : `${baseUrl}${input.href}`
+    : null;
+
+  const { subject, html } = buildNotificationEmail({
+    recipientName: u.name ?? undefined,
+    title: input.title,
+    body: input.body ?? undefined,
+    actionUrl,
+    categoryLabel: meta?.label ?? "Notificación",
+  });
+
+  await sendEmail({ to: u.email, subject, html });
 }
 
 export async function listNotifications(

@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { CasoSchema } from "@/lib/schemas/caso";
 import { createCase } from "@/lib/db/queries/cases";
 import { applyTemplateToCase } from "@/lib/db/queries/matter-templates";
+import { notify } from "@/lib/db/queries/notifications";
 
 export type CasoFormState =
   | { ok: true }
@@ -109,6 +110,19 @@ export async function crearCasoAction(
       // Swallow — the case exists; the user can still manage tasks/events
       // by hand. We don't want template failures to block case creation.
     }
+  }
+
+  // Notificar a cada abogado asignado (menos a quien creó el caso).
+  for (const a of data.assignments) {
+    if (a.userId === user.userId) continue;
+    await notify({
+      firmId: user.firmId,
+      userId: a.userId,
+      type: "case_assigned",
+      title: `Te asignaron al caso ${created.code}`,
+      body: `${data.title} — rol: ${a.roleInCase}.`,
+      href: `/casos/${created.id}`,
+    });
   }
 
   revalidatePath("/casos");

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { getInvoiceById, recordPayment } from "@/lib/db/queries/invoices";
 import { logAuditStandalone } from "@/lib/audit/log";
+import { notify } from "@/lib/db/queries/notifications";
 
 const Schema = z.object({
   invoiceId: z.string().uuid(),
@@ -60,6 +61,18 @@ export async function registrarPagoAction(
     summary: `Registró pago de DOP ${amount.toFixed(2)} (${parsed.data.method})`,
     diff: { amount, method: parsed.data.method, reference: parsed.data.reference ?? null },
   });
+  // Notificar al creador de la factura (si no es quien registró el pago).
+  if (inv?.invoice.createdBy && inv.invoice.createdBy !== user.userId) {
+    await notify({
+      firmId: user.firmId,
+      userId: inv.invoice.createdBy,
+      type: "invoice_paid",
+      title: `Pago registrado en ${inv.invoice.number}`,
+      body: `Se registró un pago de DOP ${amount.toFixed(2)} (${parsed.data.method}).`,
+      href: `/facturacion/${parsed.data.invoiceId}`,
+    });
+  }
+
   revalidatePath(`/facturacion/${parsed.data.invoiceId}`);
   revalidatePath("/facturacion");
   return { ok: true };

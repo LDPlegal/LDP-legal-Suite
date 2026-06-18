@@ -31,6 +31,7 @@ const Schema = z.object({
   dueOn: z.string().min(1),
   notes: z.string().nullable().optional(),
   terms: z.string().nullable().optional(),
+  kind: z.enum(["standard", "proforma"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -68,7 +69,8 @@ export async function POST(req: Request) {
         typeof settings.invoiceFooter === "string" ? settings.invoiceFooter : null,
     },
     invoice: {
-      number: "VISTA PREVIA",
+      number: data.kind === "proforma" ? "PROFORMA (PREVIA)" : "VISTA PREVIA",
+      kind: data.kind === "proforma" ? "proforma" : "standard",
       ncf: null,
       issuedOn: new Date(),
       dueOn: new Date(data.dueOn),

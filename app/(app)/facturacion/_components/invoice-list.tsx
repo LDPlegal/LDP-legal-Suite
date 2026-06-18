@@ -40,6 +40,7 @@ const STATUS_LABEL = {
 export type InvoiceRow = {
   id: string;
   number: string;
+  kind?: string;
   ncf: string | null;
   issuedOn: Date;
   dueOn: Date;
@@ -190,6 +191,11 @@ export function InvoiceList({ rows }: { rows: InvoiceRow[] }) {
                   <Link href={`/facturacion/${r.id}`} className="hover:underline">
                     {r.number}
                   </Link>
+                  {r.kind === "proforma" ? (
+                    <Badge variant="secondary" className="ml-1 text-[9px] uppercase">
+                      Proforma
+                    </Badge>
+                  ) : null}
                   {r.ncf ? <p className="text-[10px] text-muted-foreground">NCF {r.ncf}</p> : null}
                 </TableCell>
                 <TableCell className="text-sm">{r.clientName ?? "—"}</TableCell>

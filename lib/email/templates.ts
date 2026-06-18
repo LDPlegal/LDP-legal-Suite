@@ -63,6 +63,43 @@ export function buildPortalInviteEmail(input: {
   };
 }
 
+export function buildNotificationEmail(input: {
+  recipientName?: string;
+  title: string;
+  body?: string | null;
+  actionUrl?: string | null;
+  actionLabel?: string;
+  categoryLabel: string;
+}): { subject: string; html: string } {
+  const greeting = input.recipientName ? `Hola ${input.recipientName},` : "Hola,";
+  const button = input.actionUrl
+    ? `<p style="margin:22px 0">
+         <a href="${input.actionUrl}"
+            style="display:inline-block;padding:10px 18px;background:#0F4C81;color:#fff;text-decoration:none;border-radius:6px;font-weight:500">
+           ${input.actionLabel ?? "Abrir en LDP Legal Suite"}
+         </a>
+       </p>`
+    : "";
+  return {
+    subject: `${input.title} — ${FROM_FIRM}`,
+    html: `
+<!doctype html>
+<html><body style="font-family:Helvetica,Arial,sans-serif;line-height:1.5;color:#0F172A;max-width:560px;margin:0 auto;padding:24px">
+  <p style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#B89254;font-weight:700;margin:0 0 4px">${input.categoryLabel}</p>
+  <p style="margin:0 0 12px">${greeting}</p>
+  <p style="font-size:16px;font-weight:600;margin:0 0 6px;color:#0F172A">${input.title}</p>
+  ${input.body ? `<p style="color:#475569;margin:0 0 4px">${input.body}</p>` : ""}
+  ${button}
+  <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0" />
+  <p style="font-size:12px;color:#94A3B8">
+    Recibís este correo porque activaste las notificaciones de
+    «${input.categoryLabel}». Podés desactivarlas en
+    Configuración → Notificaciones dentro de ${FROM_FIRM}.
+  </p>
+</body></html>`,
+  };
+}
+
 export function buildStaffInviteEmail(input: {
   recipientName: string;
   firmName: string;

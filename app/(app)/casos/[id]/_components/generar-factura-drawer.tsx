@@ -104,6 +104,7 @@ export function GenerarFacturaDrawer({
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<DraftLine[]>(() => buildInitialLines(billables));
   const [isr, setIsr] = useState(isCorporate);
+  const [kind, setKind] = useState<"standard" | "proforma">("standard");
   const [fiscal, setFiscal] = useState(false);
   const [ncfType, setNcfType] = useState<NcfType | "">(
     availableNcfTypes[0] ?? "",
@@ -193,6 +194,7 @@ export function GenerarFacturaDrawer({
           dueOn,
           notes,
           terms,
+          kind,
         }),
       });
       if (!res.ok) {
@@ -234,8 +236,10 @@ export function GenerarFacturaDrawer({
             fd.set("timeEntryIds", JSON.stringify(includedTimeIds));
             fd.set("expenseIds", JSON.stringify(includedExpIds));
             fd.set("isrWithholding", isr ? "true" : "false");
-            fd.set("fiscal", fiscal && ncfType ? "true" : "false");
-            if (fiscal && ncfType) fd.set("ncfType", ncfType);
+            fd.set("kind", kind);
+            // Una proforma nunca es fiscal.
+            fd.set("fiscal", kind === "standard" && fiscal && ncfType ? "true" : "false");
+            if (kind === "standard" && fiscal && ncfType) fd.set("ncfType", ncfType);
             return action(fd);
           }}
           className="flex flex-1 flex-col min-h-0"
@@ -374,7 +378,51 @@ export function GenerarFacturaDrawer({
               </div>
             </div>
 
-            {/* Modo fiscal — asigna NCF de un rango configurado */}
+            {/* Tipo de documento — Factura vs Proforma */}
+            <div className="rounded-lg border p-4 space-y-2">
+              <Label className="text-sm">Tipo de documento</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setKind("standard")}
+                  className={
+                    kind === "standard"
+                      ? "rounded-md border-2 border-primary bg-primary/5 px-3 py-2 text-left text-sm font-medium"
+                      : "rounded-md border border-input px-3 py-2 text-left text-sm hover:bg-accent"
+                  }
+                >
+                  Factura
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    Interna o fiscal (con NCF)
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setKind("proforma")}
+                  className={
+                    kind === "proforma"
+                      ? "rounded-md border-2 border-primary bg-primary/5 px-3 py-2 text-left text-sm font-medium"
+                      : "rounded-md border border-input px-3 py-2 text-left text-sm hover:bg-accent"
+                  }
+                >
+                  Proforma
+                  <span className="block text-[11px] font-normal text-muted-foreground">
+                    Cotización — sin NCF
+                  </span>
+                </button>
+              </div>
+              {kind === "proforma" ? (
+                <p className="rounded-sm border border-dashed bg-muted/30 p-2 text-[11px] text-muted-foreground">
+                  La proforma se numera <strong>PRO-{new Date().getFullYear()}-…</strong>,
+                  no consume NCF ni numeración fiscal y se marca como{" "}
+                  <strong>documento sin valor fiscal</strong> en el PDF. Útil para
+                  cotizar antes de emitir la factura real.
+                </p>
+              ) : null}
+            </div>
+
+            {/* Modo fiscal — solo aplica a facturas (no proforma) */}
+            {kind === "standard" ? (
             <div className="rounded-lg border p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -421,11 +469,12 @@ export function GenerarFacturaDrawer({
               {availableNcfTypes.length === 0 ? (
                 <p className="mt-3 rounded-sm border border-dashed bg-muted/30 p-2 text-[11px] text-muted-foreground">
                   No hay rangos NCF configurados. La factura se emitirá en{" "}
-                  <strong>modo interno</strong> (proforma) hasta que cargues rangos en
+                  <strong>modo interno</strong> (sin NCF) hasta que cargues rangos en
                   Configuración → Fiscal.
                 </p>
               ) : null}
             </div>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

@@ -26,6 +26,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
   const listRows: InvoiceRow[] = rows.map((r) => ({
     id: r.id,
     number: r.number,
+    kind: r.kind,
     ncf: r.ncf,
     issuedOn: r.issuedOn,
     dueOn: r.dueOn,

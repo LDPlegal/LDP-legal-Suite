@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { markInvoiceSent } from "@/lib/db/queries/invoices";
 import { logAuditStandalone } from "@/lib/audit/log";
+import { notify } from "@/lib/db/queries/notifications";
 
 const Schema = z.object({ invoiceId: z.string().uuid() });
 
@@ -25,6 +26,17 @@ export async function marcarFacturaEnviadaAction(formData: FormData): Promise<vo
       action: "sent",
       summary: `Marcó factura ${inv.number} como enviada`,
     });
+    // Notificar al creador de la factura (si no es quien la envió).
+    if (inv.createdBy && inv.createdBy !== user.userId) {
+      await notify({
+        firmId: user.firmId,
+        userId: inv.createdBy,
+        type: "invoice_sent",
+        title: `Factura ${inv.number} enviada`,
+        body: "La factura se marcó como enviada al cliente.",
+        href: `/facturacion/${inv.id}`,
+      });
+    }
   }
   revalidatePath("/facturacion");
   revalidatePath(`/facturacion/${parsed.invoiceId}`);

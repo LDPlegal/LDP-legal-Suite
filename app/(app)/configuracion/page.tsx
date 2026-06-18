@@ -31,6 +31,8 @@ import { AiBudgetPanel } from "./_components/ai-budget-panel";
 import { OAuthIntegrationsPanel } from "./_components/oauth-integrations-panel";
 import { MutedKindsPanel } from "./_components/muted-kinds-panel";
 import { EmailSignaturePanel } from "./_components/email-signature-panel";
+import { NotificationsPanel } from "./_components/notifications-panel";
+import { listEnabledEmailKinds } from "@/lib/db/queries/email-prefs";
 import { calendarIntegrations } from "@/lib/db/schema";
 import { isNull } from "drizzle-orm";
 import { isProviderConfigured } from "@/lib/oauth";
@@ -71,6 +73,7 @@ export default async function ConfiguracionPage() {
     getSpendByFeature(user.firmId),
     getRoiSummary(user.firmId),
   ]);
+  const enabledEmailKinds = await listEnabledEmailKinds(user.firmId, user.userId);
   // OAuth: traemos las integraciones del usuario actual (no las del firm
   // completo — cada socio ve solo las suyas).
   const oauthConnections = await adminDb
@@ -107,6 +110,7 @@ export default async function ConfiguracionPage() {
           <TabsTrigger value="firm">Datos del firm</TabsTrigger>
           <TabsTrigger value="equipo">Equipo</TabsTrigger>
           <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
+          <TabsTrigger value="notificaciones">Notificaciones</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
@@ -279,6 +283,17 @@ export default async function ConfiguracionPage() {
                 con la versión anterior — solo hacelo si tenés respaldo de la
                 clave original.
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notificaciones">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notificaciones por correo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NotificationsPanel enabledKinds={enabledEmailKinds} />
             </CardContent>
           </Card>
         </TabsContent>

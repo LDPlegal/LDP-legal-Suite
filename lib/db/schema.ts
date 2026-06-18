@@ -1168,7 +1168,11 @@ export const invoices = pgTable(
       .notNull()
       .references(() => clients.id, { onDelete: "restrict" }),
     caseId: uuid("case_id").references(() => cases.id, { onDelete: "set null" }),
-    number: text("number").notNull(), // e.g. "INV-2026-001"
+    number: text("number").notNull(), // e.g. "INV-2026-001" o "PRO-2026-001"
+    // 'standard' = factura normal (interna sin NCF, o fiscal con NCF).
+    // 'proforma' = cotización/proforma: nunca lleva NCF, no es comprobante de
+    //   pago ni válido para fines fiscales. Usa su propio contador (PRO-).
+    kind: text("kind").notNull().default("standard"),
     ncf: text("ncf"), // null in modo interno; populated in modo fiscal
     ncfType: ncfTypeEnum("ncf_type"),
     issuedOn: timestamp("issued_on", { withTimezone: true }).notNull(),
@@ -1269,6 +1273,21 @@ export const invoiceCounters = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("invoice_counters_pk").on(t.firmId, t.year)],
+);
+
+// Contador separado para proformas (PRO-2026-001). No comparte secuencia con
+// las facturas reales para que la numeración fiscal no tenga huecos.
+export const proformaCounters = pgTable(
+  "proforma_counters",
+  {
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("proforma_counters_pk").on(t.firmId, t.year)],
 );
 
 // ncf_counters — separate counter per (firm_id, ncf_type) for fiscal mode.
@@ -1801,6 +1820,26 @@ export const userMutedSuggestionKinds = pgTable(
       columns: [t.userId, t.kindPattern],
       name: "user_muted_suggestion_kinds_pkey",
     }),
+  ],
+);
+
+// =============================================================================
+// user_email_prefs — el usuario ACTIVÓ recibir por correo un tipo de
+// notificación. Opt-in: la presencia de la fila = email activado para ese
+// `kind`. Sin fila = no se envía correo (la notificación in-app igual entra).
+// =============================================================================
+
+export const userEmailPrefs = pgTable(
+  "user_email_prefs",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    enabledAt: timestamp("enabled_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.kind], name: "user_email_prefs_pkey" }),
   ],
 );
 

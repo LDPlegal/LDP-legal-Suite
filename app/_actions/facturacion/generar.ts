@@ -28,6 +28,7 @@ const Schema = z.object({
   terms: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
   fiscal: z.boolean().default(false),
   ncfType: z.enum(["B01", "B02", "E31", "E32"]).optional(),
+  kind: z.enum(["standard", "proforma"]).default("standard"),
 });
 
 export type GenerarFacturaState =
@@ -57,8 +58,12 @@ export async function generarFacturaAction(
     return { ok: false, error: "Datos inválidos en el formulario." };
   }
 
+  const kindRaw = formData.get("kind");
+  const kind = kindRaw === "proforma" ? "proforma" : "standard";
+  // Una proforma nunca es fiscal — ignoramos cualquier flag fiscal que venga.
   const fiscalRaw = formData.get("fiscal");
-  const fiscal = fiscalRaw === "true" || fiscalRaw === "on";
+  const fiscal =
+    kind === "proforma" ? false : fiscalRaw === "true" || fiscalRaw === "on";
 
   const parsed = Schema.safeParse({
     caseId: formData.get("caseId"),
@@ -73,7 +78,8 @@ export async function generarFacturaAction(
     notes: formData.get("notes"),
     terms: formData.get("terms"),
     fiscal,
-    ncfType: formData.get("ncfType") || undefined,
+    ncfType: kind === "proforma" ? undefined : formData.get("ncfType") || undefined,
+    kind,
   });
   if (!parsed.success) {
     const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
@@ -111,6 +117,7 @@ export async function generarFacturaAction(
       terms: parsed.data.terms ?? null,
       fiscal: parsed.data.fiscal,
       ncfType: parsed.data.ncfType,
+      kind: parsed.data.kind,
     });
     await logAuditStandalone({
       firmId: user.firmId,
@@ -119,7 +126,7 @@ export async function generarFacturaAction(
       entityId: inv.id,
       caseId: parsed.data.caseId,
       action: "created",
-      summary: `Generó factura ${inv.number}${inv.ncf ? ` (NCF ${inv.ncf})` : ""}`,
+      summary: `Generó ${parsed.data.kind === "proforma" ? "proforma" : "factura"} ${inv.number}${inv.ncf ? ` (NCF ${inv.ncf})` : ""}`,
       diff: { total: inv.total, ncfType: inv.ncfType },
     });
     revalidatePath("/facturacion");

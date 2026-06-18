@@ -1543,3 +1543,54 @@ Verificado con typecheck + lint verdes y deploy a producción; confirmación
 visual final en el dispositivo del usuario.
 
 
+
+---
+
+# Fase 10 — Proforma, notificaciones por email y rediseño de facturas
+
+Pedido de Gabriel: (1) tipo de factura "proforma" sin NCF, (2) notificaciones
+por correo activables por usuario, (3) facturas más lindas.
+
+## F10.1 — Factura proforma
+
+Tercer tipo de documento junto a interna (sin NCF) y fiscal (con NCF). La
+proforma es una cotización: nunca lleva NCF, no es comprobante de pago ni
+genera crédito fiscal.
+
+- Schema: `invoices.kind` ('standard' | 'proforma') + tabla `proforma_counters`
+  (numeración propia PRO-2026-001, no comparte secuencia con las facturas
+  reales para no dejar huecos fiscales). Migración 0027.
+- `generateInvoiceFromCase` acepta `kind`. Si proforma → contador PRO-, ncf
+  null, ignora `fiscal`/`ncfType`.
+- Drawer: selector "Tipo de documento" (Factura / Proforma). En proforma se
+  oculta la sección fiscal.
+- PDF: banda dorada "FACTURA PROFORMA — documento sin valor fiscal" + disclaimer
+  específico. Badge "Proforma" en el listado.
+
+## F10.2 — Notificaciones por email (opt-in por usuario)
+
+- Tabla `user_email_prefs` (user_id, kind) — la presencia de la fila = email
+  activado para ese kind. Opt-in, todo arranca apagado.
+- Catálogo central `lib/notifications/catalog.ts` con los kinds emailables.
+  Cada toggle dispara algo real (no toggles muertos): task_assigned,
+  case_assigned, invoice_sent, invoice_paid.
+- `notify()` (hook central) ahora, además de la notificación in-app, chequea
+  user_email_prefs y manda correo con `buildNotificationEmail` (Resend).
+  Fire-and-forget: un fallo de email nunca rompe el flujo que lo disparó.
+- Triggers nuevos: invoice_paid (pago.ts), invoice_sent (enviar.ts),
+  case_assigned (casos/crear.ts). task_assigned ya existía.
+- UI: Configuración → Notificaciones, toggles agrupados, optimista.
+- Audiencias/plazos siguen por el sistema de event_alerts (independiente).
+
+## F10.3 — Rediseño del PDF de facturas
+
+Cabecera navy (#051D33) con logo + acento dorado, tarjetas "Facturado a /
+Caso", tabla con header navy y filas zebra, bloque de totales tipo recibo con
+pill de balance pendiente, footer fijo. Tres modos visuales: proforma /
+interna / fiscal, cada uno con su banda y disclaimer.
+
+## F10.4 — Verificación
+
+typecheck + lint verdes. Migración 0027 additiva (IF NOT EXISTS). Pendiente
+correr `pnpm db:migrate` en prod. Confirmación visual del PDF y emails en uso
+real.

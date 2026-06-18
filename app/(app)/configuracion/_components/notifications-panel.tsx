@@ -1,0 +1,96 @@
+"use client";
+
+// Panel de preferencias de notificación por email. Cada toggle activa/desactiva
+// el envío de correo para ese tipo de evento (la notificación in-app entra
+// siempre; esto solo controla el correo). Opt-in: todo arranca apagado.
+
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { EMAILABLE_KINDS, type NotificationKind } from "@/lib/notifications/catalog";
+import { toggleEmailPrefAction } from "@/app/_actions/configuracion/email-prefs";
+
+export function NotificationsPanel({
+  enabledKinds,
+}: {
+  enabledKinds: string[];
+}) {
+  const [enabled, setEnabled] = useState<Set<string>>(new Set(enabledKinds));
+  const [pending, startTransition] = useTransition();
+
+  function toggle(kind: string, next: boolean) {
+    // Optimista: actualizamos el set ya, revertimos si falla.
+    setEnabled((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(kind);
+      else s.delete(kind);
+      return s;
+    });
+    startTransition(async () => {
+      const r = await toggleEmailPrefAction({ kind, enabled: next });
+      if (!r.ok) {
+        toast.error(r.error);
+        setEnabled((prev) => {
+          const s = new Set(prev);
+          if (next) s.delete(kind);
+          else s.add(kind);
+          return s;
+        });
+      }
+    });
+  }
+
+  // Agrupar por group.
+  const groups = EMAILABLE_KINDS.reduce<Record<string, NotificationKind[]>>(
+    (acc, k) => {
+      (acc[k.group] ??= []).push(k);
+      return acc;
+    },
+    {},
+  );
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Elegí de qué eventos querés recibir un <strong>correo</strong>. Las
+        notificaciones dentro de la app (la campanita) llegan siempre; esto solo
+        controla el email. Todo arranca desactivado.
+      </p>
+
+      {Object.entries(groups).map(([group, kinds]) => (
+        <div key={group} className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {group}
+          </h3>
+          <div className="divide-y rounded-lg border">
+            {kinds.map((k) => (
+              <div
+                key={k.kind}
+                className="flex items-start justify-between gap-4 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{k.label}</p>
+                  <p className="text-xs text-muted-foreground">{k.description}</p>
+                </div>
+                <Switch
+                  checked={enabled.has(k.kind)}
+                  onCheckedChange={(v) => toggle(k.kind, v)}
+                  disabled={pending}
+                  aria-label={`Email para ${k.label}`}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <p className="rounded-md border border-dashed bg-muted/30 p-3 text-[11px] text-muted-foreground">
+        Los recordatorios de <strong>audiencias y plazos procesales</strong> se
+        gestionan aparte, desde las alertas del calendario en cada evento. El
+        envío de correos requiere que la firma tenga configurado un proveedor de
+        email (Resend) en producción; si no, las notificaciones in-app siguen
+        funcionando normalmente.
+      </p>
+    </div>
+  );
+}
