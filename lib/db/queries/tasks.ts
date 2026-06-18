@@ -69,12 +69,14 @@ export async function createTask(
     return r;
   });
 
-  // Notificación cuando la tarea se asigna a alguien distinto del creador.
+  // Notificación cuando la tarea queda asignada a alguien — INCLUIDO uno
+  // mismo (la firma pidió recibir el aviso aunque se autoasignen tareas,
+  // como recordatorio/registro).
   // AWAIT (no void floating): notify() inserta la notificación in-app (rápido)
   // y difiere el email con after() internamente. El patrón anterior
   // `void (async()=>{})()` se moría al terminar la lambda en serverless, así
   // que la notificación podía no dispararse nunca. Lazy import por circular dep.
-  if (data.assigneeId && data.assigneeId !== userId) {
+  if (data.assigneeId) {
     try {
       const { notify } = await import("./notifications");
       await notify({
