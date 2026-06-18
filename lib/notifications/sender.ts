@@ -64,12 +64,19 @@ export async function resolveFirmGraphSenderUserId(
 }
 
 /** Lista los usuarios del firm con M365 conectado — para el selector de
- *  "casilla emisora" en Configuración. Pasa por adminDb pero filtra por firm. */
+ *  "casilla emisora" en Configuración. Devuelve el BUZÓN conectado
+ *  (externalAccountId), que es desde donde realmente sale el correo, no el
+ *  email de login de la app (pueden diferir). Pasa por adminDb, filtra por firm. */
 export async function listGraphCapableUsers(
   firmId: string,
-): Promise<Array<{ id: string; name: string; email: string }>> {
+): Promise<Array<{ id: string; name: string; email: string; mailbox: string }>> {
   const rows = await adminDb
-    .select({ id: users.id, name: users.name, email: users.email })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      mailbox: calendarIntegrations.externalAccountId,
+    })
     .from(calendarIntegrations)
     .innerJoin(users, eq(users.id, calendarIntegrations.userId))
     .where(

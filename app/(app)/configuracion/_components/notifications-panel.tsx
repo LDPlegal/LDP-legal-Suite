@@ -14,7 +14,7 @@ import {
   setNotificationSenderAction,
 } from "@/app/_actions/configuracion/email-prefs";
 
-type SenderUser = { id: string; name: string; email: string };
+type SenderUser = { id: string; name: string; email: string; mailbox: string };
 
 export function NotificationsPanel({
   enabledKinds,
@@ -115,7 +115,7 @@ export function NotificationsPanel({
               <option value="">Automático (primer admin conectado)</option>
               {senderUsers.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name} ({u.email})
+                  Enviar desde {u.mailbox} — {u.name}
                 </option>
               ))}
             </select>
