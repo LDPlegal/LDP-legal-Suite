@@ -123,14 +123,56 @@ export async function updateTask(
   taskId: string,
   data: Partial<Omit<NewTask, "firmId" | "id" | "createdAt" | "createdBy">>,
 ): Promise<Task | null> {
-  return withFirm(firmId, userId, async (tx) => {
-    const [row] = await tx
+  // Detectar reasignación ANTES del update — necesitamos saber si el
+  // assigneeId cambió respecto al anterior para notificar al nuevo.
+  let previousAssigneeId: string | null = null;
+  if (data.assigneeId !== undefined) {
+    const previous = await withFirm(firmId, userId, async (tx) => {
+      const [r] = await tx
+        .select({ assigneeId: tasks.assigneeId })
+        .from(tasks)
+        .where(and(eq(tasks.id, taskId), isNull(tasks.deletedAt)))
+        .limit(1);
+      return r ?? null;
+    });
+    previousAssigneeId = previous?.assigneeId ?? null;
+  }
+
+  const row = await withFirm(firmId, userId, async (tx) => {
+    const [r] = await tx
       .update(tasks)
       .set({ ...data, updatedAt: new Date() })
       .where(and(eq(tasks.id, taskId), isNull(tasks.deletedAt)))
       .returning();
-    return row ?? null;
+    return r ?? null;
   });
+
+  // Notificar al nuevo asignado si el assigneeId cambió. Notifica también
+  // cuando el user se autoasigna (a pedido de la firma — sirve como recordatorio).
+  if (
+    row &&
+    data.assigneeId !== undefined &&
+    data.assigneeId &&
+    data.assigneeId !== previousAssigneeId
+  ) {
+    try {
+      const { notify } = await import("./notifications");
+      await notify({
+        firmId,
+        userId: data.assigneeId,
+        type: "task_assigned",
+        title: `Te reasignaron: ${row.title}`,
+        body: row.dueAt
+          ? `Vence el ${new Date(row.dueAt).toLocaleDateString("es-DO")}`
+          : "Sin fecha de vencimiento",
+        href: row.caseId ? `/casos/${row.caseId}?tab=tareas` : "/tareas",
+      });
+    } catch {
+      // best-effort — un fallo de notificación no rompe la actualización.
+    }
+  }
+
+  return row;
 }
 
 export async function softDeleteTask(

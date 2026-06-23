@@ -48,6 +48,13 @@ export const EMAILABLE_KINDS: NotificationKind[] = [
     description: "Cuando se registra un pago (total o parcial) en una factura.",
     group: "Facturación",
   },
+  {
+    kind: "invoice_overdue",
+    label: "Facturas vencidas",
+    description:
+      "Cuando el cron diario detecta una factura cuyo plazo de pago venció (status pasa a 'vencida').",
+    group: "Facturación",
+  },
 ];
 
 const BY_KIND = new Map(EMAILABLE_KINDS.map((k) => [k.kind, k]));
