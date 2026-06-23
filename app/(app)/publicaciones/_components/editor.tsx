@@ -25,6 +25,7 @@ import { Bookmark, Check, Download, Loader2, MoreHorizontal, Save, Trash2 } from
 import { toast } from "sonner";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -430,17 +431,18 @@ function PresetsBar({
       )}
       <div className="ml-auto flex items-center gap-1.5">
         {currentPresetId ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onOverwrite}
-            disabled={pending}
-            title="Sobrescribir el preset actual"
-          >
-            {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-            Sobrescribir{currentPreset ? ` "${currentPreset.name}"` : ""}
-          </Button>
+          <WithTooltip label="Sobrescribir el preset actual con los valores en pantalla">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onOverwrite}
+              disabled={pending}
+            >
+              {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              Sobrescribir{currentPreset ? ` "${currentPreset.name}"` : ""}
+            </Button>
+          </WithTooltip>
         ) : null}
         <Button
           type="button"
@@ -624,15 +626,16 @@ function TweaksPanel({
           </p>
           <h2 className="text-base font-semibold tracking-tight">{template.label}</h2>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onReset}
-          title="Volver a valores por defecto"
-        >
-          Reiniciar
-        </Button>
+        <WithTooltip label="Volver a los valores por defecto de la plantilla (descarta cambios)">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+          >
+            Reiniciar
+          </Button>
+        </WithTooltip>
       </div>
 
       <div className="rounded-md border border-dashed border-border bg-muted/30 p-2.5 text-[11px] leading-relaxed text-muted-foreground">

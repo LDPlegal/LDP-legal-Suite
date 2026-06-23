@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MessageSquare, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -187,10 +188,12 @@ export default async function CasoDetailPage({
                 timeEntryCount: tiempos.length,
               }}
               trigger={
-                <Button variant="outline" size="sm" title="Cmd/Ctrl+J">
-                  <MessageSquare className="h-4 w-4" />
-                  Asistente IA
-                </Button>
+                <WithTooltip label="Chatear con la IA sobre este caso · atajo Cmd/Ctrl+J">
+                  <Button variant="outline" size="sm">
+                    <MessageSquare className="h-4 w-4" />
+                    Asistente IA
+                  </Button>
+                </WithTooltip>
               }
             />
             {aiEnabled ? (

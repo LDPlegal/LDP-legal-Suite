@@ -1,9 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Pencil, ScanEye, Trash2, Sparkles } from "lucide-react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Image as ImageIcon,
+  Pencil,
+  ScanEye,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { IconButton, WithTooltip } from "@/components/ui/icon-button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
@@ -19,7 +29,10 @@ import {
   type DocumentListRow,
 } from "@/lib/documents/format";
 
-const OCR_VARIANT: Record<DocumentListRow["ocrStatus"], "secondary" | "warning" | "success" | "destructive" | "default"> = {
+const OCR_VARIANT: Record<
+  DocumentListRow["ocrStatus"],
+  "secondary" | "warning" | "success" | "destructive" | "default"
+> = {
   pending: "secondary",
   processing: "secondary",
   done: "success",
@@ -51,19 +64,22 @@ export function DocumentRow({
             documentName={doc.name}
             mimeType={doc.mimeType}
             trigger={
-              <button
-                type="button"
-                className="truncate text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
-                title="Click para ver"
-              >
-                {doc.name}
-              </button>
+              <WithTooltip label="Abrir vista previa">
+                <button
+                  type="button"
+                  className="truncate text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                >
+                  {doc.name}
+                </button>
+              </WithTooltip>
             }
           />
           {doc.version > 1 ? (
-            <Badge variant="outline" className="font-mono text-[10px]">
-              v{doc.version}
-            </Badge>
+            <WithTooltip label={`Versión ${doc.version} — versiones anteriores en historial`}>
+              <Badge variant="outline" className="font-mono text-[10px]">
+                v{doc.version}
+              </Badge>
+            </WithTooltip>
           ) : null}
         </div>
         {doc.tags.length > 0 ? (
@@ -97,20 +113,13 @@ export function DocumentRow({
             name="shared"
             value={doc.sharedWithClient ? "false" : "true"}
           />
-          <Button
+          <IconButton
             type="submit"
-            variant="ghost"
-            size="icon"
             className="h-7 w-7"
-            aria-label={
+            label={
               doc.sharedWithClient
-                ? "Dejar de compartir con el cliente"
-                : "Compartir con el cliente"
-            }
-            title={
-              doc.sharedWithClient
-                ? "Visible para el cliente — clic para ocultar"
-                : "Oculto para el cliente — clic para compartir"
+                ? "Visible para el cliente — clic para ocultarlo"
+                : "Oculto del cliente — clic para compartirlo"
             }
           >
             {doc.sharedWithClient ? (
@@ -118,36 +127,38 @@ export function DocumentRow({
             ) : (
               <EyeOff className="h-3.5 w-3.5" />
             )}
-          </Button>
+          </IconButton>
         </form>
         <DocumentPreviewDrawer
           documentId={doc.id}
           documentName={doc.name}
           mimeType={doc.mimeType}
           trigger={
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver" title="Ver sin descargar">
+            <IconButton className="h-7 w-7" label="Vista previa (sin descargar)">
               <ScanEye className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
-        <Button asChild variant="ghost" size="icon" className="h-7 w-7" aria-label="Descargar" title="Descargar">
+        <WithTooltip label="Descargar archivo">
           <Link
             href={`/api/documentos/${doc.id}/download`}
             target="_blank"
             rel="noopener"
             download={doc.name}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Descargar archivo"
           >
             <Download className="h-3.5 w-3.5" />
           </Link>
-        </Button>
+        </WithTooltip>
         {aiEnabled && doc.ocrStatus === "done" ? (
           <DocumentSummaryDrawer
             documentId={doc.id}
             documentName={doc.name}
             trigger={
-              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Resumen IA">
+              <IconButton className="h-7 w-7" label="Resumir con IA">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </Button>
+              </IconButton>
             }
           />
         ) : null}
@@ -162,9 +173,9 @@ export function DocumentRow({
           caseId={caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
           trigger={
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar">
+            <IconButton className="h-7 w-7" label="Editar nombre y etiquetas">
               <Pencil className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
         <ConfirmButton
@@ -173,14 +184,12 @@ export function DocumentRow({
           description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
           confirmLabel="Eliminar"
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
+            <IconButton
               className="h-7 w-7 text-destructive"
-              aria-label="Eliminar"
+              label="Eliminar (archivar)"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         >
           <input type="hidden" name="documentId" value={doc.id} />

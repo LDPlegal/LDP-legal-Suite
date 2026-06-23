@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -135,21 +136,22 @@ export function NoteFormDrawer({
               <div className="flex items-center justify-between">
                 <Label>Contenido *</Label>
                 {aiEnabled ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefine}
-                    disabled={refining || pending}
-                    title="Mejora la redacción manteniendo hechos y datos"
-                  >
-                    {refining ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3.5 w-3.5" />
-                    )}
-                    Mejorar redacción
-                  </Button>
+                  <WithTooltip label="Mejora la redacción manteniendo hechos y datos">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefine}
+                      disabled={refining || pending}
+                    >
+                      {refining ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5" />
+                      )}
+                      Mejorar redacción
+                    </Button>
+                  </WithTooltip>
                 ) : null}
               </div>
               <RichTextEditor

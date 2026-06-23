@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 
 type SyncResponse =
   | {
@@ -82,16 +83,17 @@ export function CalendarSyncButton() {
   }
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={sync}
-      disabled={busy}
-      title="Traer eventos de Outlook ahora"
-    >
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-      Sincronizar Outlook
-    </Button>
+    <WithTooltip label="Traer eventos nuevos/modificados de Outlook (sin esperar al cron)">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={sync}
+        disabled={busy}
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        Sincronizar Outlook
+      </Button>
+    </WithTooltip>
   );
 }

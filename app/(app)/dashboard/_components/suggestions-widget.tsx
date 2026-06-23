@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { toast } from "sonner";
 import {
   aceptarSugerenciaAction,
@@ -147,15 +148,16 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                         Ir <ArrowRight className="h-3 w-3" />
                       </Link>
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => onFeedback(s.id, "useful")}
-                      disabled={pending}
-                      title="Esta sugerencia me sirvió"
-                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                    >
-                      <ThumbsUp className="h-3 w-3" /> Útil
-                    </button>
+                    <WithTooltip label="Marca esta sugerencia como útil — la IA aprende qué priorizar">
+                      <button
+                        type="button"
+                        onClick={() => onFeedback(s.id, "useful")}
+                        disabled={pending}
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        <ThumbsUp className="h-3 w-3" /> Útil
+                      </button>
+                    </WithTooltip>
                     <button
                       type="button"
                       onClick={() => onDismiss(s.id)}
@@ -164,15 +166,16 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                     >
                       <X className="h-3 w-3" /> Descartar
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => onFeedback(s.id, "mute_kind")}
-                      disabled={pending}
-                      title="No me muestres más sugerencias de este tipo"
-                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                    >
-                      <BellOff className="h-3 w-3" /> Silenciar tipo
-                    </button>
+                    <WithTooltip label="No me muestres más sugerencias de este tipo (podés revertirlo en Configuración)">
+                      <button
+                        type="button"
+                        onClick={() => onFeedback(s.id, "mute_kind")}
+                        disabled={pending}
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        <BellOff className="h-3 w-3" /> Silenciar tipo
+                      </button>
+                    </WithTooltip>
                   </div>
                 </div>
               </li>

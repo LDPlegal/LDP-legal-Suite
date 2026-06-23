@@ -14,7 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { IconButton, WithTooltip } from "@/components/ui/icon-button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
@@ -72,13 +72,14 @@ export function DocumentGlobalRow({
             documentName={doc.name}
             mimeType={doc.mimeType}
             trigger={
-              <button
-                type="button"
-                className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
-                title="Click para ver"
-              >
-                {doc.name}
-              </button>
+              <WithTooltip label="Abrir vista previa">
+                <button
+                  type="button"
+                  className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                >
+                  {doc.name}
+                </button>
+              </WithTooltip>
             }
           />
           {doc.version > 1 ? (
@@ -157,20 +158,13 @@ export function DocumentGlobalRow({
               name="shared"
               value={doc.sharedWithClient ? "false" : "true"}
             />
-            <Button
+            <IconButton
               type="submit"
-              variant="ghost"
-              size="icon"
               className="h-7 w-7"
-              aria-label={
+              label={
                 doc.sharedWithClient
-                  ? "Dejar de compartir con el cliente"
-                  : "Compartir con el cliente"
-              }
-              title={
-                doc.sharedWithClient
-                  ? "Visible para el cliente — clic para ocultar"
-                  : "Oculto para el cliente — clic para compartir"
+                  ? "Visible para el cliente — clic para ocultarlo"
+                  : "Oculto del cliente — clic para compartirlo"
               }
             >
               {doc.sharedWithClient ? (
@@ -178,7 +172,7 @@ export function DocumentGlobalRow({
               ) : (
                 <EyeOff className="h-3.5 w-3.5" />
               )}
-            </Button>
+            </IconButton>
           </form>
         ) : null}
         <DocumentPreviewDrawer
@@ -186,30 +180,34 @@ export function DocumentGlobalRow({
           documentName={doc.name}
           mimeType={doc.mimeType}
           trigger={
-            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Ver" title="Ver sin descargar">
+            <IconButton className="h-7 w-7" label="Vista previa (sin descargar)">
               <ScanEye className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
-        <Link
-          href={`/api/documentos/${doc.id}/download`}
-          target="_blank"
-          rel="noopener"
-          download={doc.name}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-          aria-label="Descargar"
-          title="Descargar"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </Link>
+        <WithTooltip label="Descargar archivo">
+          <Link
+            href={`/api/documentos/${doc.id}/download`}
+            target="_blank"
+            rel="noopener"
+            download={doc.name}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Descargar archivo"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Link>
+        </WithTooltip>
         {aiEnabled && doc.ocrStatus === "done" ? (
           <DocumentSummaryDrawer
             documentId={doc.id}
             documentName={doc.name}
             trigger={
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" aria-label="Resumen IA">
+              <IconButton
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                label="Resumir con IA"
+              >
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </Button>
+              </IconButton>
             }
           />
         ) : null}
@@ -228,14 +226,9 @@ export function DocumentGlobalRow({
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Editar documento"
-            >
+            <IconButton className="h-7 w-7" label="Editar nombre y etiquetas">
               <Pencil className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
         <ConfirmButton
@@ -244,14 +237,12 @@ export function DocumentGlobalRow({
           description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
           confirmLabel="Eliminar"
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
+            <IconButton
               className="h-7 w-7 text-destructive"
-              aria-label="Eliminar"
+              label="Eliminar (archivar — reversible)"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         >
           <input type="hidden" name="documentId" value={doc.id} />

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { IconButton, WithTooltip } from "@/components/ui/icon-button";
 import {
   reprocessAllPendingDocsAction,
   reprocessOneDocAction,
@@ -46,12 +47,9 @@ export function ReprocessOneButton({ docId }: { docId: string }) {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
+    <IconButton
       className="h-7 w-7 text-muted-foreground hover:text-foreground"
-      title="Re-procesar OCR de este documento"
-      aria-label="Re-procesar OCR"
+      label="Volver a procesar OCR de este documento"
       onClick={trigger}
       disabled={pending}
     >
@@ -60,7 +58,7 @@ export function ReprocessOneButton({ docId }: { docId: string }) {
       ) : (
         <RotateCcw className="h-3.5 w-3.5" />
       )}
-    </Button>
+    </IconButton>
   );
 }
 
@@ -112,25 +110,26 @@ export function ReprocessAllButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={trigger}
-      disabled={pending}
-      title="Vuelve a correr OCR sobre todos los documentos que no están en estado 'Indexado'. Procesa hasta 10 por click."
-    >
-      {pending ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <RotateCcw className="h-3.5 w-3.5" />
-      )}
-      {pending
-        ? "Procesando…"
-        : remaining !== null && remaining === 0
-          ? "Todos procesados"
-          : remaining !== null && remaining > 0
-            ? `Re-procesar OCR (${remaining} restantes)`
-            : "Re-procesar OCR pendientes"}
-    </Button>
+    <WithTooltip label="Vuelve a correr OCR sobre los documentos que no están en estado 'Indexado'. Procesa hasta 10 por click.">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={trigger}
+        disabled={pending}
+      >
+        {pending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <RotateCcw className="h-3.5 w-3.5" />
+        )}
+        {pending
+          ? "Procesando…"
+          : remaining !== null && remaining === 0
+            ? "Todos procesados"
+            : remaining !== null && remaining > 0
+              ? `Re-procesar OCR (${remaining} restantes)`
+              : "Re-procesar OCR pendientes"}
+      </Button>
+    </WithTooltip>
   );
 }

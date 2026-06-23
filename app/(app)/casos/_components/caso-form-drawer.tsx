@@ -3,6 +3,7 @@
 import { useActionState, useState, type ReactNode } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -109,15 +110,12 @@ export function CasoFormDrawer({
                     */}
                     <ClienteFormDrawer
                       trigger={
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          title="Crear cliente sin salir del formulario del caso"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Nuevo cliente
-                        </Button>
+                        <WithTooltip label="Crear cliente sin salir del formulario del caso">
+                          <Button type="button" variant="outline" size="sm">
+                            <Plus className="h-3.5 w-3.5" />
+                            Nuevo cliente
+                          </Button>
+                        </WithTooltip>
                       }
                       onCreated={(c) => {
                         setClienteList((prev) =>

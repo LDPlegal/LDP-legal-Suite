@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import {
   Dialog,
   DialogContent,
@@ -52,15 +53,12 @@ export function ShareFolderButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
+        <IconButton
           className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-          aria-label="Compartir carpeta con cliente"
-          title="Compartir o quitar de portal cliente"
+          label="Compartir o quitar de portal cliente (cascada en toda la carpeta)"
         >
           <Eye className="h-3.5 w-3.5 text-emerald-600" />
-        </Button>
+        </IconButton>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

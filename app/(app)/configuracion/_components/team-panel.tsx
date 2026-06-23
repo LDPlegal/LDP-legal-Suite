@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmButton } from "@/components/ui/confirm-button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -149,15 +150,12 @@ export function TeamPanel({
                       member={m}
                       isAdmin={currentRole === "admin"}
                       trigger={
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                        <IconButton
                           className="h-7 w-7"
-                          aria-label="Editar miembro"
-                          title="Editar nombre, email, tarifa, rol o contraseña"
+                          label="Editar nombre, email, tarifa, rol o contraseña"
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        </IconButton>
                       }
                     />
                     <ConfirmButton

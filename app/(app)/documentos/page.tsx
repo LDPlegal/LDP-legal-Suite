@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/page-header";
@@ -106,14 +107,15 @@ export default async function DocumentosPage({
         {/* Botones directos (sin wrapper flex extra) para que el flex-wrap
             de PageHeader los envuelva uno por uno en mobile en vez de
             dejarlos en una fila que se corta. */}
-        <Link
-          href="/documentos/papelera"
-          className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
-          title="Papelera (elementos eliminados)"
-        >
-          <Trash2 className="h-4 w-4" />
-          Papelera
-        </Link>
+        <WithTooltip label="Documentos eliminados (reversible — podés restaurar)">
+          <Link
+            href="/documentos/papelera"
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
+          >
+            <Trash2 className="h-4 w-4" />
+            Papelera
+          </Link>
+        </WithTooltip>
         <ReprocessAllButton />
         {!isSearchMode ? (
           <>

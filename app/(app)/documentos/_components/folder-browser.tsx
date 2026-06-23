@@ -39,7 +39,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { eliminarCarpetaAction } from "@/app/_actions/carpetas/eliminar";
@@ -56,6 +55,7 @@ import { MoveToDialog } from "./move-to-dialog";
 import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
 import { BulkActionsBar } from "./bulk-actions-bar";
+import { IconButton, WithTooltip } from "@/components/ui/icon-button";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
@@ -423,16 +423,17 @@ function FolderCard({
         aria-label={`Seleccionar carpeta ${folder.name}`}
       />
       {/* Drag handle — solo este icono triggers el drag, los demás clicks van al Link. */}
-      <button
-        type="button"
-        {...drag.listeners}
-        {...drag.attributes}
-        className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        aria-label="Arrastrar para mover"
-        title="Arrastrá para mover"
-      >
-        <GripVertical className="h-3.5 w-3.5" />
-      </button>
+      <WithTooltip label="Arrastrar para mover a otra carpeta">
+        <button
+          type="button"
+          {...drag.listeners}
+          {...drag.attributes}
+          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Arrastrar para mover"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </WithTooltip>
       <Link href={href} className="flex flex-1 items-center gap-2 truncate">
         <FolderIcon className="h-5 w-5 shrink-0 text-amber-500" />
         <span className="truncate text-sm font-medium">{folder.name}</span>
@@ -446,15 +447,12 @@ function FolderCard({
         scope={scope}
         currentFolderId={folder.id}
         trigger={
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
             className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-            aria-label="Mover carpeta a..."
-            title="Mover a otra carpeta"
+            label="Mover esta carpeta a otra ubicación"
           >
             <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
+          </IconButton>
         }
       />
       <ConfirmButton
@@ -467,14 +465,12 @@ function FolderCard({
         }
         confirmLabel="Eliminar"
         trigger={
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
             className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-            aria-label="Eliminar carpeta"
+            label="Eliminar carpeta (reversible — queda archivada)"
           >
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
+          </IconButton>
         }
       >
         <input type="hidden" name="folderId" value={folder.id} />
@@ -557,16 +553,17 @@ function DocumentItem({
           aria-label={`Seleccionar documento ${doc.name}`}
         />
         {/* Drag handle */}
-        <button
-          type="button"
-          {...drag.listeners}
-          {...drag.attributes}
-          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
-          aria-label="Arrastrar para mover"
-          title="Arrastrá para mover"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        <WithTooltip label="Arrastrar para mover a otra carpeta">
+          <button
+            type="button"
+            {...drag.listeners}
+            {...drag.attributes}
+            className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+            aria-label="Arrastrar para mover"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        </WithTooltip>
         {isImage ? (
           <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
         ) : (
@@ -578,13 +575,14 @@ function DocumentItem({
             documentName={doc.name}
             mimeType={doc.mimeType}
             trigger={
-              <button
-                type="button"
-                className="block w-full truncate text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:underline"
-                title="Click para ver"
-              >
-                {doc.name}
-              </button>
+              <WithTooltip label="Abrir vista previa">
+                <button
+                  type="button"
+                  className="block w-full truncate text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+                >
+                  {doc.name}
+                </button>
+              </WithTooltip>
             }
           />
           <p className="text-xs text-muted-foreground">
@@ -618,20 +616,13 @@ function DocumentItem({
               name="shared"
               value={doc.sharedWithClient ? "false" : "true"}
             />
-            <Button
+            <IconButton
               type="submit"
-              variant="ghost"
-              size="icon"
               className="h-7 w-7"
-              aria-label={
+              label={
                 doc.sharedWithClient
-                  ? "Dejar de compartir con el cliente"
-                  : "Compartir con el cliente"
-              }
-              title={
-                doc.sharedWithClient
-                  ? "Visible para el cliente — click para ocultar"
-                  : "Oculto — click para compartir"
+                  ? "Visible para el cliente — clic para ocultarlo"
+                  : "Oculto del cliente — clic para compartirlo"
               }
             >
               {doc.sharedWithClient ? (
@@ -639,19 +630,16 @@ function DocumentItem({
               ) : (
                 <EyeOff className="h-3.5 w-3.5" />
               )}
-            </Button>
+            </IconButton>
           </form>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
             className="h-7 w-7 cursor-default opacity-60"
             disabled
-            aria-label="Sin caso asociado"
-            title="Para compartir con cliente, el doc debe vivir dentro de un caso"
+            label="Sin caso asociado — para compartir con cliente, el documento debe vivir dentro de un caso"
           >
             <EyeOff className="h-3.5 w-3.5" />
-          </Button>
+          </IconButton>
         )}
 
         <DocumentPreviewDrawer
@@ -659,43 +647,36 @@ function DocumentItem({
           documentName={doc.name}
           mimeType={doc.mimeType}
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Ver"
-              title="Ver sin descargar"
-            >
+            <IconButton className="h-7 w-7" label="Vista previa (sin descargar)">
               <ScanEye className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
 
-        <Link
-          href={`/api/documentos/${doc.id}/download`}
-          target="_blank"
-          rel="noopener"
-          download={doc.name}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-          aria-label="Descargar"
-          title="Descargar"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </Link>
+        <WithTooltip label="Descargar archivo">
+          <Link
+            href={`/api/documentos/${doc.id}/download`}
+            target="_blank"
+            rel="noopener"
+            download={doc.name}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Descargar archivo"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Link>
+        </WithTooltip>
 
         {aiEnabled && doc.ocrStatus === "done" ? (
           <DocumentSummaryDrawer
             documentId={doc.id}
             documentName={doc.name}
             trigger={
-              <Button
-                variant="ghost"
-                size="icon"
+              <IconButton
                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                aria-label="Resumen IA"
+                label="Resumir con IA"
               >
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </Button>
+              </IconButton>
             }
           />
         ) : null}
@@ -709,15 +690,9 @@ function DocumentItem({
           scope={docScope}
           currentFolderId={currentFolderId}
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Mover a..."
-              title="Mover a otra carpeta"
-            >
+            <IconButton className="h-7 w-7" label="Mover a otra carpeta">
               <FolderInput className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
 
@@ -732,14 +707,9 @@ function DocumentItem({
           caseId={doc.caseId}
           doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Editar documento"
-            >
+            <IconButton className="h-7 w-7" label="Editar nombre y etiquetas">
               <Pencil className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         />
 
@@ -749,14 +719,12 @@ function DocumentItem({
           description={`"${doc.name}" se archiva (reversible).`}
           confirmLabel="Eliminar"
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
+            <IconButton
               className="h-7 w-7 text-destructive"
-              aria-label="Eliminar"
+              label="Eliminar (archivar — reversible)"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            </IconButton>
           }
         >
           <input type="hidden" name="documentId" value={doc.id} />

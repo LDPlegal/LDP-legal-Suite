@@ -10,6 +10,7 @@ import { useRef, useState, useTransition } from "react";
 import { Loader2, FileUp, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -95,16 +96,13 @@ export function DocumentNewVersionButton({
       }}
     >
       <DialogTrigger asChild>
-        <Button
+        <IconButton
           type="button"
-          variant="ghost"
-          size="icon"
           className="h-7 w-7"
-          aria-label="Subir nueva versión"
-          title="Subir nueva versión de este documento"
+          label="Subir nueva versión de este documento"
         >
           <FileUp className="h-3.5 w-3.5" />
-        </Button>
+        </IconButton>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

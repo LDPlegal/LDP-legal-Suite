@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -64,15 +65,12 @@ export function RenameFolderDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
+        <IconButton
           className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-          aria-label="Renombrar carpeta"
-          title="Renombrar"
+          label="Renombrar carpeta"
         >
           <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-        </Button>
+        </IconButton>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

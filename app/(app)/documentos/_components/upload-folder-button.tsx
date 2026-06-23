@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { FolderUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { crearEstructuraCarpetasAction } from "@/app/_actions/carpetas/crear-estructura";
 import { uploadFileDirect } from "@/lib/uploads/client";
 import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
@@ -194,20 +195,21 @@ export function UploadFolderButton({
         id="upload-folder-input"
         disabled={pending}
       />
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => inputRef.current?.click()}
-        disabled={pending}
-        title="Subir una carpeta del filesystem (preserva estructura interna)"
-      >
-        {pending ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <FolderUp className="mr-2 h-4 w-4" />
-        )}
-        {pending ? (progress ?? "Subiendo…") : "Subir carpeta"}
-      </Button>
+      <WithTooltip label="Subir una carpeta del filesystem (preserva la estructura interna)">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => inputRef.current?.click()}
+          disabled={pending}
+        >
+          {pending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FolderUp className="mr-2 h-4 w-4" />
+          )}
+          {pending ? (progress ?? "Subiendo…") : "Subir carpeta"}
+        </Button>
+      </WithTooltip>
     </div>
   );
 }
