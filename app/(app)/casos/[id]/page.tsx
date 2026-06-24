@@ -28,6 +28,7 @@ import {
   listFolderChildren,
 } from "@/lib/db/queries/folders";
 import { listNotesForCase } from "@/lib/db/queries/notes";
+import { listHearingsForCase } from "@/lib/db/queries/hearing-reports";
 import { listBillableForCase, listInvoices } from "@/lib/db/queries/invoices";
 import { listNcfRanges } from "@/lib/db/queries/ncf-ranges";
 import { listFirmUsers } from "@/lib/db/queries/users";
@@ -67,6 +68,7 @@ import { GastoFormDrawer } from "./_components/gasto-form-drawer";
 import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
 import { MatterChatPanel } from "./_components/matter-chat-panel";
 import { ConfidentialTierSwitch } from "./_components/confidential-tier-switch";
+import { HearingReportsTab } from "./_components/hearing-reports-tab";
 
 export const metadata = { title: "Caso · LDP Legal Suite" };
 
@@ -103,7 +105,7 @@ export default async function CasoDetailPage({
   const folderId = sp.folder ?? null;
   const folderScope = { kind: "case" as const, caseId: c.id };
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios, folderChildren, docsInFolder, folderBreadcrumb] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios, folderChildren, docsInFolder, folderBreadcrumb, audiencias] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -121,6 +123,7 @@ export default async function CasoDetailPage({
     folderId
       ? getFolderBreadcrumb(user.firmId, user.userId, folderId)
       : Promise.resolve([]),
+    listHearingsForCase(user.firmId, user.userId, c.id),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges
@@ -233,6 +236,7 @@ export default async function CasoDetailPage({
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
           <TabsTrigger value="tareas">Tareas ({tareas.length})</TabsTrigger>
           <TabsTrigger value="eventos">Eventos ({eventos.length})</TabsTrigger>
+          <TabsTrigger value="audiencias">Audiencias ({audiencias.length})</TabsTrigger>
           <TabsTrigger value="documentos">Documentos ({documentos.length})</TabsTrigger>
           <TabsTrigger value="notas">Gestiones ({notas.length})</TabsTrigger>
           <TabsTrigger value="facturacion">Facturación ({facturasCaso.length})</TabsTrigger>
@@ -666,6 +670,17 @@ export default async function CasoDetailPage({
               </TableBody>
             </Table>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="audiencias" className="space-y-3">
+          <HearingReportsTab
+            caseId={c.id}
+            caseCode={c.code}
+            caseTitle={c.title}
+            currentUserId={user.userId}
+            hearings={audiencias}
+            usuarios={usuarios.map((u) => ({ id: u.id, name: u.name }))}
+          />
         </TabsContent>
 
         <TabsContent value="documentos" className="space-y-4">

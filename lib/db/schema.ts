@@ -2043,3 +2043,76 @@ export const marketingPresets = pgTable(
 );
 
 export type MarketingPreset = typeof marketingPresets.$inferSelect;
+
+// =============================================================================
+// hearing_reports — reportes de audiencia (Fase 11)
+// =============================================================================
+// Cada reporte está atado a UN evento con event_type='audiencia'. Tiene un
+// editor rico (tiptap JSON) y un render HTML pre-calculado que se usa para
+// el email enviado a usuarios elegidos y como vista rápida en la UI.
+// UNIQUE(event_id) garantiza upsert simple — un reporte por audiencia.
+
+export const hearingReports = pgTable(
+  "hearing_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    caseId: uuid("case_id")
+      .notNull()
+      .references(() => cases.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    contentJson: jsonb("content_json").notNull(),
+    contentHtml: text("content_html").notNull().default(""),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("hearing_reports_event_unique")
+      .on(t.eventId)
+      .where(sql`${t.deletedAt} IS NULL`),
+    index("hearing_reports_firm_case_idx").on(t.firmId, t.caseId),
+  ],
+);
+
+export type HearingReport = typeof hearingReports.$inferSelect;
+export type NewHearingReport = typeof hearingReports.$inferInsert;
+
+// =============================================================================
+// hearing_report_sends — audit de envíos por email
+// =============================================================================
+// Cada envío deja una fila con la lista de destinatarios. Permite re-enviar
+// (no es unique) y muestra en UI "Último envío: X a N personas".
+
+export const hearingReportSends = pgTable(
+  "hearing_report_sends",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => hearingReports.id, { onDelete: "cascade" }),
+    sentBy: uuid("sent_by").references(() => users.id, { onDelete: "set null" }),
+    recipientUserIds: uuid("recipient_user_ids")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::uuid[]`),
+    recipientEmails: text("recipient_emails")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("hearing_report_sends_report_idx").on(t.reportId)],
+);
+
+export type HearingReportSend = typeof hearingReportSends.$inferSelect;
+export type NewHearingReportSend = typeof hearingReportSends.$inferInsert;

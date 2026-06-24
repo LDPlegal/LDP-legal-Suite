@@ -101,6 +101,17 @@ export const EventoSchema = z
     allDay: z.boolean().default(false),
     attendees: z.array(z.string().uuid()).default([]),
     reminderMinutes: z.coerce.number().int().min(0).max(10080).optional().nullable(),
+    eventType: z
+      .enum([
+        "audiencia",
+        "plazo_procesal",
+        "reunion_cliente",
+        "reunion_interna",
+        "vencimiento_administrativo",
+        "recordatorio",
+      ])
+      .optional()
+      .nullable(),
   })
   .superRefine((val, ctx) => {
     const s = new Date(val.startAt);

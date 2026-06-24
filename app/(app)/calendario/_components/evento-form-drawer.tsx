@@ -30,12 +30,23 @@ function isoLocal(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const EVENT_TYPE_OPTIONS = [
+  { value: "", label: "— Sin tipo —" },
+  { value: "audiencia", label: "Audiencia" },
+  { value: "plazo_procesal", label: "Plazo procesal" },
+  { value: "reunion_cliente", label: "Reunión con cliente" },
+  { value: "reunion_interna", label: "Reunión interna" },
+  { value: "vencimiento_administrativo", label: "Vencimiento administrativo" },
+  { value: "recordatorio", label: "Recordatorio" },
+] as const;
+
 export function EventoFormDrawer({
   trigger,
   casos,
   users,
   currentUserId,
   defaultCaseId,
+  defaultEventType,
   redirectTo,
 }: {
   trigger: ReactNode;
@@ -43,6 +54,9 @@ export function EventoFormDrawer({
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
   defaultCaseId?: string;
+  /** Si vino del tab "Audiencias", pre-selecciona "audiencia" para que el
+   *  user no tenga que recordar marcarlo manualmente. */
+  defaultEventType?: (typeof EVENT_TYPE_OPTIONS)[number]["value"];
   redirectTo?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -148,21 +162,41 @@ export function EventoFormDrawer({
               <Input id="location" name="location" placeholder="Tribunal, oficina, link..." />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="caseId">Caso</Label>
-              <select
-                id="caseId"
-                name="caseId"
-                defaultValue={defaultCaseId ?? ""}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Sin caso</option>
-                {casos.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.code} — {c.title}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="caseId">Caso</Label>
+                <select
+                  id="caseId"
+                  name="caseId"
+                  defaultValue={defaultCaseId ?? ""}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Sin caso</option>
+                  {casos.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} — {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="eventType">Tipo</Label>
+                <select
+                  id="eventType"
+                  name="eventType"
+                  defaultValue={defaultEventType ?? ""}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {EVENT_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Marcá «Audiencia» para que aparezca en el tab «Audiencias» del caso.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

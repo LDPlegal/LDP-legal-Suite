@@ -31,6 +31,7 @@ export async function crearEventoAction(
     }
   }
 
+  const eventTypeRaw = formData.get("eventType");
   const parsed = EventoSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
@@ -41,6 +42,7 @@ export async function crearEventoAction(
     allDay: formData.get("allDay") === "on" || formData.get("allDay") === "true",
     attendees,
     reminderMinutes: formData.get("reminderMinutes") || undefined,
+    eventType: typeof eventTypeRaw === "string" && eventTypeRaw ? eventTypeRaw : undefined,
   });
   if (!parsed.success) {
     return {
@@ -79,6 +81,7 @@ export async function crearEventoAction(
     allDay: data.allDay,
     attendees: data.attendees,
     reminderMinutes: data.reminderMinutes ?? null,
+    eventType: data.eventType ?? null,
   });
 
   // Best-effort: push al calendario Microsoft del usuario si lo tiene
