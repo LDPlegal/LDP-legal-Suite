@@ -18,6 +18,7 @@ import { cases, events } from "@/lib/db/schema";
 import {
   getHearingReportForSend,
   recordHearingReportSend,
+  softDeleteHearingReport,
   upsertHearingReport,
 } from "@/lib/db/queries/hearing-reports";
 import { logAuditStandalone } from "@/lib/audit/log";
@@ -25,6 +26,34 @@ import { sendEmail } from "@/lib/email";
 import { buildHearingReportEmail } from "@/lib/email/templates";
 import { resolveFirmGraphSenderUserId } from "@/lib/notifications/sender";
 import { sendMail } from "@/lib/oauth/microsoft-graph";
+
+const EliminarSchema = z.object({
+  reportId: z.string().uuid(),
+  caseId: z.string().uuid(),
+});
+
+export async function eliminarReporteAudienciaAction(
+  formData: FormData,
+): Promise<void> {
+  const user = await requireUser();
+  const parsed = EliminarSchema.parse({
+    reportId: formData.get("reportId"),
+    caseId: formData.get("caseId"),
+  });
+  const ok = await softDeleteHearingReport(user.firmId, user.userId, parsed.reportId);
+  if (ok) {
+    await logAuditStandalone({
+      firmId: user.firmId,
+      userId: user.userId,
+      entityType: "event",
+      entityId: parsed.reportId,
+      caseId: parsed.caseId,
+      action: "deleted",
+      summary: "Eliminó reporte de audiencia",
+    });
+  }
+  revalidatePath(`/casos/${parsed.caseId}`);
+}
 
 const GuardarSchema = z.object({
   caseId: z.string().uuid(),

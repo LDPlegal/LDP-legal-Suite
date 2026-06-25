@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Pencil, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/icon-button";
@@ -69,6 +69,11 @@ import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
 import { MatterChatPanel } from "./_components/matter-chat-panel";
 import { ConfidentialTierSwitch } from "./_components/confidential-tier-switch";
 import { HearingReportsTab } from "./_components/hearing-reports-tab";
+import { CasoEditDrawer } from "./_components/caso-edit-drawer";
+import { EventoRowActions } from "./_components/evento-row-actions";
+import { TareaRowActions } from "./_components/tarea-row-actions";
+import { GastoRowActions } from "./_components/gasto-row-actions";
+import { TiempoRowActions } from "./_components/tiempo-row-actions";
 
 export const metadata = { title: "Caso · LDP Legal Suite" };
 
@@ -211,6 +216,26 @@ export default async function CasoDetailPage({
               />
             ) : null}
             <Badge variant="outline">{CASE_STATUS_LABEL[c.status]}</Badge>
+            <CasoEditDrawer
+              caseData={{
+                id: c.id,
+                title: c.title,
+                description: c.description,
+                status: c.status,
+                matterType: c.matterType,
+                court: c.court,
+                counterpartyName: c.counterpartyName,
+                counterpartyTaxId: c.counterpartyTaxId,
+                tags: c.tags,
+                visibility: c.visibility,
+              }}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+              }
+            />
             <ConfirmButton
               action={eliminarCasoAction}
               title="¿Archivar este caso?"
@@ -401,13 +426,14 @@ export default async function CasoDetailPage({
                   <TableHead>Facturable</TableHead>
                   <TableHead>Estado</TableHead>
                   {isApprover ? <TableHead className="w-24" /> : null}
+                  <TableHead className="w-32 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tiempos.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isApprover ? 7 : 6}
+                      colSpan={isApprover ? 8 : 7}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
                       Sin tiempos registrados. Inicia un timer arriba o registra entrada manual.
@@ -455,6 +481,21 @@ export default async function CasoDetailPage({
                           ) : null}
                         </TableCell>
                       ) : null}
+                      <TableCell className="text-right">
+                        <TiempoRowActions
+                          entry={{
+                            id: t.id,
+                            description: t.description,
+                            startedAt: t.startedAt,
+                            endedAt: t.endedAt,
+                            durationSeconds: t.durationSeconds,
+                            billable: t.billable,
+                            userName: t.userName,
+                            status: t.status,
+                          }}
+                          caseId={c.id}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -490,13 +531,14 @@ export default async function CasoDetailPage({
                   <TableHead>Facturable</TableHead>
                   <TableHead>Estado</TableHead>
                   {isApprover ? <TableHead className="w-24" /> : null}
+                  <TableHead className="w-32 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {gastos.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isApprover ? 7 : 6}
+                      colSpan={isApprover ? 8 : 7}
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
                       Sin gastos. Captura uno con el botón de arriba.
@@ -544,6 +586,22 @@ export default async function CasoDetailPage({
                           ) : null}
                         </TableCell>
                       ) : null}
+                      <TableCell className="text-right">
+                        <GastoRowActions
+                          expense={{
+                            id: g.id,
+                            description: g.description,
+                            amount: g.amount,
+                            currency: g.currency,
+                            incurredOn: g.incurredOn,
+                            billable: g.billable,
+                            receiptUrl: g.receiptUrl,
+                          }}
+                          caseId={c.id}
+                          status={g.status}
+                          userName={g.userName}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -580,12 +638,13 @@ export default async function CasoDetailPage({
                   <TableHead>Prioridad</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Vence</TableHead>
+                  <TableHead className="w-24 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tareas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Sin tareas en este caso.
                     </TableCell>
                   </TableRow>
@@ -607,6 +666,22 @@ export default async function CasoDetailPage({
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <TareaRowActions
+                          task={{
+                            id: t.id,
+                            title: t.title,
+                            description: t.description,
+                            caseId: t.caseId,
+                            assigneeId: t.assigneeId,
+                            dueAt: t.dueAt,
+                            priority: t.priority,
+                            status: t.status,
+                          }}
+                          casos={[{ id: c.id, code: c.code, title: c.title }]}
+                          users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
+                        />
                       </TableCell>
                     </TableRow>
                   ))
@@ -644,28 +719,55 @@ export default async function CasoDetailPage({
                   <TableHead>Inicio</TableHead>
                   <TableHead>Fin</TableHead>
                   <TableHead>Lugar</TableHead>
+                  <TableHead className="w-32 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {eventos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                       Sin eventos en este caso.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  eventos.map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="text-sm font-medium">{e.title}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatInFirmTz(e.startAt, undefined, "dd/MM HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatInFirmTz(e.endAt, undefined, "dd/MM HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-sm">{e.location ?? "—"}</TableCell>
-                    </TableRow>
-                  ))
+                  eventos.map((e) => {
+                    const attendeeNames = e.attendees
+                      .map((id) => usuarios.find((u) => u.id === id)?.name)
+                      .filter((n): n is string => !!n);
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell className="text-sm font-medium">{e.title}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatInFirmTz(e.startAt, undefined, "dd/MM HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatInFirmTz(e.endAt, undefined, "dd/MM HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-sm">{e.location ?? "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <EventoRowActions
+                            event={{
+                              id: e.id,
+                              title: e.title,
+                              description: e.description,
+                              location: e.location,
+                              caseId: e.caseId,
+                              startAt: e.startAt,
+                              endAt: e.endAt,
+                              allDay: e.allDay,
+                              attendees: e.attendees,
+                              reminderMinutes: e.reminderMinutes,
+                              eventType: e.eventType,
+                            }}
+                            caseId={c.id}
+                            casos={[{ id: c.id, code: c.code, title: c.title }]}
+                            users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
+                            attendeeNames={attendeeNames}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

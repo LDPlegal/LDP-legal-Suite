@@ -201,6 +201,29 @@ export async function upsertHearingReport(
   });
 }
 
+// Soft delete del reporte. El UNIQUE index sobre event_id incluye
+// WHERE deleted_at IS NULL — al borrar, libera el "slot" así se puede crear
+// un nuevo reporte para el mismo evento si hace falta.
+export async function softDeleteHearingReport(
+  firmId: string,
+  userId: string,
+  reportId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(hearingReports)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          eq(hearingReports.id, reportId),
+          isNull(hearingReports.deletedAt),
+        ),
+      )
+      .returning({ id: hearingReports.id });
+    return !!row;
+  });
+}
+
 // Registra un envío por email. Usado por la server action de envío.
 // Acepta tanto userIds (cuentas del firm) como emails sueltos (futuro).
 export async function recordHearingReportSend(

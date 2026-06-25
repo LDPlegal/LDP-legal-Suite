@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+// Drawer de EDICIÓN de evento. Controlled: el parent decide cuándo está
+// abierto (en /casos/[id] el row tiene los botones Ver/Editar/Eliminar).
+//
+// Re-usa el mismo set de campos del create drawer pero pre-rellena con el
+// evento existente y apunta a editarEventoAction.
+
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -19,16 +24,11 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
-import { crearEventoAction, type EventoFormState } from "@/app/_actions/eventos/crear";
-
-const initial: EventoFormState = { ok: true };
-
-function isoLocal(d: Date) {
-  const pad = (n: number) => Math.abs(n).toString().padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+import {
+  editarEventoAction,
+  type EditarEventoFormState,
+} from "@/app/_actions/eventos/editar";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "", label: "— Sin tipo —" },
@@ -40,39 +40,50 @@ const EVENT_TYPE_OPTIONS = [
   { value: "recordatorio", label: "Recordatorio" },
 ] as const;
 
-export function EventoFormDrawer({
-  trigger,
+const initial: EditarEventoFormState = { ok: true };
+
+function isoLocal(d: Date) {
+  const pad = (n: number) => Math.abs(n).toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export type EditableEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  caseId: string | null;
+  startAt: Date;
+  endAt: Date;
+  allDay: boolean;
+  attendees: string[];
+  reminderMinutes: number | null;
+  eventType: string | null;
+};
+
+export function EventoEditDrawer({
+  open,
+  onOpenChange,
+  event,
   casos,
   users,
-  currentUserId,
-  defaultCaseId,
-  defaultEventType,
-  redirectTo,
 }: {
-  trigger: ReactNode;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  event: EditableEvent;
   casos: Array<{ id: string; code: string; title: string }>;
   users: Array<{ id: string; name: string }>;
-  currentUserId: string;
-  defaultCaseId?: string;
-  /** Si vino del tab "Audiencias", pre-selecciona "audiencia" para que el
-   *  user no tenga que recordar marcarlo manualmente. */
-  defaultEventType?: (typeof EVENT_TYPE_OPTIONS)[number]["value"];
-  redirectTo?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [allDay, setAllDay] = useState(false);
-  const [skipConflict, setSkipConflict] = useState(false);
-  const [attendees, setAttendees] = useState<string[]>([currentUserId]);
   const router = useRouter();
-  const [state, action, pending] = useActionState<EventoFormState, FormData>(
+  const [allDay, setAllDay] = useState(event.allDay);
+  const [attendees, setAttendees] = useState<string[]>(event.attendees);
+  const [state, action, pending] = useActionState<EditarEventoFormState, FormData>(
     async (prev, fd) => {
-      const result = await crearEventoAction(prev, fd);
+      const result = await editarEventoAction(event.id, prev, fd);
       if (result.ok) {
-        toast.success("Evento creado");
-        setOpen(false);
-        setSkipConflict(false);
-        if (redirectTo) router.push(redirectTo);
-        else router.refresh();
+        toast.success("Evento actualizado");
+        onOpenChange(false);
+        router.refresh();
       }
       return result;
     },
@@ -90,18 +101,14 @@ export function EventoFormDrawer({
     );
   }
 
-  const now = new Date();
-  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nuevo evento</SheetTitle>
+          <SheetTitle>Editar evento</SheetTitle>
           <SheetDescription>
-            Audiencia, reunión, vencimiento. Aparece en tu calendario y, si lo asignas a un
-            caso, también en la pestaña Eventos del caso.
+            Los cambios se reflejan en el calendario y en el caso. Si el evento
+            está sincronizado con Outlook, también se actualiza allá.
           </SheetDescription>
         </SheetHeader>
         <form
@@ -112,63 +119,64 @@ export function EventoFormDrawer({
             if (end) fd.set("endAt", new Date(end).toISOString());
             fd.set("allDay", allDay ? "true" : "false");
             fd.set("attendees", JSON.stringify(attendees));
-            if (skipConflict) fd.set("skipConflict", "true");
             return action(fd);
           }}
           className="flex flex-1 flex-col min-h-0"
         >
-          {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
           <SheetBody className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="title">Título *</Label>
-              <Input id="title" name="title" required />
+              <Label htmlFor="edit-title">Título *</Label>
+              <Input id="edit-title" name="title" required defaultValue={event.title} />
               {err("title") ? <p className="text-xs text-destructive">{err("title")}</p> : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="startAt">Inicio *</Label>
+                <Label htmlFor="edit-startAt">Inicio *</Label>
                 <Input
-                  id="startAt"
+                  id="edit-startAt"
                   name="startAt"
                   type="datetime-local"
                   required
-                  defaultValue={isoLocal(now)}
+                  defaultValue={isoLocal(event.startAt)}
                 />
                 {err("startAt") ? <p className="text-xs text-destructive">{err("startAt")}</p> : null}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="endAt">Fin *</Label>
+                <Label htmlFor="edit-endAt">Fin *</Label>
                 <Input
-                  id="endAt"
+                  id="edit-endAt"
                   name="endAt"
                   type="datetime-local"
                   required
-                  defaultValue={isoLocal(inOneHour)}
+                  defaultValue={isoLocal(event.endAt)}
                 />
                 {err("endAt") ? <p className="text-xs text-destructive">{err("endAt")}</p> : null}
               </div>
             </div>
 
             <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label className="text-sm">Todo el día</Label>
-              </div>
+              <Label className="text-sm">Todo el día</Label>
               <Switch checked={allDay} onCheckedChange={setAllDay} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="location">Lugar</Label>
-              <Input id="location" name="location" placeholder="Tribunal, oficina, link..." />
+              <Label htmlFor="edit-location">Lugar</Label>
+              <Input
+                id="edit-location"
+                name="location"
+                defaultValue={event.location ?? ""}
+                placeholder="Tribunal, oficina, link..."
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="caseId">Caso</Label>
+                <Label htmlFor="edit-caseId">Caso</Label>
                 <select
-                  id="caseId"
+                  id="edit-caseId"
                   name="caseId"
-                  defaultValue={defaultCaseId ?? ""}
+                  defaultValue={event.caseId ?? ""}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="">Sin caso</option>
@@ -180,11 +188,11 @@ export function EventoFormDrawer({
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="eventType">Tipo</Label>
+                <Label htmlFor="edit-eventType">Tipo</Label>
                 <select
-                  id="eventType"
+                  id="edit-eventType"
                   name="eventType"
-                  defaultValue={defaultEventType ?? ""}
+                  defaultValue={event.eventType ?? ""}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
                   {EVENT_TYPE_OPTIONS.map((o) => (
@@ -193,9 +201,6 @@ export function EventoFormDrawer({
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-muted-foreground">
-                  Marcá «Audiencia» para que aparezca en el tab «Audiencias» del caso.
-                </p>
               </div>
             </div>
 
@@ -215,61 +220,40 @@ export function EventoFormDrawer({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea id="description" name="description" rows={3} />
+              <Label htmlFor="edit-description">Descripción</Label>
+              <Textarea
+                id="edit-description"
+                name="description"
+                rows={3}
+                defaultValue={event.description ?? ""}
+              />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="reminderMinutes">Recordatorio (minutos antes)</Label>
+              <Label htmlFor="edit-reminderMinutes">Recordatorio (minutos antes)</Label>
               <Input
-                id="reminderMinutes"
+                id="edit-reminderMinutes"
                 name="reminderMinutes"
                 type="number"
                 min={0}
                 placeholder="Ej. 15"
+                defaultValue={event.reminderMinutes ?? ""}
               />
-              <p className="text-[11px] text-muted-foreground">
-                Recibís un email a los X minutos antes del inicio (también te llega notificación in-app).
-              </p>
             </div>
 
             {!state.ok && state.error ? (
-              <div className="space-y-2 rounded-md border border-warning bg-warning/10 p-3">
-                <p className="text-sm font-medium text-warning-foreground">{state.error}</p>
-                {state.conflicts && state.conflicts.length > 0 ? (
-                  <>
-                    <ul className="space-y-1 text-xs">
-                      {state.conflicts.map((c) => (
-                        <li key={c.id} className="flex items-center justify-between gap-2">
-                          <span>{c.title}</span>
-                          <Badge variant="outline" className="font-mono text-[10px]">
-                            {new Date(c.startAt).toLocaleString("es-DO", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                    <label className="mt-2 flex items-center gap-2 text-xs">
-                      <Checkbox
-                        checked={skipConflict}
-                        onCheckedChange={(v) => setSkipConflict(!!v)}
-                      />
-                      Crear de todos modos
-                    </label>
-                  </>
-                ) : null}
+              <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm">
+                {state.error}
               </div>
             ) : null}
           </SheetBody>
           <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="animate-spin" /> : null}
-              Crear evento
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Guardar cambios
             </Button>
           </SheetFooter>
         </form>

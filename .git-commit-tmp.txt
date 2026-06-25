@@ -1,0 +1,39 @@
+feat(casos): CRUD completo (Ver/Editar/Eliminar) en todos los tabs
+
+El usuario pidio CRUD completo en cada seccion. Antes solo se podia
+crear; ahora cada tab tiene Ver detalle, Editar y Eliminar.
+
+Tabs cubiertos en /casos/[id]:
+
+- Audiencias: agregado Ver (drawer read-only del reporte) y Eliminar
+  (soft delete del hearing_report con audit).
+- Eventos: agregado Ver (drawer con metadata), Editar (drawer con
+  todos los campos, reusa la action existente) y Eliminar (action ya
+  existia, ahora revalida tambien /casos/[id]).
+- Tareas: agregado Ver, Editar (reusa TaskFormDrawer en modo edit)
+  y Eliminar en el tab del caso (las acciones existian, solo faltaba
+  cablear UI).
+- Gastos: nueva action editarGastoAction + query updateExpense; UI
+  Ver/Editar/Eliminar. Bloqueo: gastos status='invoiced' no se pueden
+  editar/eliminar (la factura los congela).
+- Tiempos: nueva action editarTiempoAction + query updateTimeEntry
+  (recalcula durationSeconds si cambian las horas); UI Ver/Editar/
+  Eliminar con el mismo bloqueo para status='invoiced'.
+
+Header del caso:
+- Nuevo boton "Editar" → caso-edit-drawer con titulo, descripcion,
+  status, matterType, court, contraparte, tags, visibilidad. Los
+  asignados y honorarios siguen con su flujo aparte (delicados por
+  billing).
+
+Otros fixes:
+- Texto "Fase 2" del campo Recordatorio en el form de evento — ya
+  no es cierto, los emails se envian. Reemplazado por descripcion
+  real del comportamiento.
+- eliminarEventoAction acepta caseId opcional para revalidar tambien
+  /casos/[id] cuando se elimina desde el tab.
+
+Patron de UI consistente: los XxxRowActions.tsx (evento, tarea,
+gasto, tiempo) tienen Ver/Editar/Eliminar con IconButton + tooltip
+rico, drawer de view read-only con DetailRow, y reusan el form
+drawer existente en modo edit (controlled open).

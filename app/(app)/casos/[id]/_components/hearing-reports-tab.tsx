@@ -13,7 +13,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, Mail, Pencil, Send, Loader2, FileText } from "lucide-react";
+import { Calendar, MapPin, Mail, Pencil, Send, Loader2, FileText, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,7 +36,10 @@ import { formatInFirmTz } from "@/lib/datetime/format";
 import {
   guardarReporteAudienciaAction,
   enviarReporteAudienciaAction,
+  eliminarReporteAudienciaAction,
 } from "@/app/_actions/audiencias";
+import { ConfirmButton } from "@/components/ui/confirm-button";
+import { IconButton } from "@/components/ui/icon-button";
 import type { HearingListRow } from "@/lib/db/queries/hearing-reports";
 
 const EMPTY_DOC: TiptapDoc = { type: "doc", content: [{ type: "paragraph" }] };
@@ -56,8 +59,8 @@ export function HearingReportsTab({
   hearings: HearingListRow[];
   usuarios: Array<{ id: string; name: string }>;
 }) {
-  // Estado del drawer abierto: cuál audiencia se está editando.
-  const [openFor, setOpenFor] = useState<HearingListRow | null>(null);
+  // Estado del drawer abierto: cuál audiencia se está editando/viendo.
+  const [openFor, setOpenFor] = useState<{ h: HearingListRow; mode: "view" | "edit" } | null>(null);
 
   return (
     <div className="space-y-3">
@@ -93,14 +96,21 @@ export function HearingReportsTab({
       ) : (
         <div className="grid gap-3">
           {hearings.map((h) => (
-            <HearingCard key={h.eventId} h={h} onEdit={() => setOpenFor(h)} />
+            <HearingCard
+              key={h.eventId}
+              h={h}
+              caseId={caseId}
+              onView={() => setOpenFor({ h, mode: "view" })}
+              onEdit={() => setOpenFor({ h, mode: "edit" })}
+            />
           ))}
         </div>
       )}
 
       {openFor ? (
         <ReportDrawer
-          hearing={openFor}
+          hearing={openFor.h}
+          mode={openFor.mode}
           caseId={caseId}
           usuarios={usuarios}
           onClose={() => setOpenFor(null)}
@@ -112,9 +122,13 @@ export function HearingReportsTab({
 
 function HearingCard({
   h,
+  caseId,
+  onView,
   onEdit,
 }: {
   h: HearingListRow;
+  caseId: string;
+  onView: () => void;
   onEdit: () => void;
 }) {
   return (
@@ -153,10 +167,45 @@ function HearingCard({
             ) : null}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          {h.reportId ? <Pencil className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-          {h.reportId ? "Editar reporte" : "Crear reporte"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-1">
+          {h.reportId ? (
+            <>
+              <IconButton
+                className="h-8 w-8"
+                label="Ver reporte (solo lectura)"
+                onClick={onView}
+              >
+                <Eye className="h-4 w-4" />
+              </IconButton>
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </Button>
+              <ConfirmButton
+                action={eliminarReporteAudienciaAction}
+                title="¿Eliminar este reporte de audiencia?"
+                description="El reporte queda archivado (reversible). La audiencia sigue existiendo como evento del caso."
+                confirmLabel="Eliminar"
+                trigger={
+                  <IconButton
+                    className="h-8 w-8 text-destructive"
+                    label="Eliminar reporte (archivar)"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </IconButton>
+                }
+              >
+                <input type="hidden" name="reportId" value={h.reportId} />
+                <input type="hidden" name="caseId" value={caseId} />
+              </ConfirmButton>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <FileText className="h-3.5 w-3.5" />
+              Crear reporte
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -164,15 +213,18 @@ function HearingCard({
 
 function ReportDrawer({
   hearing,
+  mode,
   caseId,
   usuarios,
   onClose,
 }: {
   hearing: HearingListRow;
+  mode: "view" | "edit";
   caseId: string;
   usuarios: Array<{ id: string; name: string }>;
   onClose: () => void;
 }) {
+  const readOnly = mode === "view";
   const router = useRouter();
   const [title, setTitle] = useState(
     hearing.reportTitle ?? `Reporte de audiencia — ${hearing.eventTitle}`,
@@ -274,7 +326,9 @@ function ReportDrawer({
     <Sheet open={true} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="sm:max-w-2xl">
         <SheetHeader>
-          <SheetTitle>Reporte de audiencia</SheetTitle>
+          <SheetTitle>
+            {readOnly ? "Reporte de audiencia" : hearing.reportId ? "Editar reporte" : "Nuevo reporte"}
+          </SheetTitle>
           <SheetDescription>
             {hearing.eventTitle} ·{" "}
             {formatInFirmTz(hearing.eventStartAt, undefined, "dd/MM/yyyy HH:mm")}
@@ -282,13 +336,17 @@ function ReportDrawer({
         </SheetHeader>
         <SheetBody className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="hearing-report-title">Título *</Label>
-            <Input
-              id="hearing-report-title"
-              value={title}
-              onChange={(e) => setTitle(e.currentTarget.value)}
-              placeholder="Ej. Reporte de audiencia preliminar"
-            />
+            <Label htmlFor="hearing-report-title">Título</Label>
+            {readOnly ? (
+              <p className="text-sm font-medium">{title}</p>
+            ) : (
+              <Input
+                id="hearing-report-title"
+                value={title}
+                onChange={(e) => setTitle(e.currentTarget.value)}
+                placeholder="Ej. Reporte de audiencia preliminar"
+              />
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -300,81 +358,98 @@ function ReportDrawer({
             ) : (
               <RichTextEditor
                 initialContent={content}
-                onChange={setContent}
+                onChange={readOnly ? undefined : setContent}
                 placeholder="Escribí el reporte de la audiencia..."
                 className="min-h-[260px]"
+                editable={!readOnly}
               />
             )}
-            <p className="text-[11px] text-muted-foreground">
-              Soporta negritas, listas, citas, encabezados. Lo que escribas se
-              renderiza tal cual en el correo a los destinatarios.
-            </p>
+            {!readOnly ? (
+              <p className="text-[11px] text-muted-foreground">
+                Soporta negritas, listas, citas, encabezados. Lo que escribas se
+                renderiza tal cual en el correo a los destinatarios.
+              </p>
+            ) : null}
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Destinatarios del email</Label>
-              <div className="flex gap-1 text-[11px]">
-                <button
-                  type="button"
-                  className="text-primary hover:underline"
-                  onClick={selectAll}
-                >
-                  Todos
-                </button>
-                <span className="text-muted-foreground">·</span>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground hover:underline"
-                  onClick={clearAll}
-                >
-                  Ninguno
-                </button>
+          {!readOnly ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Destinatarios del email</Label>
+                <div className="flex gap-1 text-[11px]">
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={selectAll}
+                  >
+                    Todos
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                    onClick={clearAll}
+                  >
+                    Ninguno
+                  </button>
+                </div>
               </div>
+              <div className="grid max-h-48 grid-cols-1 gap-1 overflow-y-auto rounded-md border p-2 sm:grid-cols-2">
+                {usuarios.map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-accent"
+                  >
+                    <Checkbox
+                      checked={recipients.includes(u.id)}
+                      onCheckedChange={() => toggle(u.id)}
+                    />
+                    {u.name}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {recipients.length === 0
+                  ? "Ninguno seleccionado — podés guardar sin enviar."
+                  : `${recipients.length} ${recipients.length === 1 ? "destinatario" : "destinatarios"} seleccionado(s).`}
+              </p>
             </div>
-            <div className="grid max-h-48 grid-cols-1 gap-1 overflow-y-auto rounded-md border p-2 sm:grid-cols-2">
-              {usuarios.map((u) => (
-                <label
-                  key={u.id}
-                  className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-accent"
-                >
-                  <Checkbox
-                    checked={recipients.includes(u.id)}
-                    onCheckedChange={() => toggle(u.id)}
-                  />
-                  {u.name}
-                </label>
-              ))}
+          ) : null}
+
+          {readOnly && hearing.lastSentAt ? (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <Mail className="mr-1 inline h-3 w-3" />
+              Último envío:{" "}
+              {formatInFirmTz(hearing.lastSentAt, undefined, "dd/MM/yyyy HH:mm")} a{" "}
+              {hearing.lastSentToCount}{" "}
+              {hearing.lastSentToCount === 1 ? "persona" : "personas"}.
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {recipients.length === 0
-                ? "Ninguno seleccionado — podés guardar sin enviar."
-                : `${recipients.length} ${recipients.length === 1 ? "destinatario" : "destinatarios"} seleccionado(s).`}
-            </p>
-          </div>
+          ) : null}
         </SheetBody>
         <SheetFooter className="flex flex-wrap gap-2 sm:justify-between">
           <Button variant="outline" onClick={onClose} disabled={pending}>
-            Cancelar
+            {readOnly ? "Cerrar" : "Cancelar"}
           </Button>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => void save()}
-              disabled={pending}
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Guardar
-            </Button>
-            <Button onClick={() => void saveAndSend()} disabled={pending}>
-              {sending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Guardar y enviar
-            </Button>
-          </div>
+          {!readOnly ? (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => void save()}
+                disabled={pending}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Guardar
+              </Button>
+              <Button onClick={() => void saveAndSend()} disabled={pending}>
+                {sending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Guardar y enviar
+              </Button>
+            </div>
+          ) : null}
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import {
   cases,
@@ -97,6 +97,47 @@ export async function createTimeEntry(
       .returning();
     if (!row) throw new Error("createTimeEntry: insert returned no row");
     return row;
+  });
+}
+
+export async function updateTimeEntry(
+  firmId: string,
+  userId: string,
+  entryId: string,
+  data: {
+    description?: string | null;
+    startedAt?: Date;
+    endedAt?: Date;
+    billable?: boolean;
+  },
+): Promise<TimeEntry | null> {
+  return withFirm(firmId, userId, async (tx) => {
+    // Recalcular durationSeconds si vinieron startedAt/endedAt.
+    const setData: Partial<NewTimeEntry> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    if (data.startedAt && data.endedAt) {
+      const dur = Math.max(
+        Math.round((data.endedAt.getTime() - data.startedAt.getTime()) / 1000),
+        0,
+      );
+      if (dur === 0) throw new Error("updateTimeEntry: end must be after start");
+      setData.durationSeconds = dur;
+    }
+    const [row] = await tx
+      .update(timeEntries)
+      .set(setData)
+      .where(
+        and(
+          eq(timeEntries.id, entryId),
+          // No editar tiempos ya facturados — la factura los congela.
+          ne(timeEntries.status, "invoiced"),
+          isNull(timeEntries.deletedAt),
+        ),
+      )
+      .returning();
+    return row ?? null;
   });
 }
 

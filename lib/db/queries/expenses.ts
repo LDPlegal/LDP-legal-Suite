@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { expenses, users, type Expense, type NewExpense } from "../schema";
 
@@ -48,6 +48,30 @@ export async function createExpense(
       .returning();
     if (!row) throw new Error("createExpense: insert returned no row");
     return row;
+  });
+}
+
+export async function updateExpense(
+  firmId: string,
+  userId: string,
+  expenseId: string,
+  data: Partial<Omit<NewExpense, "firmId" | "id" | "userId" | "createdAt" | "updatedAt" | "deletedAt">>,
+): Promise<Expense | null> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(expenses)
+      .set({ ...data, updatedAt: new Date() })
+      .where(
+        and(
+          eq(expenses.id, expenseId),
+          // No permitimos editar gastos ya facturados — la factura los
+          // congela. Si quieren cambiarlo deben anular la factura primero.
+          ne(expenses.status, "invoiced"),
+          isNull(expenses.deletedAt),
+        ),
+      )
+      .returning();
+    return row ?? null;
   });
 }
 
