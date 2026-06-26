@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,16 +18,15 @@ import { Button } from "@/components/ui/button";
 // through the standard <form action={...}> flow, so it keeps Next.js
 // server-action semantics (no client fetch needed).
 //
-// Usage:
-//   <ConfirmButton
-//     trigger={<Button ...>Eliminar</Button>}
-//     title="¿Eliminar tarea?"
-//     description="Esta acción es reversible (queda archivada)."
-//     confirmLabel="Eliminar"
-//     action={miServerAction}
-//   >
-//     <input type="hidden" name="id" value={x.id} />
-//   </ConfirmButton>
+// HARDENING: el botón "Confirmar" y "Cancelar" están atados al estado del
+// form via useFormStatus para que:
+//   - doble-click no dispare la acción dos veces
+//   - el botón se vea pending (loader) durante la espera
+//   - no se pueda cancelar a mitad del submit (cierra inconsistente)
+//
+// El onOpenChange del Dialog también se bloquea si hay submit en curso
+// (sino el user puede cerrar haciendo click fuera y dejar la action
+// huérfana ejecutándose en el server).
 
 export function ConfirmButton({
   trigger,
@@ -46,12 +47,43 @@ export function ConfirmButton({
   children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // useTransition para saber cuándo está corriendo la action y bloquear
+  // el cierre del Dialog. useFormStatus solo funciona dentro del <form>.
+  const [pending, startTransition] = useTransition();
 
   return (
     <>
-      <span onClick={() => setOpen(true)}>{trigger}</span>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        {trigger}
+      </span>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          // Bloquear cierre mientras la action está corriendo — sino el
+          // user puede cerrar y la action queda huérfana en server.
+          if (pending && !v) return;
+          setOpen(v);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          onEscapeKeyDown={(e) => {
+            if (pending) e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            if (pending) e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             {description ? (
@@ -59,9 +91,14 @@ export function ConfirmButton({
             ) : null}
           </DialogHeader>
           <form
-            action={async (fd) => {
-              await action(fd);
-              setOpen(false);
+            action={(fd) => {
+              startTransition(async () => {
+                try {
+                  await action(fd);
+                } finally {
+                  setOpen(false);
+                }
+              });
             }}
           >
             {children}
@@ -70,16 +107,29 @@ export function ConfirmButton({
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                disabled={pending}
               >
                 {cancelLabel}
               </Button>
-              <Button type="submit" variant="destructive">
-                {confirmLabel}
-              </Button>
+              <ConfirmSubmitButton label={confirmLabel} pending={pending} />
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// Botón submit que se deshabilita durante el envío. useFormStatus es la
+// forma idiomática de React 19 — captura el pending del <form> padre sin
+// pasar props.
+function ConfirmSubmitButton({ label, pending: outerPending }: { label: string; pending: boolean }) {
+  const status = useFormStatus();
+  const isPending = status.pending || outerPending;
+  return (
+    <Button type="submit" variant="destructive" disabled={isPending}>
+      {isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+      {label}
+    </Button>
   );
 }

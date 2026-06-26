@@ -75,9 +75,22 @@ export function CasoEditDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (pending && !v) return;
+        setOpen(v);
+      }}
+    >
       <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent>
+      <SheetContent
+        onEscapeKeyDown={(e) => {
+          if (pending) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (pending) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>Editar caso</SheetTitle>
           <SheetDescription>

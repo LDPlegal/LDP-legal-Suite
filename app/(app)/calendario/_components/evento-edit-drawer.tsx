@@ -102,8 +102,21 @@ export function EventoEditDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (pending && !v) return;
+        onOpenChange(v);
+      }}
+    >
+      <SheetContent
+        onEscapeKeyDown={(e) => {
+          if (pending) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (pending) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>Editar evento</SheetTitle>
           <SheetDescription>

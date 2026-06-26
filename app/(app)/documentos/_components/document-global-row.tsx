@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { IconButton, WithTooltip } from "@/components/ui/icon-button";
+import { PendingIconSubmit } from "@/components/ui/pending-submit";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
@@ -158,8 +159,7 @@ export function DocumentGlobalRow({
               name="shared"
               value={doc.sharedWithClient ? "false" : "true"}
             />
-            <IconButton
-              type="submit"
+            <PendingIconSubmit
               className="h-7 w-7"
               label={
                 doc.sharedWithClient
@@ -172,7 +172,7 @@ export function DocumentGlobalRow({
               ) : (
                 <EyeOff className="h-3.5 w-3.5" />
               )}
-            </IconButton>
+            </PendingIconSubmit>
           </form>
         ) : null}
         <DocumentPreviewDrawer

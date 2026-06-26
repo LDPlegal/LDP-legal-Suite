@@ -323,8 +323,25 @@ function ReportDrawer({
   const pending = saving || sending;
 
   return (
-    <Sheet open={true} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="sm:max-w-2xl">
+    <Sheet
+      open={true}
+      onOpenChange={(v) => {
+        // Bloquear cierre durante save/send para evitar:
+        //  - emails parciales (el user cree que falló y reintenta → manda 2x)
+        //  - drawer cerrado con datos en limbo
+        if (pending && !v) return;
+        if (!v) onClose();
+      }}
+    >
+      <SheetContent
+        className="sm:max-w-2xl"
+        onEscapeKeyDown={(e) => {
+          if (pending) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (pending) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>
             {readOnly ? "Reporte de audiencia" : hearing.reportId ? "Editar reporte" : "Nuevo reporte"}
@@ -435,12 +452,20 @@ function ReportDrawer({
               <Button
                 variant="outline"
                 onClick={() => void save()}
-                disabled={pending}
+                disabled={pending || loadingContent}
+                title={
+                  loadingContent
+                    ? "Esperá a que cargue el reporte antes de guardar"
+                    : undefined
+                }
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Guardar
               </Button>
-              <Button onClick={() => void saveAndSend()} disabled={pending}>
+              <Button
+                onClick={() => void saveAndSend()}
+                disabled={pending || loadingContent}
+              >
                 {sending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (

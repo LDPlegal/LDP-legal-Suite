@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,16 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
   const [pending, setPending] = useState(false);
+  // useRef da un guard SINCRÓNICO. useState es asíncrono — entre múltiples
+  // submits rápidos (Enter spam, doble click) el react schedule no aplica
+  // setPending(true) entre uno y otro y se disparan N requests al server.
+  // Ref bloquea al primer submit.
+  const submittingRef = useRef(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setPending(true);
     const fd = new FormData(e.currentTarget);
     const parsed = SignInSchema.safeParse({
@@ -27,6 +34,7 @@ export function LoginForm() {
     if (!parsed.success) {
       const first = Object.values(parsed.error.flatten().fieldErrors).flat()[0];
       toast.error(first ?? "Datos inválidos");
+      submittingRef.current = false;
       setPending(false);
       return;
     }
@@ -39,13 +47,17 @@ export function LoginForm() {
       });
       if (res.error) {
         toast.error(res.error.message ?? "Credenciales inválidas");
+        submittingRef.current = false;
         setPending(false);
         return;
       }
+      // Éxito → navegamos. Dejamos pending=true para que el botón siga
+      // bloqueado durante la transición (el unmount limpia el ref).
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo iniciar sesión");
+      submittingRef.current = false;
       setPending(false);
     }
   }

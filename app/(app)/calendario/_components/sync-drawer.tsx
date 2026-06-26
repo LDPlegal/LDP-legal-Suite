@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Copy,
@@ -207,9 +207,14 @@ function SubscriptionForm({ onCreated }: { onCreated: () => void }) {
   const [pending, setPending] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  // Guard sincrónico contra doble-submit. useState es async — entre clicks
+  // rapidos el server recibe N requests. useRef bloquea al primer submit.
+  const submittingRef = useRef(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setPending(true);
     try {
       const fd = new FormData();
@@ -225,6 +230,7 @@ function SubscriptionForm({ onCreated }: { onCreated: () => void }) {
         toast.error(result.error);
       }
     } finally {
+      submittingRef.current = false;
       setPending(false);
     }
   }

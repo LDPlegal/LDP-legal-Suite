@@ -56,6 +56,7 @@ import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
 import { BulkActionsBar } from "./bulk-actions-bar";
 import { IconButton, WithTooltip } from "@/components/ui/icon-button";
+import { PendingIconSubmit } from "@/components/ui/pending-submit";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
@@ -616,8 +617,7 @@ function DocumentItem({
               name="shared"
               value={doc.sharedWithClient ? "false" : "true"}
             />
-            <IconButton
-              type="submit"
+            <PendingIconSubmit
               className="h-7 w-7"
               label={
                 doc.sharedWithClient
@@ -630,7 +630,7 @@ function DocumentItem({
               ) : (
                 <EyeOff className="h-3.5 w-3.5" />
               )}
-            </IconButton>
+            </PendingIconSubmit>
           </form>
         ) : (
           <IconButton

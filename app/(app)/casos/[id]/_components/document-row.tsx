@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { IconButton, WithTooltip } from "@/components/ui/icon-button";
+import { PendingIconSubmit } from "@/components/ui/pending-submit";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
 import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
@@ -113,8 +114,7 @@ export function DocumentRow({
             name="shared"
             value={doc.sharedWithClient ? "false" : "true"}
           />
-          <IconButton
-            type="submit"
+          <PendingIconSubmit
             className="h-7 w-7"
             label={
               doc.sharedWithClient
@@ -127,7 +127,7 @@ export function DocumentRow({
             ) : (
               <EyeOff className="h-3.5 w-3.5" />
             )}
-          </IconButton>
+          </PendingIconSubmit>
         </form>
         <DocumentPreviewDrawer
           documentId={doc.id}

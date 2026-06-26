@@ -109,9 +109,22 @@ export function GastoFormDrawer({
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (pending && !v) return;
+        setOpen(v);
+      }}
+    >
       {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
-      <SheetContent>
+      <SheetContent
+        onEscapeKeyDown={(e) => {
+          if (pending) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (pending) e.preventDefault();
+        }}
+      >
         <SheetHeader>
           <SheetTitle>{isEdit ? "Editar gasto" : "Nuevo gasto"}</SheetTitle>
           <SheetDescription>

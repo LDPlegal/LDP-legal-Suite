@@ -39,6 +39,7 @@ import { isAiEnabled } from "@/lib/ai";
 import { eliminarCasoAction } from "@/app/_actions/casos/eliminar";
 import { aprobarTiempoAction } from "@/app/_actions/tiempos/aprobar";
 import { aprobarGastoAction } from "@/app/_actions/gastos/aprobar";
+import { PendingSubmitButton } from "@/components/ui/pending-submit";
 import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
 import { CaseDocumentsSection } from "./_components/case-documents-section";
 import { CaseFolderBrowser } from "./_components/case-folder-browser";
@@ -474,9 +475,9 @@ export default async function CasoDetailPage({
                             <form action={aprobarTiempoAction}>
                               <input type="hidden" name="entryId" value={t.id} />
                               <input type="hidden" name="caseId" value={c.id} />
-                              <Button type="submit" variant="ghost" size="sm">
+                              <PendingSubmitButton variant="ghost" size="sm">
                                 Aprobar
-                              </Button>
+                              </PendingSubmitButton>
                             </form>
                           ) : null}
                         </TableCell>
@@ -579,9 +580,9 @@ export default async function CasoDetailPage({
                             <form action={aprobarGastoAction}>
                               <input type="hidden" name="expenseId" value={g.id} />
                               <input type="hidden" name="caseId" value={c.id} />
-                              <Button type="submit" variant="ghost" size="sm">
+                              <PendingSubmitButton variant="ghost" size="sm">
                                 Aprobar
-                              </Button>
+                              </PendingSubmitButton>
                             </form>
                           ) : null}
                         </TableCell>
