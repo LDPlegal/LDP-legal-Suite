@@ -3,10 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
+  BarChart3,
   Briefcase,
+  Calendar,
+  Clock,
   FileText,
+  LayoutDashboard,
+  ListChecks,
+  Megaphone,
+  Plus,
   Receipt,
   Search,
+  Settings,
+  ShieldAlert,
   StickyNote,
   Users,
 } from "lucide-react";
@@ -30,6 +40,32 @@ const EMPTY: PaletteResult = {
   facturas: [],
   notas: [],
 };
+
+// Navegación rápida: saltar a cualquier sección sin tocar el mouse. Estas
+// son rutas estáticas (no necesitan server), filtradas en cliente por el
+// query. cmdk hace el fuzzy-match contra el `value`.
+const NAV_ITEMS: Array<{ href: string; label: string; icon: typeof Briefcase }> = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/casos", label: "Casos", icon: Briefcase },
+  { href: "/tareas", label: "Tareas", icon: ListChecks },
+  { href: "/calendario", label: "Calendario", icon: Calendar },
+  { href: "/documentos", label: "Documentos", icon: FileText },
+  { href: "/publicaciones", label: "Publicaciones", icon: Megaphone },
+  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/conflictos", label: "Conflictos", icon: ShieldAlert },
+  { href: "/tiempos", label: "Tiempos", icon: Clock },
+  { href: "/facturacion", label: "Facturación", icon: Receipt },
+  { href: "/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/configuracion", label: "Configuración", icon: Settings },
+];
+
+// Acciones de creación rápida — navegan a la sección con ?nuevo=1, que el
+// drawer de creación lee (useAutoOpen) para abrirse automáticamente. Cmd+K
+// → "nuevo caso" → Enter abre el formulario sin tocar el mouse.
+const CREATE_ACTIONS: Array<{ href: string; label: string }> = [
+  { href: "/casos?nuevo=1", label: "Nuevo caso" },
+  { href: "/clientes?nuevo=1", label: "Nuevo cliente" },
+];
 
 export function CommandPalette() {
   const router = useRouter();
@@ -67,14 +103,6 @@ export function CommandPalette() {
     router.push(href);
   }
 
-  const anyResults =
-    results.casos.length +
-      results.clientes.length +
-      results.documentos.length +
-      results.facturas.length +
-      results.notas.length >
-    0;
-
   return (
     <>
       <Button
@@ -105,8 +133,44 @@ export function CommandPalette() {
           onValueChange={setQuery}
         />
         <CommandList>
-          {!anyResults ? <CommandEmpty>Sin resultados.</CommandEmpty> : null}
+          <CommandEmpty>Sin resultados.</CommandEmpty>
 
+          {/* Navegación rápida — cmdk filtra por el label. Con query vacío
+              se muestran todas; escribiendo "fact" matchea Facturación. */}
+          <CommandGroup heading="Ir a">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.href}
+                  value={`ir ${item.label}`}
+                  onSelect={() => go(item.href)}
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <span>{item.label}</span>
+                  <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+
+          <CommandSeparator />
+          <CommandGroup heading="Crear">
+            {CREATE_ACTIONS.map((action) => (
+              <CommandItem
+                key={action.href}
+                value={`crear ${action.label}`}
+                onSelect={() => go(action.href)}
+              >
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                <span>{action.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          {results.casos.length > 0 ? (
+            <CommandSeparator />
+          ) : null}
           {results.casos.length > 0 ? (
             <CommandGroup heading="Casos">
               {results.casos.map((c) => (

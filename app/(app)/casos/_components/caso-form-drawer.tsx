@@ -2,6 +2,7 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useAutoOpen } from "@/lib/hooks/use-auto-open";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ export function CasoFormDrawer({
   users: User[];
   templates?: Template[];
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(useAutoOpen());
   const [restricted, setRestricted] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   // Lista local de clientes — empieza con los del server y se extiende

@@ -2,6 +2,7 @@
 
 import { useActionState, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useAutoOpen } from "@/lib/hooks/use-auto-open";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,9 @@ export function ClienteFormDrawer({
    */
   onCreated?: (client: { id: string; displayName: string }) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // Auto-abrir solo en modo creación (no en los drawers de edición por fila).
+  const autoOpen = useAutoOpen();
+  const [open, setOpen] = useState(autoOpen && !cliente);
   const router = useRouter();
   const isEdit = !!cliente;
   // Tipo controlado para poder mostrar/ocultar campos específicos de persona
