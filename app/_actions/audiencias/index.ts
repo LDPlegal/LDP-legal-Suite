@@ -26,6 +26,7 @@ import { sendEmail } from "@/lib/email";
 import { buildHearingReportEmail } from "@/lib/email/templates";
 import { resolveFirmGraphSenderUserId } from "@/lib/notifications/sender";
 import { sendMail } from "@/lib/oauth/microsoft-graph";
+import { logSystemEvent } from "@/lib/db/queries/system-events";
 
 const EliminarSchema = z.object({
   reportId: z.string().uuid(),
@@ -245,10 +246,20 @@ export async function enviarReporteAudienciaAction(input: {
     });
   } catch {}
 
-  // Errores parciales no rompen la respuesta — el user ve cuántos llegaron.
+  // Errores parciales no rompen la respuesta — el user ve cuántos llegaron,
+  // pero dejamos rastro en Eventos del sistema para que alguien revise a
+  // qué destinatarios NO les llegó el reporte.
   if (errors.length > 0) {
-    after(() => {
+    after(async () => {
       console.error("[audiencias] envío parcial:", errors);
+      await logSystemEvent({
+        firmId: user.firmId,
+        kind: "hearing_report_partial_send",
+        severity: "warning",
+        message: `El reporte de audiencia se envió a ${totalSent} de ${data.recipients.length} destinatarios. ${errors.length} fallaron.`,
+        context: { reportId: parsed.data.reportId, errors: errors.slice(0, 5) },
+        userId: user.userId,
+      });
     });
   }
 

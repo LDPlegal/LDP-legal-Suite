@@ -32,6 +32,8 @@ import { OAuthIntegrationsPanel } from "./_components/oauth-integrations-panel";
 import { MutedKindsPanel } from "./_components/muted-kinds-panel";
 import { EmailSignaturePanel } from "./_components/email-signature-panel";
 import { NotificationsPanel } from "./_components/notifications-panel";
+import { SystemEventsPanel } from "./_components/system-events-panel";
+import { listSystemEvents } from "@/lib/db/queries/system-events";
 import { listEnabledEmailKinds } from "@/lib/db/queries/email-prefs";
 import { listGraphCapableUsers } from "@/lib/notifications/sender";
 import { calendarIntegrations } from "@/lib/db/schema";
@@ -75,6 +77,11 @@ export default async function ConfiguracionPage() {
     getRoiSummary(user.firmId),
   ]);
   const enabledEmailKinds = await listEnabledEmailKinds(user.firmId, user.userId);
+  // Eventos del sistema (fallos visibles). Solo para admins/socios.
+  const isAdminEarly = user.role === "admin" || user.role === "partner";
+  const systemEvents = isAdminEarly
+    ? await listSystemEvents(user.firmId, user.userId, { limit: 50 })
+    : [];
   // OAuth: traemos las integraciones del usuario actual (no las del firm
   // completo — cada socio ve solo las suyas).
   const oauthConnections = await adminDb
@@ -118,6 +125,16 @@ export default async function ConfiguracionPage() {
           <TabsTrigger value="equipo">Equipo</TabsTrigger>
           <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
           <TabsTrigger value="notificaciones">Notificaciones</TabsTrigger>
+          {isAdmin ? (
+            <TabsTrigger value="sistema" className="gap-1.5">
+              Sistema
+              {systemEvents.filter((e) => !e.resolvedAt).length > 0 ? (
+                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive/15 px-1 text-[10px] font-semibold text-destructive">
+                  {systemEvents.filter((e) => !e.resolvedAt).length}
+                </span>
+              ) : null}
+            </TabsTrigger>
+          ) : null}
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
@@ -309,6 +326,36 @@ export default async function ConfiguracionPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isAdmin ? (
+          <TabsContent value="sistema">
+            <Card>
+              <CardHeader>
+                <CardTitle>Eventos del sistema</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Fallos que ocurren en segundo plano y antes pasaban
+                  desapercibidos: emails de notificación que no salieron,
+                  sincronizaciones de calendario con problemas, envíos
+                  parciales de reportes. Revisalos y marcalos como resueltos
+                  una vez atendida la causa (ej. reconectar Microsoft).
+                </p>
+                <SystemEventsPanel
+                  events={systemEvents.map((e) => ({
+                    id: e.id,
+                    kind: e.kind,
+                    severity: e.severity,
+                    message: e.message,
+                    createdAt: e.createdAt,
+                    resolvedAt: e.resolvedAt,
+                  }))}
+                  canManage={isAdmin}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="ia">
           <Card>

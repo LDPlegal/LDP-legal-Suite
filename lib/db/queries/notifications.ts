@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email";
 import { buildNotificationEmail } from "@/lib/email/templates";
 import { resolveFirmGraphSenderUserId } from "@/lib/notifications/sender";
 import { sendMail } from "@/lib/oauth/microsoft-graph";
+import { logSystemEvent } from "./system-events";
 
 export type NotificationInput = {
   firmId: string;
@@ -52,14 +53,30 @@ export async function notify(input: NotificationInput): Promise<void> {
         await maybeSendNotificationEmail(input);
       } catch (e) {
         console.error("[notify] email send failed:", e);
+        await logSystemEvent({
+          firmId: input.firmId,
+          kind: "notification_email_failed",
+          severity: "error",
+          message: `No se pudo enviar la notificación por email "${input.title}": ${e instanceof Error ? e.message : String(e)}`,
+          context: { type: input.type, userId: input.userId },
+          userId: input.userId,
+        });
       }
     });
   } catch {
     // after() fuera de un request context (ej. corriendo desde un script):
     // hacemos el envío inline como fallback.
-    void maybeSendNotificationEmail(input).catch((e) =>
-      console.error("[notify] email send failed (inline):", e),
-    );
+    void maybeSendNotificationEmail(input).catch(async (e) => {
+      console.error("[notify] email send failed (inline):", e);
+      await logSystemEvent({
+        firmId: input.firmId,
+        kind: "notification_email_failed",
+        severity: "error",
+        message: `No se pudo enviar la notificación por email "${input.title}": ${e instanceof Error ? e.message : String(e)}`,
+        context: { type: input.type, userId: input.userId },
+        userId: input.userId,
+      });
+    });
   }
 }
 

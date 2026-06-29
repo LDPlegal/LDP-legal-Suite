@@ -1983,6 +1983,40 @@ export const inboxProcessed = pgTable(
 export type InboxProcessed = typeof inboxProcessed.$inferSelect;
 
 // =============================================================================
+// system_events — fallos silenciosos visibles (Fase 12)
+// =============================================================================
+// Registro de eventos que antes morian en un try/catch con console.error:
+// emails que no salieron, sync de calendario fallido, Graph rechazando
+// envios. Se muestran en Configuracion -> Eventos del sistema.
+
+export const systemEvents = pgTable(
+  "system_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    firmId: uuid("firm_id")
+      .notNull()
+      .references(() => firms.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    severity: text("severity").$type<"info" | "warning" | "error">().notNull().default("error"),
+    message: text("message").notNull(),
+    context: jsonb("context").$type<Record<string, unknown>>(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("system_events_firm_created_idx").on(t.firmId, t.createdAt),
+    index("system_events_firm_unresolved_idx")
+      .on(t.firmId)
+      .where(sql`${t.resolvedAt} IS NULL`),
+  ],
+);
+
+export type SystemEvent = typeof systemEvents.$inferSelect;
+export type NewSystemEvent = typeof systemEvents.$inferInsert;
+
+// =============================================================================
 // marketing_photos — fotos custom subidas para el editor de publicaciones
 // =============================================================================
 // Cada firm sube sus propias fotos (logos del cliente, equipo nuevo, etc.).

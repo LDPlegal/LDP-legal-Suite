@@ -20,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, gte, isNull, isNotNull, lte } from "drizzle-orm";
 import { adminDb } from "@/lib/db/admin";
 import { calendarIntegrations, events } from "@/lib/db/schema";
+import { logSystemEvent } from "@/lib/db/queries/system-events";
 import {
   createCalendarEvent,
   deleteCalendarEvent,
@@ -69,14 +70,25 @@ export async function pullCalendarFromProvider(
   try {
     providerEvents = await listCalendarEvents(userId, { from: past, to: future });
   } catch (err) {
+    const msg = err instanceof Error ? err.message.slice(0, 500) : "unknown";
     await adminDb
       .update(calendarIntegrations)
       .set({
-        lastError: err instanceof Error ? err.message.slice(0, 500) : "unknown",
+        lastError: msg,
         lastSyncAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(calendarIntegrations.id, integration.id));
+    // Visible en Configuración → Eventos del sistema. Esto típicamente
+    // significa que el usuario debe reconectar Microsoft (token revocado).
+    await logSystemEvent({
+      firmId: integration.firmId,
+      kind: "calendar_sync_failed",
+      severity: "warning",
+      message: `Falló la sincronización del calendario de Outlook: ${msg}. Puede que necesites reconectar Microsoft en Seguridad → Integraciones.`,
+      context: { integrationId: integration.id },
+      userId,
+    });
     summary.errors++;
     return summary;
   }
