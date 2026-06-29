@@ -23,10 +23,13 @@ import type { AgingBucket } from "@/lib/db/queries/audit";
 import { listEventsInRange } from "@/lib/db/queries/events";
 import { listMyOpenTasks } from "@/lib/db/queries/tasks";
 import { listPendingSuggestions } from "@/lib/db/queries/ai-suggestions";
+import { getFirmOnboardingProgress } from "@/lib/db/queries/onboarding";
+import { getCurrentFirm } from "@/lib/db/queries/firms";
 import { requireUser } from "@/lib/auth/session";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { SuggestionsWidget } from "./_components/suggestions-widget";
+import { OnboardingChecklist } from "./_components/onboarding-checklist";
 import { KpiCard } from "./_components/kpi-card";
 import { AgingChart } from "./_components/aging-chart";
 import { AiHero } from "./_components/ai-hero";
@@ -68,6 +71,8 @@ export default async function DashboardPage() {
     actividad,
     sugerencias,
     aging,
+    onboarding,
+    firm,
   ] = await Promise.all([
     listCases(user.firmId, user.userId, { limit: 1 }),
     listCases(user.firmId, user.userId, { status: "open", limit: 1 }),
@@ -82,6 +87,8 @@ export default async function DashboardPage() {
     listFirmRecentAudit(user.firmId, user.userId, 12),
     listPendingSuggestions(user.firmId, user.userId, { limit: 10 }),
     arAgingReport(user.firmId, user.userId),
+    getFirmOnboardingProgress(user.firmId, user.userId),
+    getCurrentFirm(user.firmId, user.userId),
   ]);
 
   // Normalize aging buckets so the 5 always appear, even if empty.
@@ -125,6 +132,11 @@ export default async function DashboardPage() {
           {greeting}, {user.name.split(" ")[0]}.
         </h1>
       </div>
+
+      <OnboardingChecklist
+        progress={onboarding}
+        firmName={firm?.name ?? "tu firma"}
+      />
 
       <AiHero pendingPromptsCount={sugerencias.length} />
 
