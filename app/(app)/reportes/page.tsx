@@ -29,10 +29,16 @@ import {
   topCasesByHoursReport,
   type AgingBucket,
 } from "@/lib/db/queries/audit";
+import {
+  unbilledWipReport,
+  stalledCasesReport,
+  topClientsByRevenueReport,
+} from "@/lib/db/queries/executive";
 import { isAiEnabled } from "@/lib/ai";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import { AgingChart, HoursMonthlyChart } from "./_components/charts";
+import { AlertTriangle, Hourglass, TrendingUp, TrendingDown, Briefcase } from "lucide-react";
 
 export const metadata = { title: "Reportes · LDP Legal Suite" };
 
@@ -51,6 +57,10 @@ export default async function ReportesPage() {
   const ytdStart = new Date(now.getFullYear(), 0, 1);
   const ytdEnd = new Date(now.getFullYear() + 1, 0, 1);
 
+  // Mes anterior, para el delta de ingresos en la vista ejecutiva.
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd = monthStart;
+
   const aiEnabled = isAiEnabled();
   const [
     aging,
@@ -62,6 +72,11 @@ export default async function ReportesPage() {
     aiStats,
     aiDocs,
     aiEvents,
+    monthBilling,
+    prevMonthBilling,
+    wip,
+    stalledCases,
+    topClients,
   ] = await Promise.all([
     arAgingReport(user.firmId, user.userId),
     hoursByUserReport(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
@@ -78,7 +93,18 @@ export default async function ReportesPage() {
     aiEnabled
       ? aiCreatedEventsReport(user.firmId, user.userId, 50)
       : Promise.resolve([]),
+    billingSummary(user.firmId, user.userId, { from: monthStart, to: monthEnd }),
+    billingSummary(user.firmId, user.userId, { from: prevMonthStart, to: prevMonthEnd }),
+    unbilledWipReport(user.firmId, user.userId, 15),
+    stalledCasesReport(user.firmId, user.userId, 30, 15),
+    topClientsByRevenueReport(user.firmId, user.userId, { from: ytdStart, to: ytdEnd }, 5),
   ]);
+
+  // Delta de ingresos mes actual vs anterior.
+  const monthBilled = num(monthBilling.total_billed);
+  const prevBilled = num(prevMonthBilling.total_billed);
+  const billedDeltaPct =
+    prevBilled > 0 ? ((monthBilled - prevBilled) / prevBilled) * 100 : null;
 
   // Period strings for the 607 download button (current month).
   const dgiiYear = now.getFullYear();
@@ -133,8 +159,9 @@ export default async function ReportesPage() {
         />
       </div>
 
-      <Tabs defaultValue="cobros">
+      <Tabs defaultValue="direccion">
         <TabsList>
+          <TabsTrigger value="direccion">Dirección</TabsTrigger>
           <TabsTrigger value="cobros">Por cobrar (aging)</TabsTrigger>
           <TabsTrigger value="horas">Horas por abogado</TabsTrigger>
           <TabsTrigger value="tendencia">Tendencia mensual</TabsTrigger>
@@ -143,6 +170,260 @@ export default async function ReportesPage() {
           {aiEnabled ? <TabsTrigger value="ia">IA</TabsTrigger> : null}
           <TabsTrigger value="bitacora">Bitácora ({recent.length})</TabsTrigger>
         </TabsList>
+
+        {/* ===== Vista ejecutiva: lo que el dueño quiere ver de un vistazo ===== */}
+        <TabsContent value="direccion" className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Facturado este mes
+                </CardTitle>
+                {billedDeltaPct !== null ? (
+                  billedDeltaPct >= 0 ? (
+                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-rose-500" />
+                  )
+                ) : (
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CardHeader>
+              <CardContent>
+                <p className="font-mono text-2xl font-semibold tabular-nums">
+                  {formatMoney(monthBilled)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {billedDeltaPct !== null ? (
+                    <span
+                      className={
+                        billedDeltaPct >= 0
+                          ? "font-medium text-emerald-600 dark:text-emerald-400"
+                          : "font-medium text-rose-600 dark:text-rose-400"
+                      }
+                    >
+                      {billedDeltaPct >= 0 ? "+" : ""}
+                      {billedDeltaPct.toFixed(0)}%
+                    </span>
+                  ) : (
+                    "—"
+                  )}{" "}
+                  vs mes anterior ({formatMoney(prevBilled)})
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Trabajo sin facturar (WIP)
+                </CardTitle>
+                <Hourglass className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="font-mono text-2xl font-semibold tabular-nums">
+                  {formatMoney(num(wip.totalValue))}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {fmtHours(wip.totalSeconds)} facturables registradas, aún no
+                  facturadas — dinero por cobrar.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Casos estancados
+                </CardTitle>
+                <AlertTriangle
+                  className={
+                    stalledCases.length > 0
+                      ? "h-4 w-4 text-rose-500"
+                      : "h-4 w-4 text-muted-foreground"
+                  }
+                />
+              </CardHeader>
+              <CardContent>
+                <p className="font-mono text-2xl font-semibold tabular-nums">
+                  {stalledCases.length}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Casos abiertos sin actividad hace +30 días.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* WIP por caso */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Hourglass className="h-4 w-4 text-amber-500" />
+                  Dónde está el dinero parado
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Horas facturables registradas que todavía no entraron a una
+                  factura, por caso.
+                </p>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Caso</TableHead>
+                      <TableHead className="text-right">Horas</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {wip.rows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground">
+                          Todo lo facturable ya está facturado. 🎉
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      wip.rows.map((w) => (
+                        <TableRow key={w.caseId}>
+                          <TableCell>
+                            <Link
+                              href={`/casos/${w.caseId}?tab=tiempos`}
+                              className="hover:underline"
+                            >
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {w.caseCode}
+                              </span>{" "}
+                              <span className="text-sm">{w.caseTitle}</span>
+                            </Link>
+                            {w.clientName ? (
+                              <p className="text-[11px] text-muted-foreground">
+                                {w.clientName}
+                              </p>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums text-sm">
+                            {fmtHours(w.unbilledSeconds)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono tabular-nums text-sm">
+                            {formatMoney(num(w.unbilledValue))}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Casos estancados */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-4 w-4 text-rose-500" />
+                  Casos que necesitan atención
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Abiertos sin movimiento hace +30 días. Revisá si requieren
+                  acción o cierre.
+                </p>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Caso</TableHead>
+                      <TableHead className="text-right">Última actividad</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stalledCases.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={2} className="py-8 text-center text-sm text-muted-foreground">
+                          Ningún caso estancado. Buen ritmo. 👍
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      stalledCases.map((s) => (
+                        <TableRow key={s.caseId}>
+                          <TableCell>
+                            <Link href={`/casos/${s.caseId}`} className="hover:underline">
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {s.caseCode}
+                              </span>{" "}
+                              <span className="text-sm">{s.caseTitle}</span>
+                            </Link>
+                            {s.clientName ? (
+                              <p className="text-[11px] text-muted-foreground">
+                                {s.clientName}
+                              </p>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={s.daysSince > 60 ? "destructive" : "warning"}>
+                              hace {s.daysSince} días
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top clientes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Briefcase className="h-4 w-4 text-blue-500" />
+                Top 5 clientes por facturación (YTD)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Facturas</TableHead>
+                    <TableHead className="text-right">Facturado</TableHead>
+                    <TableHead className="text-right">Cobrado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
+                        Sin facturación registrada este año.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    topClients.map((c) => (
+                      <TableRow key={c.clientId}>
+                        <TableCell>
+                          <Link href={`/clientes/${c.clientId}`} className="text-sm hover:underline">
+                            {c.clientName}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-sm">
+                          {c.invoiceCount}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-sm">
+                          {formatMoney(num(c.totalBilled))}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-sm text-emerald-600 dark:text-emerald-400">
+                          {formatMoney(num(c.totalCollected))}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="cobros" className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
