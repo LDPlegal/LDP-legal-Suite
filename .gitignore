@@ -48,3 +48,6 @@ drizzle/meta
 # Slash inicial obligatorio: sin él, ignora también lib/storage/* (modulo de
 # codigo). Solo queremos ignorar la carpeta raiz donde se guardan uploads.
 /storage/
+
+# temp commit message files
+.git-commit-tmp.txt
