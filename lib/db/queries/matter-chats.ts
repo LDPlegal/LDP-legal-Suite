@@ -26,7 +26,13 @@ export async function listChatMessages(
 ): Promise<MatterChat[]> {
   const limit = Math.min(Math.max(opts.limit ?? 200, 1), 500);
   return withFirm(firmId, userId, async (tx) => {
-    const conds = [eq(matterChats.caseId, caseId)];
+    // Fase 13: chat individual. Cada usuario ve SOLO su conversación
+    // (owner_id = él). Los mensajes viejos del chat compartido (owner_id
+    // NULL) quedan ocultos — no se borran, pero ya no se muestran.
+    const conds = [
+      eq(matterChats.caseId, caseId),
+      eq(matterChats.ownerId, userId),
+    ];
     if (opts.before) {
       conds.push(sql`${matterChats.createdAt} < ${opts.before}`);
     }
@@ -68,6 +74,8 @@ export async function appendChatMessage(
         cacheReadTokens: data.cacheReadTokens ?? null,
         cacheCreationTokens: data.cacheCreationTokens ?? null,
         createdBy: data.createdBy ?? userId,
+        // Fase 13: dueño del chat individual — cada usuario tiene el suyo.
+        ownerId: userId,
       })
       .returning();
     if (!row) throw new Error("appendChatMessage: insert returned no row");
@@ -271,7 +279,12 @@ export async function getLatestChatMessage(
     const [row] = await tx
       .select()
       .from(matterChats)
-      .where(eq(matterChats.caseId, caseId))
+      .where(
+        and(
+          eq(matterChats.caseId, caseId),
+          eq(matterChats.ownerId, userId),
+        ),
+      )
       .orderBy(desc(matterChats.createdAt))
       .limit(1);
     return row ?? null;

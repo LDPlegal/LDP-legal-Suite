@@ -32,6 +32,8 @@ export type UploadFileDirectOptions = {
   folderId?: string | null;
   tags?: string[];
   parentDocumentId?: string | null;
+  /** Visibilidad interna (Fase 13). 'case' = equipo (default), 'private' = solo yo. */
+  visibility?: "case" | "private";
   /** Callback para reportar progreso (0-100). Usa XHR para tracking real. */
   onProgress?: (percent: number) => void;
 };
@@ -39,7 +41,7 @@ export type UploadFileDirectOptions = {
 export async function uploadFileDirect(
   opts: UploadFileDirectOptions,
 ): Promise<UploadResult> {
-  const { scope, file, folderId, tags, parentDocumentId, onProgress } = opts;
+  const { scope, file, folderId, tags, parentDocumentId, visibility, onProgress } = opts;
 
   // El browser a veces pone file.type vacío para archivos sin extensión.
   // Fallback al genérico — el OCR re-detecta por magic bytes server-side.
@@ -121,6 +123,7 @@ export async function uploadFileDirect(
     folderId: folderId ?? null,
     tags: tags ?? [],
     parentDocumentId: parentDocumentId ?? null,
+    visibility: visibility ?? "case",
   };
   const result = await completarUploadAction(completePayload);
   if (!result.ok) {

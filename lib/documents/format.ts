@@ -19,6 +19,8 @@ export type DocumentListRow = {
   // Portal Cliente (Fase 4): true if this doc appears in /portal/documentos
   // for the case's client.
   sharedWithClient: boolean;
+  // Fase 13: 'case' = visible al equipo del caso, 'private' = solo el uploader.
+  visibility: "case" | "private";
   createdAt: Date;
 };
 

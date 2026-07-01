@@ -820,6 +820,7 @@ export default async function CasoDetailPage({
               ocrStatus: d.ocrStatus,
               version: d.version,
               sharedWithClient: d.sharedWithClient,
+              visibility: d.visibility,
               createdAt: d.createdAt,
               caseId: d.caseId,
               clientId: d.clientId,

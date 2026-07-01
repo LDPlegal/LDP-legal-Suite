@@ -1059,6 +1059,10 @@ export const documents = pgTable(
     // working notes, lawyer-prep material) stay hidden until explicitly
     // shared by an admin/partner/lawyer.
     sharedWithClient: boolean("shared_with_client").notNull().default(false),
+    // Fase 13: visibilidad INTERNA. 'case' = todo el equipo del caso/firm lo
+    // ve (default). 'private' = solo el uploaded_by — trabajo individual
+    // (borradores, notas personales) que no es para todos.
+    visibility: text("visibility").$type<"case" | "private">().notNull().default("case"),
     version: integer("version").notNull().default(1),
     parentDocumentId: uuid("parent_document_id"),
     // Idempotency key for the scan-ingest worker. When set, a unique index
@@ -1660,11 +1664,16 @@ export const matterChats = pgTable(
     cacheReadTokens: integer("cache_read_tokens"),
     cacheCreationTokens: integer("cache_creation_tokens"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    // Fase 13: dueño del chat individual. Cada usuario tiene su propia
+    // conversación con la IA sobre el caso. NULL = mensajes del chat
+    // COMPARTIDO viejo (pre-Fase 13), ocultos en la UI individual.
+    ownerId: uuid("owner_id").references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("matter_chats_firm_case_idx").on(t.firmId, t.caseId),
     index("matter_chats_firm_case_created_idx").on(t.firmId, t.caseId, t.createdAt),
+    index("matter_chats_firm_case_owner_idx").on(t.firmId, t.caseId, t.ownerId, t.createdAt),
   ],
 );
 

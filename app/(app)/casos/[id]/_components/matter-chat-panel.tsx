@@ -597,6 +597,9 @@ export function MatterChatPanel({
             <span className="block pt-1 text-[11px]">
               La IA conoce: {knownItems}
             </span>
+            <span className="block text-[11px] text-muted-foreground">
+              Este chat es privado — solo vos ves tu conversación.
+            </span>
           </SheetDescription>
           {!aiEnabled ? (
             <Badge variant="warning" className="mt-2 self-start">

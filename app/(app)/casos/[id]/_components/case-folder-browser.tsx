@@ -28,6 +28,7 @@ export function CaseFolderBrowser({
     ocrStatus: "pending" | "processing" | "done" | "failed" | "skipped";
     version: number;
     sharedWithClient: boolean;
+    visibility: "case" | "private";
     createdAt: Date;
     caseId: string | null;
     clientId: string | null;

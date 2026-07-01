@@ -10,7 +10,7 @@
 // expone CTE recursivas de forma trivial); el árbol de carpetas en una firma
 // legal raramente excede unos miles de nodos así que es aceptable.
 
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { documents, folders, type Folder, type NewFolder } from "../schema";
 
@@ -572,7 +572,11 @@ export async function listDocumentsInFolder(
   scope: FolderScope,
 ) {
   return withFirm(firmId, userId, async (tx) => {
-    const conds = [isNull(documents.deletedAt)];
+    // Visibilidad interna (Fase 13): docs de equipo + mis privados.
+    const conds = [
+      isNull(documents.deletedAt),
+      or(eq(documents.visibility, "case"), eq(documents.uploadedBy, userId)),
+    ];
     if (folderId === null) {
       conds.push(isNull(documents.folderId));
       if (scope.kind === "firm") {
@@ -595,6 +599,8 @@ export async function listDocumentsInFolder(
         ocrStatus: documents.ocrStatus,
         version: documents.version,
         sharedWithClient: documents.sharedWithClient,
+        visibility: documents.visibility,
+        uploadedById: documents.uploadedBy,
         createdAt: documents.createdAt,
         caseId: documents.caseId,
         clientId: documents.clientId,

@@ -7,6 +7,7 @@ import {
   EyeOff,
   FileText,
   Image as ImageIcon,
+  Lock,
   Pencil,
   ScanEye,
   Trash2,
@@ -79,6 +80,14 @@ export function DocumentRow({
             <WithTooltip label={`Versión ${doc.version} — versiones anteriores en historial`}>
               <Badge variant="outline" className="font-mono text-[10px]">
                 v{doc.version}
+              </Badge>
+            </WithTooltip>
+          ) : null}
+          {doc.visibility === "private" ? (
+            <WithTooltip label="Privado — solo vos lo ves, el resto del equipo no.">
+              <Badge variant="secondary" className="gap-1 text-[10px]">
+                <Lock className="h-2.5 w-2.5" />
+                Privado
               </Badge>
             </WithTooltip>
           ) : null}

@@ -49,6 +49,8 @@ const InputSchema = z.object({
   tags: z.array(z.string().min(1).max(40)).default([]),
   /** Cuando es una nueva versión, apunta al doc anterior. */
   parentDocumentId: z.string().uuid().nullable().default(null),
+  /** Visibilidad interna (Fase 13). 'case' = equipo, 'private' = solo yo. */
+  visibility: z.enum(["case", "private"]).default("case"),
 });
 
 export type CompletarUploadInput = z.infer<typeof InputSchema>;
@@ -132,6 +134,10 @@ async function completarUploadInner(
     data.scope.kind === "client" ? data.scope.clientId : null;
   let version = 1;
   let sharedWithClient = false;
+  // Visibilidad: para uploads nuevos, lo que eligió el usuario. Para nuevas
+  // versiones, hereda del padre (no tendría sentido que v2 sea de equipo si
+  // v1 era privada).
+  let visibility: "case" | "private" = data.visibility;
 
   if (data.parentDocumentId) {
     const parent = await getDocumentById(
@@ -149,6 +155,7 @@ async function completarUploadInner(
     clientId = parent.clientId;
     version = parent.version + 1;
     sharedWithClient = parent.sharedWithClient;
+    visibility = parent.visibility;
   }
 
   let doc;
@@ -165,6 +172,7 @@ async function completarUploadInner(
       ocrStatus: "processing",
       ocrText: null,
       sharedWithClient,
+      visibility,
       version,
       parentDocumentId: data.parentDocumentId,
     });

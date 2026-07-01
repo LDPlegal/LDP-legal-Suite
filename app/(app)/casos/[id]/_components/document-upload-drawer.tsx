@@ -20,7 +20,9 @@ import {
   FilePlus,
   FolderUp,
   Loader2,
+  Lock,
   Trash2,
+  Users,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,6 +76,8 @@ export function DocumentUploadDrawer({
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [tags, setTags] = useState("");
+  // Visibilidad interna (Fase 13): 'case' = todo el equipo, 'private' = solo yo.
+  const [visibility, setVisibility] = useState<"case" | "private">("case");
   const filesInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -156,6 +160,7 @@ export function DocumentUploadDrawer({
         file: item.file,
         folderId: folderId ?? null,
         tags: tagList,
+        visibility,
       });
       if (r.ok) {
         setQueue((prev) =>
@@ -301,6 +306,51 @@ export function DocumentUploadDrawer({
             onChange={(e) => addFiles(e.target.files)}
             className="hidden"
           />
+
+          {/* Visibilidad interna */}
+          <div className="space-y-1.5">
+            <Label>Visibilidad</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setVisibility("case")}
+                disabled={uploading}
+                className={[
+                  "flex items-start gap-2 rounded-md border p-3 text-left transition-colors",
+                  visibility === "case"
+                    ? "border-primary bg-primary/[0.06]"
+                    : "border-input hover:bg-accent/40",
+                ].join(" ")}
+              >
+                <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Todo el equipo</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Visible para quienes trabajan el caso.
+                  </p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility("private")}
+                disabled={uploading}
+                className={[
+                  "flex items-start gap-2 rounded-md border p-3 text-left transition-colors",
+                  visibility === "private"
+                    ? "border-primary bg-primary/[0.06]"
+                    : "border-input hover:bg-accent/40",
+                ].join(" ")}
+              >
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Solo para mí</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Privado — nadie más del equipo lo ve.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
 
           {/* Etiquetas comunes */}
           <div className="space-y-1.5">

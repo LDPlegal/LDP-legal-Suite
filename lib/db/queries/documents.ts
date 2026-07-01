@@ -16,6 +16,17 @@ import type { DocumentListRow } from "@/lib/documents/format";
 export type { DocumentListRow } from "@/lib/documents/format";
 export { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 
+// Filtro de visibilidad interna (Fase 13). Un documento es visible para el
+// usuario si es del equipo (visibility='case') o si lo subió él mismo
+// (los privados solo los ve su dueño). RLS ya garantiza el scope del firm;
+// esto agrega la capa de privacidad INTRA-equipo.
+function visibleToUser(userId: string) {
+  return or(
+    eq(documents.visibility, "case"),
+    eq(documents.uploadedBy, userId),
+  );
+}
+
 // Global document listing across all visible cases. Powers /documentos.
 // Search hits document name, tags (joined with comma), AND ocr_text when
 // available — OCR was decided to be real in F2 (§9.7) so a search for
@@ -48,7 +59,7 @@ export async function listAllDocuments(
   const term = opts.search?.trim() ?? "";
 
   return withFirm(firmId, userId, async (tx) => {
-    const conds = [isNull(documents.deletedAt)];
+    const conds = [isNull(documents.deletedAt), visibleToUser(userId)];
     if (opts.caseId) conds.push(eq(documents.caseId, opts.caseId));
     if (opts.onlyShared) conds.push(eq(documents.sharedWithClient, true));
     if (term) {
@@ -86,6 +97,7 @@ export async function listAllDocuments(
           uploadedById: documents.uploadedBy,
           uploadedByName: users.name,
           sharedWithClient: documents.sharedWithClient,
+          visibility: documents.visibility,
           createdAt: documents.createdAt,
           caseId: documents.caseId,
           caseCode: cases.code,
@@ -146,6 +158,7 @@ export async function listDocumentsForCase(
         uploadedById: documents.uploadedBy,
         uploadedByName: users.name,
         sharedWithClient: documents.sharedWithClient,
+        visibility: documents.visibility,
         createdAt: documents.createdAt,
       })
       .from(documents)
@@ -154,6 +167,7 @@ export async function listDocumentsForCase(
         and(
           eq(documents.caseId, caseId),
           isNull(documents.deletedAt),
+          visibleToUser(userId),
         ),
       )
       .orderBy(desc(documents.createdAt));
@@ -169,7 +183,15 @@ export async function getDocumentById(
     const rows = await tx
       .select()
       .from(documents)
-      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
+      .where(
+        and(
+          eq(documents.id, documentId),
+          isNull(documents.deletedAt),
+          // Seguridad: un documento privado de OTRO usuario devuelve null
+          // (como si no existiera) — protege download, preview, edit, delete.
+          visibleToUser(userId),
+        ),
+      )
       .limit(1);
     return rows[0] ?? null;
   });

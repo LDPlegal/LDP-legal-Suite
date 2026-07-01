@@ -67,6 +67,10 @@ export async function buscarDocumentosAction(
         and(
           isNull(documents.deletedAt),
           or(
+            eq(documents.visibility, "case"),
+            eq(documents.uploadedBy, user.userId),
+          ),
+          or(
             sql`${documents.name} ILIKE ${term}`,
             sql`${documents.ocrText} ILIKE ${term}`,
             sql`array_to_string(${documents.tags}, ',') ILIKE ${term}`,
@@ -91,6 +95,10 @@ export async function buscarDocumentosAction(
       .where(
         and(
           isNull(documents.deletedAt),
+          or(
+            eq(documents.visibility, "case"),
+            eq(documents.uploadedBy, user.userId),
+          ),
           sql`${documents.ocrText} IS NOT NULL`,
         ),
       )

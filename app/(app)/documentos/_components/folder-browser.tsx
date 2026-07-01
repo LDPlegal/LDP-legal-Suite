@@ -33,6 +33,7 @@ import {
   GripVertical,
   Home,
   Image as ImageIcon,
+  Lock,
   Pencil,
   ScanEye,
   Sparkles,
@@ -77,6 +78,7 @@ export type DocumentListItem = {
   ocrStatus: "pending" | "processing" | "done" | "failed" | "skipped";
   version: number;
   sharedWithClient: boolean;
+  visibility?: "case" | "private";
   createdAt: Date;
   caseId: string | null;
   clientId: string | null;
@@ -592,6 +594,14 @@ function DocumentItem({
             {doc.version > 1 ? ` · v${doc.version}` : ""}
           </p>
         </div>
+        {doc.visibility === "private" ? (
+          <WithTooltip label="Privado — solo vos lo ves, el resto del equipo no.">
+            <Badge variant="secondary" className="hidden gap-1 text-[10px] sm:inline-flex">
+              <Lock className="h-2.5 w-2.5" />
+              Privado
+            </Badge>
+          </WithTooltip>
+        ) : null}
         {doc.tags.length > 0 ? (
           <div className="hidden gap-1 sm:flex">
             {doc.tags.slice(0, 2).map((t) => (

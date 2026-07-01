@@ -61,6 +61,11 @@ export async function searchPalette(query: string): Promise<PaletteResult> {
         .where(
           and(
             isNull(documents.deletedAt),
+            // Visibilidad interna (Fase 13): no filtrar privados de otros.
+            or(
+              eq(documents.visibility, "case"),
+              eq(documents.uploadedBy, user.userId),
+            ),
             or(
               ilike(documents.name, like),
               sql`array_to_string(${documents.tags}, ',') ILIKE ${like}`,
