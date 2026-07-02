@@ -17,7 +17,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { crearClienteAction, type ClienteFormState } from "@/app/_actions/clientes/crear";
 import { editarClienteAction, type ClienteEditState } from "@/app/_actions/clientes/editar";
@@ -110,7 +109,15 @@ export function ClienteFormDrawer({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
+      {/* Use a click-capturing wrapper instead of SheetTrigger. Radix's
+          SheetTrigger doesn't work reliably when this drawer is nested inside
+          another Sheet (the parent dialog's overlay / focus-trap swallows
+          the event). A wrapper <span> with onClick and display:contents avoids
+          layout side-effects while reliably capturing the click regardless of
+          the trigger's component structure (e.g. WithTooltip). */}
+      <span onClick={() => setOpen(true)} style={{ display: "contents" }}>
+        {trigger}
+      </span>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>{isEdit ? "Editar cliente" : "Nuevo cliente"}</SheetTitle>
