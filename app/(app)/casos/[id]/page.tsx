@@ -43,6 +43,9 @@ import { PendingSubmitButton } from "@/components/ui/pending-submit";
 import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
 import { CaseDocumentsSection } from "./_components/case-documents-section";
 import { CaseFolderBrowser } from "./_components/case-folder-browser";
+import { CaseDocumentsView } from "./_components/case-documents-view";
+import { NewFolderDialog } from "@/app/(app)/documentos/_components/new-folder-dialog";
+import { UploadFolderButton } from "@/app/(app)/documentos/_components/upload-folder-button";
 import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
@@ -829,46 +832,53 @@ export default async function CasoDetailPage({
                 </div>
 
                 {docVista === "caso" ? (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm text-muted-foreground">
-                        Documentos visibles para todo el equipo del caso.
-                      </p>
-                      <DocumentUploadDrawer
+                  <CaseDocumentsView
+                    teamDocs={documentos.filter((d) => d.visibility === "case")}
+                    caseId={c.id}
+                    aiEnabled={aiEnabled}
+                    currentUserId={user.userId}
+                    actions={
+                      <>
+                        <DocumentUploadDrawer
+                          caseId={c.id}
+                          folderId={folderId}
+                          trigger={
+                            <Button variant="outline" size="sm">
+                              <Plus className="h-3.5 w-3.5" />
+                              Subir archivo
+                            </Button>
+                          }
+                        />
+                        <NewFolderDialog parentFolderId={folderId} scope={folderScope} />
+                        <UploadFolderButton parentFolderId={folderId} scope={folderScope} />
+                      </>
+                    }
+                    folderView={
+                      <CaseFolderBrowser
                         caseId={c.id}
                         folderId={folderId}
-                        trigger={
-                          <Button variant="outline" size="sm">
-                            <Plus className="h-3.5 w-3.5" />
-                            Subir archivo
-                          </Button>
-                        }
+                        breadcrumb={folderBreadcrumb.map((b) => ({ id: b.id, name: b.name }))}
+                        folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
+                        documents={docsCasoEnCarpeta.map((d) => ({
+                          id: d.id,
+                          name: d.name,
+                          mimeType: d.mimeType,
+                          sizeBytes: d.sizeBytes,
+                          tags: d.tags,
+                          ocrStatus: d.ocrStatus,
+                          version: d.version,
+                          sharedWithClient: d.sharedWithClient,
+                          visibility: d.visibility,
+                          uploadedById: d.uploadedById,
+                          createdAt: d.createdAt,
+                          caseId: d.caseId,
+                          clientId: d.clientId,
+                        }))}
+                        aiEnabled={aiEnabled}
+                        currentUserId={user.userId}
                       />
-                    </div>
-                    <CaseFolderBrowser
-                      caseId={c.id}
-                      folderId={folderId}
-                      breadcrumb={folderBreadcrumb.map((b) => ({ id: b.id, name: b.name }))}
-                      folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
-                      documents={docsCasoEnCarpeta.map((d) => ({
-                        id: d.id,
-                        name: d.name,
-                        mimeType: d.mimeType,
-                        sizeBytes: d.sizeBytes,
-                        tags: d.tags,
-                        ocrStatus: d.ocrStatus,
-                        version: d.version,
-                        sharedWithClient: d.sharedWithClient,
-                        visibility: d.visibility,
-                        uploadedById: d.uploadedById,
-                        createdAt: d.createdAt,
-                        caseId: d.caseId,
-                        clientId: d.clientId,
-                      }))}
-                      aiEnabled={aiEnabled}
-                      currentUserId={user.userId}
-                    />
-                  </div>
+                    }
+                  />
                 ) : (
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">

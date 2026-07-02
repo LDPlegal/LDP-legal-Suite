@@ -3,8 +3,6 @@
 // las Tabs del caso queden en "Documentos" después de cada click.
 
 import { FolderBrowser } from "@/app/(app)/documentos/_components/folder-browser";
-import { NewFolderDialog } from "@/app/(app)/documentos/_components/new-folder-dialog";
-import { UploadFolderButton } from "@/app/(app)/documentos/_components/upload-folder-button";
 import type { FolderScope } from "@/lib/db/queries/folders";
 
 export function CaseFolderBrowser({
@@ -40,12 +38,10 @@ export function CaseFolderBrowser({
 }) {
   const scope: FolderScope = { kind: "case", caseId };
 
+  // Los botones de subir/carpeta ahora viven en el header del tab (junto al
+  // buscador), no acá — se pasan desde page.tsx a CaseDocumentsView.
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <NewFolderDialog parentFolderId={folderId} scope={scope} />
-        <UploadFolderButton parentFolderId={folderId} scope={scope} />
-      </div>
       <FolderBrowser
         basePath={`/casos/${caseId}`}
         breadcrumb={breadcrumb}
