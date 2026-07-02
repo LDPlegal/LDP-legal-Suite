@@ -1,15 +1,22 @@
 "use client";
 
-// Browser estilo explorador de archivos: breadcrumb + grid de carpetas + lista
-// de documentos en el nivel actual. La navegación se hace por query string
-// (?folder=<id>) para que sea linkeable y respete back/forward del browser.
+// Browser estilo explorador de archivos (Finder/Explorer): breadcrumb + carpetas
+// + documentos del nivel actual. Navegación por query string (?folder=<id>).
 //
-// Fase 8 — D&D: items son arrastrables sobre carpetas y breadcrumbs.
-// El "Mover a..." dialog se mantiene como alternativa accesible (teclado,
-// mobile sin precisión de drag).
+// Vistas (como en macOS/Windows), persistidas en localStorage:
+//   - "grid"    → íconos cuadrados grandes (carpetas y archivos como tiles)
+//   - "list"    → filas cómodas
+//   - "compact" → filas densas
+//
+// D&D (Fase 8): en list/compact los items se arrastran sobre carpetas/breadcrumb
+// para moverlos (@dnd-kit, pointer-based). El "Mover a..." dialog queda como
+// alternativa accesible y es el camino de mover en vista grid.
+//
+// Subida por arrastrar-y-soltar: la UploadDropZone al fondo acepta archivos del
+// escritorio (DnD nativo del browser) y los sube a la carpeta actual.
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -30,7 +37,10 @@ import {
   GripVertical,
   Home,
   Image as ImageIcon,
+  LayoutGrid,
+  List as ListIcon,
   Lock,
+  Rows3,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +51,7 @@ import { moverDocumentoAction } from "@/app/_actions/carpetas/mover-documento";
 import { moverCarpetaAction } from "@/app/_actions/carpetas/mover";
 import { DocumentPreviewDrawer } from "./document-preview-drawer";
 import { MoveToDialog } from "./move-to-dialog";
+import { UploadDropZone } from "./upload-drop-zone";
 import { DocumentActionsMenu } from "@/app/(app)/casos/[id]/_components/document-actions-menu";
 import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
@@ -78,14 +89,15 @@ export type BreadcrumbItem = {
   name: string;
 };
 
+type ViewMode = "grid" | "list" | "compact";
+const VIEW_STORAGE_KEY = "ldp-docs-view";
+
 // — IDs convencionados para D&D —
 //   draggable doc:    "doc:<uuid>"
 //   draggable folder: "folder:<uuid>"
 //   droppable folder: "folder:<uuid>"
 //   droppable breadcrumb root:  "bc:root"
 //   droppable breadcrumb path:  "bc:<uuid>"
-// Como folder es BOTH draggable AND droppable con el mismo prefijo, los
-// distinguimos por el campo `data.role` del descriptor.
 
 function parseDroppableId(
   id: string,
@@ -120,11 +132,28 @@ export function FolderBrowser({
   currentUserId?: string;
 }) {
   const router = useRouter();
-  // Activation con 8px de distancia — clicks casuales en links no disparan
-  // drag, solo si el user mantiene apretado y se mueve.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
+
+  // — Vista (grid/list/compact), recordada por navegador —
+  const [view, setView] = useState<ViewMode>("list");
+  useEffect(() => {
+    const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    if (stored === "grid" || stored === "list" || stored === "compact") {
+      setView(stored);
+    }
+  }, []);
+  function changeView(v: ViewMode) {
+    setView(v);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, v);
+    } catch {
+      // localStorage puede fallar en modo privado — no es crítico.
+    }
+  }
+  const isGrid = view === "grid";
+  const dense = view === "compact";
 
   // — Estado de selección múltiple —
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
@@ -150,7 +179,6 @@ export function FolderBrowser({
     setSelectedDocIds(new Set());
     setSelectedFolderIds(new Set());
   }
-  // Select-all por sección (toggle: si todos están seleccionados, deselecciona).
   const allDocsSelected =
     documents.length > 0 && documents.every((d) => selectedDocIds.has(d.id));
   const allFoldersSelected =
@@ -181,7 +209,6 @@ export function FolderBrowser({
     const target = parseDroppableId(String(over.id));
     if (!target) return;
 
-    // No drop a la misma carpeta donde ya está el item.
     const activeData = active.data.current as { type: "doc" | "folder"; id: string } | undefined;
     if (!activeData) return;
     const sourceId = activeData.id;
@@ -195,7 +222,6 @@ export function FolderBrowser({
       targetFolderId = target.folderId;
     }
 
-    // No drop sobre sí misma (folder al droppable de su propio card).
     if (activeData.type === "folder" && sourceId === targetFolderId) return;
 
     try {
@@ -219,7 +245,6 @@ export function FolderBrowser({
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
-        {/* Barra de acciones bulk — sticky, solo cuando hay selección */}
         {hasSelection ? (
           <BulkActionsBar
             selectedDocIds={[...selectedDocIds]}
@@ -230,30 +255,33 @@ export function FolderBrowser({
           />
         ) : null}
 
-        {/* Breadcrumb con drop zones por segmento */}
-        <nav className="flex items-center gap-1 text-sm">
-          <BreadcrumbDroppable id="bc:root" href={folderHref(null)}>
-            <Home className="h-3.5 w-3.5" />
-            {rootLabel}
-          </BreadcrumbDroppable>
-          {breadcrumb.map((b, i) => {
-            const isLast = i === breadcrumb.length - 1;
-            return (
-              <span key={b.id} className="flex items-center gap-1">
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                {isLast ? (
-                  <span className="font-medium">{b.name}</span>
-                ) : (
-                  <BreadcrumbDroppable id={`bc:${b.id}`} href={folderHref(b.id)}>
-                    {b.name}
-                  </BreadcrumbDroppable>
-                )}
-              </span>
-            );
-          })}
-        </nav>
+        {/* Toolbar: breadcrumb (izq) + selector de vista (der) */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <nav className="flex items-center gap-1 text-sm">
+            <BreadcrumbDroppable id="bc:root" href={folderHref(null)}>
+              <Home className="h-3.5 w-3.5" />
+              {rootLabel}
+            </BreadcrumbDroppable>
+            {breadcrumb.map((b, i) => {
+              const isLast = i === breadcrumb.length - 1;
+              return (
+                <span key={b.id} className="flex items-center gap-1">
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  {isLast ? (
+                    <span className="font-medium">{b.name}</span>
+                  ) : (
+                    <BreadcrumbDroppable id={`bc:${b.id}`} href={folderHref(b.id)}>
+                      {b.name}
+                    </BreadcrumbDroppable>
+                  )}
+                </span>
+              );
+            })}
+          </nav>
+          <ViewToggle view={view} onChange={changeView} />
+        </div>
 
-        {/* Grid de carpetas */}
+        {/* Carpetas */}
         {folders.length > 0 ? (
           <div>
             <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -267,22 +295,38 @@ export function FolderBrowser({
               />
               Carpetas
             </h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {folders.map((f) => (
-                <FolderCard
-                  key={f.id}
-                  folder={f}
-                  href={folderHref(f.id)}
-                  scope={scope}
-                  selected={selectedFolderIds.has(f.id)}
-                  onToggleSelect={() => toggleFolder(f.id)}
-                />
-              ))}
-            </div>
+            {isGrid ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                {folders.map((f) => (
+                  <FolderTile
+                    key={f.id}
+                    folder={f}
+                    href={folderHref(f.id)}
+                    scope={scope}
+                    selected={selectedFolderIds.has(f.id)}
+                    onToggleSelect={() => toggleFolder(f.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {folders.map((f) => (
+                  <FolderCard
+                    key={f.id}
+                    folder={f}
+                    href={folderHref(f.id)}
+                    scope={scope}
+                    dense={dense}
+                    selected={selectedFolderIds.has(f.id)}
+                    onToggleSelect={() => toggleFolder(f.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
 
-        {/* Lista de documentos */}
+        {/* Documentos */}
         <div>
           <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {documents.length > 0 ? (
@@ -300,9 +344,22 @@ export function FolderBrowser({
           {documents.length === 0 ? (
             <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
               {folders.length === 0
-                ? "Carpeta vacía. Subí archivos o creá una sub-carpeta."
+                ? "Carpeta vacía. Arrastrá archivos abajo o creá una sub-carpeta."
                 : "Sin documentos en este nivel. Hay sub-carpetas arriba."}
             </p>
+          ) : isGrid ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {documents.map((d) => (
+                <DocumentTile
+                  key={d.id}
+                  doc={d}
+                  aiEnabled={aiEnabled}
+                  currentUserId={currentUserId}
+                  selected={selectedDocIds.has(d.id)}
+                  onToggleSelect={() => toggleDoc(d.id)}
+                />
+              ))}
+            </div>
           ) : (
             <ul className="divide-y rounded-md border">
               {documents.map((d) => (
@@ -310,6 +367,7 @@ export function FolderBrowser({
                   key={d.id}
                   doc={d}
                   aiEnabled={aiEnabled}
+                  dense={dense}
                   currentFolderId={currentFolderId}
                   currentUserId={currentUserId}
                   selected={selectedDocIds.has(d.id)}
@@ -320,16 +378,65 @@ export function FolderBrowser({
           )}
         </div>
 
-        {/* Hint visible para el user */}
+        {/* Zona de subida por arrastrar-y-soltar (archivos del escritorio) */}
+        <UploadDropZone
+          scope={scope as UploadScope}
+          folderId={currentFolderId}
+          visibility="case"
+          onUploaded={() => router.refresh()}
+        />
+
+        {/* Hint contextual */}
         {folders.length > 0 || documents.length > 0 ? (
           <p className="text-[11px] text-muted-foreground">
-            💡 Tip: arrastrá un documento o carpeta sobre una carpeta destino
-            (o sobre el breadcrumb) para moverlo. También funciona el botón
-            &quot;Mover a...&quot;
+            {isGrid
+              ? "💡 Tip: cambiá a vista Lista para arrastrar documentos entre carpetas, o usá el menú «⋮» → «Mover a…»."
+              : "💡 Tip: arrastrá un documento o carpeta sobre una carpeta destino (o el breadcrumb) para moverlo. También está «Mover a…»."}
           </p>
         ) : null}
       </div>
     </DndContext>
+  );
+}
+
+// — Selector de vista (segmented control) —
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  const options: Array<{ value: ViewMode; label: string; icon: typeof ListIcon }> = [
+    { value: "grid", label: "Íconos", icon: LayoutGrid },
+    { value: "list", label: "Lista", icon: ListIcon },
+    { value: "compact", label: "Compacta", icon: Rows3 },
+  ];
+  return (
+    <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+      {options.map((o) => {
+        const Icon = o.icon;
+        const active = view === o.value;
+        return (
+          <WithTooltip key={o.value} label={`Vista ${o.label}`}>
+            <button
+              type="button"
+              onClick={() => onChange(o.value)}
+              aria-label={`Vista ${o.label}`}
+              aria-pressed={active}
+              className={[
+                "flex h-7 w-8 items-center justify-center rounded-md transition-colors",
+                active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              ].join(" ")}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          </WithTooltip>
+        );
+      })}
+    </div>
   );
 }
 
@@ -360,79 +467,23 @@ function BreadcrumbDroppable({
   );
 }
 
-function FolderCard({
+// — Menú de acciones de carpeta (rename/share/move/delete), compartido por
+//   la fila y el tile para no duplicar la lógica. —
+function FolderActions({
   folder,
-  href,
   scope,
-  selected,
-  onToggleSelect,
+  compact = false,
 }: {
   folder: FolderListItem;
-  href: string;
   scope: FolderScope;
-  selected: boolean;
-  onToggleSelect: () => void;
+  compact?: boolean;
 }) {
   const [deleteDocs, setDeleteDocs] = useState(false);
-
-  // El folder es BOTH draggable (lo podés mover) Y droppable (otros items
-  // se le pueden tirar encima).
-  const drag = useDraggable({
-    id: `folder:${folder.id}`,
-    data: { type: "folder", id: folder.id },
-  });
-  const drop = useDroppable({ id: `folder:${folder.id}` });
-
-  // Combinar refs.
-  function combinedRef(node: HTMLDivElement | null) {
-    drag.setNodeRef(node);
-    drop.setNodeRef(node);
-  }
-
-  const style: React.CSSProperties = {
-    transform: CSS.Translate.toString(drag.transform),
-    opacity: drag.isDragging ? 0.5 : 1,
-  };
-
+  const btn = compact
+    ? "h-6 w-6"
+    : "h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100";
   return (
-    <Card
-      ref={combinedRef}
-      style={style}
-      className={[
-        "group relative flex items-center gap-2 p-3 transition-colors",
-        selected
-          ? "border-primary bg-primary/5"
-          : drop.isOver
-            ? "border-primary bg-primary/10"
-            : "hover:bg-accent",
-        drag.isDragging ? "ring-2 ring-primary" : "",
-      ].join(" ")}
-    >
-      {/* Checkbox de selección */}
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggleSelect}
-        onClick={(e) => e.stopPropagation()}
-        className="h-4 w-4 shrink-0 cursor-pointer"
-        aria-label={`Seleccionar carpeta ${folder.name}`}
-      />
-      {/* Drag handle — solo este icono triggers el drag, los demás clicks van al Link. */}
-      <WithTooltip label="Arrastrar para mover a otra carpeta">
-        <button
-          type="button"
-          {...drag.listeners}
-          {...drag.attributes}
-          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
-          aria-label="Arrastrar para mover"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-      </WithTooltip>
-      <Link href={href} className="flex flex-1 items-center gap-2 truncate">
-        <FolderIcon className="h-5 w-5 shrink-0 text-amber-500" />
-        <span className="truncate text-sm font-medium">{folder.name}</span>
-      </Link>
+    <>
       <RenameFolderDialog folderId={folder.id} currentName={folder.name} />
       <ShareFolderButton folderId={folder.id} folderName={folder.name} />
       <MoveToDialog
@@ -442,10 +493,7 @@ function FolderCard({
         scope={scope}
         currentFolderId={folder.id}
         trigger={
-          <IconButton
-            className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-            label="Mover esta carpeta a otra ubicación"
-          >
+          <IconButton className={btn} label="Mover esta carpeta a otra ubicación">
             <FolderInput className="h-3.5 w-3.5 text-muted-foreground" />
           </IconButton>
         }
@@ -460,10 +508,7 @@ function FolderCard({
         }
         confirmLabel="Eliminar"
         trigger={
-          <IconButton
-            className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-            label="Eliminar carpeta (reversible — queda archivada)"
-          >
+          <IconButton className={btn} label="Eliminar carpeta (reversible — queda archivada)">
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </IconButton>
         }
@@ -479,23 +524,250 @@ function FolderCard({
             className="mt-0.5 h-4 w-4 cursor-pointer"
           />
           <span>
-            <span className="font-medium">
-              También eliminar los documentos dentro
-            </span>
+            <span className="font-medium">También eliminar los documentos dentro</span>
             <span className="block text-xs text-muted-foreground">
-              Sin marcar, los archivos vuelven a la raíz. Marcado, también van
-              a papelera (reversible).
+              Sin marcar, los archivos vuelven a la raíz. Marcado, también van a
+              papelera (reversible).
             </span>
           </span>
         </label>
       </ConfirmButton>
+    </>
+  );
+}
+
+// — Carpeta cuadrada (vista grid) —
+function FolderTile({
+  folder,
+  href,
+  scope,
+  selected,
+  onToggleSelect,
+}: {
+  folder: FolderListItem;
+  href: string;
+  scope: FolderScope;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
+  const drop = useDroppable({ id: `folder:${folder.id}` });
+  return (
+    <div
+      ref={drop.setNodeRef}
+      className={[
+        "group relative flex flex-col rounded-2xl border p-3 transition-colors",
+        selected
+          ? "border-primary bg-primary/5"
+          : drop.isOver
+            ? "border-primary bg-primary/10"
+            : "hover:bg-accent",
+      ].join(" ")}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        onClick={(e) => e.stopPropagation()}
+        className={[
+          "absolute left-2 top-2 z-10 h-4 w-4 cursor-pointer",
+          selected ? "" : "opacity-0 transition-opacity group-hover:opacity-100",
+        ].join(" ")}
+        aria-label={`Seleccionar carpeta ${folder.name}`}
+      />
+      <div className="absolute right-1 top-1 z-10 flex opacity-0 transition-opacity group-hover:opacity-100">
+        <FolderActions folder={folder} scope={scope} compact />
+      </div>
+      <Link href={href} className="flex flex-1 flex-col items-center gap-2 pt-3 text-center">
+        <FolderIcon className="h-12 w-12 text-amber-500" />
+        <span
+          className="line-clamp-2 break-words text-xs font-medium leading-tight"
+          title={folder.name}
+        >
+          {folder.name}
+        </span>
+        {typeof folder.documentCount === "number" ? (
+          <span className="text-[10px] text-muted-foreground">
+            {folder.documentCount} doc{folder.documentCount === 1 ? "" : "s"}
+          </span>
+        ) : null}
+      </Link>
+    </div>
+  );
+}
+
+// — Carpeta en fila (vista list/compact) —
+function FolderCard({
+  folder,
+  href,
+  scope,
+  dense,
+  selected,
+  onToggleSelect,
+}: {
+  folder: FolderListItem;
+  href: string;
+  scope: FolderScope;
+  dense: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
+  const drag = useDraggable({
+    id: `folder:${folder.id}`,
+    data: { type: "folder", id: folder.id },
+  });
+  const drop = useDroppable({ id: `folder:${folder.id}` });
+
+  function combinedRef(node: HTMLDivElement | null) {
+    drag.setNodeRef(node);
+    drop.setNodeRef(node);
+  }
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(drag.transform),
+    opacity: drag.isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card
+      ref={combinedRef}
+      style={style}
+      className={[
+        "group relative flex items-center gap-2 rounded-xl transition-colors",
+        dense ? "p-2" : "p-3",
+        selected
+          ? "border-primary bg-primary/5"
+          : drop.isOver
+            ? "border-primary bg-primary/10"
+            : "hover:bg-accent",
+        drag.isDragging ? "ring-2 ring-primary" : "",
+      ].join(" ")}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        onClick={(e) => e.stopPropagation()}
+        className="h-4 w-4 shrink-0 cursor-pointer"
+        aria-label={`Seleccionar carpeta ${folder.name}`}
+      />
+      <WithTooltip label="Arrastrar para mover a otra carpeta">
+        <button
+          type="button"
+          {...drag.listeners}
+          {...drag.attributes}
+          className="shrink-0 cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          aria-label="Arrastrar para mover"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </WithTooltip>
+      <Link href={href} className="flex flex-1 items-center gap-2">
+        <FolderIcon className={dense ? "h-4 w-4 shrink-0 text-amber-500" : "h-5 w-5 shrink-0 text-amber-500"} />
+        <span className="break-words text-sm font-medium">{folder.name}</span>
+      </Link>
+      <FolderActions folder={folder} scope={scope} />
     </Card>
   );
 }
 
+// — Documento cuadrado (vista grid) —
+function DocumentTile({
+  doc,
+  aiEnabled,
+  currentUserId,
+  selected,
+  onToggleSelect,
+}: {
+  doc: DocumentListItem;
+  aiEnabled: boolean;
+  currentUserId?: string;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
+  const isImage = doc.mimeType.startsWith("image/");
+  const docScope: FolderScope = doc.caseId
+    ? { kind: "case", caseId: doc.caseId }
+    : doc.clientId
+      ? { kind: "client", clientId: doc.clientId }
+      : { kind: "firm" };
+
+  return (
+    <div
+      className={[
+        "group relative flex flex-col rounded-2xl border p-3 transition-colors",
+        selected ? "border-primary bg-primary/5" : "hover:bg-accent",
+      ].join(" ")}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggleSelect}
+        className={[
+          "absolute left-2 top-2 z-10 h-4 w-4 cursor-pointer",
+          selected ? "" : "opacity-0 transition-opacity group-hover:opacity-100",
+        ].join(" ")}
+        aria-label={`Seleccionar documento ${doc.name}`}
+      />
+      <div className="absolute right-1 top-1 z-10">
+        <DocumentActionsMenu
+          doc={{
+            id: doc.id,
+            name: doc.name,
+            mimeType: doc.mimeType,
+            tags: doc.tags,
+            version: doc.version,
+            ocrStatus: doc.ocrStatus,
+            sharedWithClient: doc.sharedWithClient,
+            visibility: doc.visibility ?? "case",
+            uploadedById: doc.uploadedById,
+          }}
+          caseId={doc.caseId}
+          aiEnabled={aiEnabled}
+          currentUserId={currentUserId}
+          scope={docScope}
+        />
+      </div>
+      <DocumentPreviewDrawer
+        documentId={doc.id}
+        documentName={doc.name}
+        mimeType={doc.mimeType}
+        aiEnabled={aiEnabled}
+        trigger={
+          <button
+            type="button"
+            title="Abrir vista previa"
+            className="flex flex-1 flex-col items-center gap-2 pt-4 text-center focus-visible:outline-none"
+          >
+            {isImage ? (
+              <ImageIcon className="h-12 w-12 text-muted-foreground" />
+            ) : (
+              <FileText className="h-12 w-12 text-muted-foreground" />
+            )}
+            <span
+              className="line-clamp-2 break-words text-xs font-medium leading-tight group-hover:underline"
+              title={doc.name}
+            >
+              {doc.name}
+            </span>
+          </button>
+        }
+      />
+      <div className="mt-1 flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+        <span>{formatBytes(doc.sizeBytes)}</span>
+        {doc.version > 1 ? <span>· v{doc.version}</span> : null}
+        {doc.visibility === "private" ? (
+          <Lock className="h-2.5 w-2.5" aria-label="Privado" />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// — Documento en fila (vista list/compact) —
 function DocumentItem({
   doc,
   aiEnabled,
+  dense,
   currentFolderId,
   currentUserId,
   selected,
@@ -503,6 +775,7 @@ function DocumentItem({
 }: {
   doc: DocumentListItem;
   aiEnabled: boolean;
+  dense: boolean;
   currentFolderId: string | null;
   currentUserId?: string;
   selected: boolean;
@@ -532,7 +805,8 @@ function DocumentItem({
       ref={drag.setNodeRef}
       style={style}
       className={[
-        "flex flex-wrap items-center justify-between gap-3 p-3 transition-colors",
+        "flex flex-wrap items-center justify-between gap-3 transition-colors",
+        dense ? "p-2" : "p-3",
         selected
           ? "bg-primary/5"
           : drag.isDragging
@@ -541,7 +815,6 @@ function DocumentItem({
       ].join(" ")}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        {/* Checkbox de selección */}
         <input
           type="checkbox"
           checked={selected}
@@ -549,7 +822,6 @@ function DocumentItem({
           className="h-4 w-4 shrink-0 cursor-pointer"
           aria-label={`Seleccionar documento ${doc.name}`}
         />
-        {/* Drag handle */}
         <WithTooltip label="Arrastrar para mover a otra carpeta">
           <button
             type="button"
@@ -582,11 +854,13 @@ function DocumentItem({
               </button>
             }
           />
-          <p className="text-xs text-muted-foreground">
-            {formatBytes(doc.sizeBytes)} ·{" "}
-            {formatInFirmTz(doc.createdAt, undefined, "dd/MM/yyyy")}
-            {doc.version > 1 ? ` · v${doc.version}` : ""}
-          </p>
+          {!dense ? (
+            <p className="text-xs text-muted-foreground">
+              {formatBytes(doc.sizeBytes)} ·{" "}
+              {formatInFirmTz(doc.createdAt, undefined, "dd/MM/yyyy")}
+              {doc.version > 1 ? ` · v${doc.version}` : ""}
+            </p>
+          ) : null}
         </div>
         {doc.visibility === "private" ? (
           <WithTooltip label="Privado — solo vos lo ves, el resto del equipo no.">
@@ -596,7 +870,7 @@ function DocumentItem({
             </Badge>
           </WithTooltip>
         ) : null}
-        {doc.tags.length > 0 ? (
+        {doc.tags.length > 0 && !dense ? (
           <div className="hidden gap-1 sm:flex">
             {doc.tags.slice(0, 2).map((t) => (
               <Badge key={t} variant="secondary" className="text-[10px]">
@@ -608,12 +882,12 @@ function DocumentItem({
       </div>
 
       <div className="flex items-center gap-0.5">
-        <Badge variant="outline" className="mr-1 text-[10px]">
-          {OCR_STATUS_LABEL[doc.ocrStatus]}
-        </Badge>
+        {!dense ? (
+          <Badge variant="outline" className="mr-1 text-[10px]">
+            {OCR_STATUS_LABEL[doc.ocrStatus]}
+          </Badge>
+        ) : null}
 
-        {/* Mover a otra carpeta se mantiene como acción propia de la vista
-            por carpetas; el resto se agrupa en el menú "⋮". */}
         <MoveToDialog
           itemKind="document"
           itemId={doc.id}
