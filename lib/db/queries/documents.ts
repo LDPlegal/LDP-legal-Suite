@@ -384,6 +384,33 @@ export async function setDocumentSharedWithClient(
   });
 }
 
+// Cambia la visibilidad interna de un documento (Fase 13/UX). Solo el
+// dueño (uploaded_by) puede moverlo a/desde su carpeta privada — mover el
+// privado de otro no tiene sentido y visibleToUser ya lo protege en el
+// lookup previo. Devuelve el caseId para revalidar.
+export async function setDocumentVisibility(
+  firmId: string,
+  userId: string,
+  documentId: string,
+  visibility: "case" | "private",
+): Promise<{ ok: boolean; caseId: string | null }> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(documents)
+      .set({ visibility, updatedAt: new Date() })
+      .where(
+        and(
+          eq(documents.id, documentId),
+          isNull(documents.deletedAt),
+          // Solo el dueño puede cambiar la visibilidad de SU documento.
+          eq(documents.uploadedBy, userId),
+        ),
+      )
+      .returning({ id: documents.id, caseId: documents.caseId });
+    return { ok: !!row, caseId: row?.caseId ?? null };
+  });
+}
+
 // All historical versions in the chain (including the requested one).
 // `parent_document_id` points from a new version to the previous; v1 has NULL.
 export async function listVersionsOf(

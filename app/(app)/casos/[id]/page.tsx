@@ -96,7 +96,7 @@ export default async function CasoDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; folder?: string }>;
+  searchParams: Promise<{ tab?: string; folder?: string; docvista?: string }>;
 }) {
   const user = await requireUser();
   const aiEnabled = isAiEnabled();
@@ -787,64 +787,119 @@ export default async function CasoDetailPage({
         </TabsContent>
 
         <TabsContent value="documentos" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              {documentos.length} {documentos.length === 1 ? "archivo" : "archivos"} en total
-            </p>
-            <DocumentUploadDrawer
-              caseId={c.id}
-              folderId={folderId}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Plus className="h-3.5 w-3.5" />
-                  Subir archivo
-                </Button>
-              }
-            />
-          </div>
-          {/*
-            Vista por carpetas (default). Mantiene el ?tab=documentos en cada
-            link para que las Tabs sigan en "Documentos" tras navegar.
-          */}
-          <CaseFolderBrowser
-            caseId={c.id}
-            folderId={folderId}
-            breadcrumb={folderBreadcrumb.map((b) => ({ id: b.id, name: b.name }))}
-            folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
-            documents={docsInFolder.map((d) => ({
-              id: d.id,
-              name: d.name,
-              mimeType: d.mimeType,
-              sizeBytes: d.sizeBytes,
-              tags: d.tags,
-              ocrStatus: d.ocrStatus,
-              version: d.version,
-              sharedWithClient: d.sharedWithClient,
-              visibility: d.visibility,
-              createdAt: d.createdAt,
-              caseId: d.caseId,
-              clientId: d.clientId,
-            }))}
-            aiEnabled={aiEnabled}
-          />
-          {/*
-            Mantengo la vista plana con búsqueda interna como fallback —
-            útil cuando alguien recuerda parte del nombre pero no en qué
-            carpeta lo dejó. Aparece debajo del browser de carpetas.
-          */}
-          <details className="rounded-md border bg-muted/30 p-3">
-            <summary className="cursor-pointer text-sm font-medium">
-              Ver todos los archivos del caso como lista plana (búsqueda
-              instantánea)
-            </summary>
-            <div className="mt-3">
-              <CaseDocumentsSection
-                docs={documentos}
-                caseId={c.id}
-                aiEnabled={aiEnabled}
-              />
-            </div>
-          </details>
+          {(() => {
+            // Sub-navegador: "Documentos del caso" (equipo) vs "Mi carpeta"
+            // (mis privados). Se controla por ?docvista para mantener el
+            // estado en la URL, igual que las tabs del caso.
+            const docVista = sp.docvista === "mia" ? "mia" : "caso";
+            // La query del caso ya trae docs de equipo + MIS privados juntos;
+            // los separamos por visibilidad para cada vista.
+            const misPrivados = documentos.filter((d) => d.visibility === "private");
+            // La vista por carpetas solo muestra docs de equipo (los privados
+            // viven en "Mi carpeta").
+            const docsCasoEnCarpeta = docsInFolder.filter(
+              (d) => d.visibility === "case",
+            );
+
+            const baseHref = `/casos/${c.id}?tab=documentos`;
+            return (
+              <>
+                {/* Sub-navegador Documentos del caso / Mi carpeta */}
+                <div className="inline-flex rounded-lg border bg-muted/40 p-1 text-sm">
+                  <Link
+                    href={baseHref}
+                    className={
+                      docVista === "caso"
+                        ? "rounded-md bg-background px-3 py-1.5 font-medium shadow-sm"
+                        : "rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+                    }
+                  >
+                    Documentos del caso
+                  </Link>
+                  <Link
+                    href={`${baseHref}&docvista=mia`}
+                    className={
+                      docVista === "mia"
+                        ? "rounded-md bg-background px-3 py-1.5 font-medium shadow-sm"
+                        : "rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+                    }
+                  >
+                    Mi carpeta ({misPrivados.length})
+                  </Link>
+                </div>
+
+                {docVista === "caso" ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        Documentos visibles para todo el equipo del caso.
+                      </p>
+                      <DocumentUploadDrawer
+                        caseId={c.id}
+                        folderId={folderId}
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-3.5 w-3.5" />
+                            Subir archivo
+                          </Button>
+                        }
+                      />
+                    </div>
+                    <CaseFolderBrowser
+                      caseId={c.id}
+                      folderId={folderId}
+                      breadcrumb={folderBreadcrumb.map((b) => ({ id: b.id, name: b.name }))}
+                      folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
+                      documents={docsCasoEnCarpeta.map((d) => ({
+                        id: d.id,
+                        name: d.name,
+                        mimeType: d.mimeType,
+                        sizeBytes: d.sizeBytes,
+                        tags: d.tags,
+                        ocrStatus: d.ocrStatus,
+                        version: d.version,
+                        sharedWithClient: d.sharedWithClient,
+                        visibility: d.visibility,
+                        uploadedById: d.uploadedById,
+                        createdAt: d.createdAt,
+                        caseId: d.caseId,
+                        clientId: d.clientId,
+                      }))}
+                      aiEnabled={aiEnabled}
+                      currentUserId={user.userId}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        Tu espacio privado en este caso — solo vos ves estos
+                        documentos. Movés cualquiera al equipo desde el menú «⋮».
+                      </p>
+                      <DocumentUploadDrawer
+                        caseId={c.id}
+                        folderId={null}
+                        defaultVisibility="private"
+                        lockVisibility
+                        trigger={
+                          <Button variant="outline" size="sm">
+                            <Plus className="h-3.5 w-3.5" />
+                            Subir a mi carpeta
+                          </Button>
+                        }
+                      />
+                    </div>
+                    <CaseDocumentsSection
+                      docs={misPrivados}
+                      caseId={c.id}
+                      aiEnabled={aiEnabled}
+                      currentUserId={user.userId}
+                    />
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
         <TabsContent value="notas" className="space-y-3">
           <div className="flex items-center justify-between">

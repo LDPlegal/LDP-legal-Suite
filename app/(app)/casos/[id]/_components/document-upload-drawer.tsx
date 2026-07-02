@@ -65,19 +65,25 @@ export function DocumentUploadDrawer({
   trigger,
   caseId,
   folderId = null,
+  defaultVisibility = "case",
+  lockVisibility = false,
 }: {
   trigger: ReactNode;
   caseId: string;
   /** Si el user está navegando dentro de una carpeta, los archivos van a esa
    *  carpeta. null = raíz del caso. */
   folderId?: string | null;
+  /** Visibilidad inicial del selector. "private" cuando se sube a "Mi carpeta". */
+  defaultVisibility?: "case" | "private";
+  /** Cuando true, oculta el selector y fuerza defaultVisibility (Mi carpeta). */
+  lockVisibility?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [tags, setTags] = useState("");
   // Visibilidad interna (Fase 13): 'case' = todo el equipo, 'private' = solo yo.
-  const [visibility, setVisibility] = useState<"case" | "private">("case");
+  const [visibility, setVisibility] = useState<"case" | "private">(defaultVisibility);
   const filesInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -307,8 +313,8 @@ export function DocumentUploadDrawer({
             className="hidden"
           />
 
-          {/* Visibilidad interna */}
-          <div className="space-y-1.5">
+          {/* Visibilidad interna — oculta cuando el destino ya es fijo (Mi carpeta) */}
+          <div className={lockVisibility ? "hidden" : "space-y-1.5"}>
             <Label>Visibilidad</Label>
             <div className="grid grid-cols-2 gap-2">
               <button

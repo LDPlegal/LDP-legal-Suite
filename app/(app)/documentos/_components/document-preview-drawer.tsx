@@ -38,13 +38,24 @@ export function DocumentPreviewDrawer({
   documentName,
   mimeType,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   documentId: string;
   documentName: string;
   mimeType: string;
-  trigger: ReactNode;
+  /** Opcional: sin trigger, el drawer se controla externamente (kebab). */
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    onOpenChange?.(v);
+    if (!isControlled) setInternalOpen(v);
+  };
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -80,7 +91,7 @@ export function DocumentPreviewDrawer({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
+      {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
       <SheetContent className="sm:max-w-5xl flex flex-col">
         <SheetHeader>
           <SheetTitle className="truncate" title={documentName}>

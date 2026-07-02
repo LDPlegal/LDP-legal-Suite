@@ -30,6 +30,9 @@ export function DocumentNewVersionButton({
   documentName,
   currentVersion,
   scope,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   documentId: string;
   documentName: string;
@@ -37,8 +40,18 @@ export function DocumentNewVersionButton({
   /** Scope donde vive el padre (case / client / firm). Necesario para
    *  el storage key del nuevo upload. */
   scope: UploadScope;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
+  /** Cuando se controla desde el kebab, no renderiza su propio botón trigger. */
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    onOpenChange?.(v);
+    if (!isControlled) setInternalOpen(v);
+  };
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,15 +108,17 @@ export function DocumentNewVersionButton({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <IconButton
-          type="button"
-          className="h-7 w-7"
-          label="Subir nueva versión de este documento"
-        >
-          <FileUp className="h-3.5 w-3.5" />
-        </IconButton>
-      </DialogTrigger>
+      {!hideTrigger ? (
+        <DialogTrigger asChild>
+          <IconButton
+            type="button"
+            className="h-7 w-7"
+            label="Subir nueva versión de este documento"
+          >
+            <FileUp className="h-3.5 w-3.5" />
+          </IconButton>
+        </DialogTrigger>
+      ) : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nueva versión</DialogTitle>

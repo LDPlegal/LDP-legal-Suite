@@ -24,9 +24,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import {
   ChevronRight,
-  Download,
-  Eye,
-  EyeOff,
   FileText,
   Folder as FolderIcon,
   FolderInput,
@@ -34,30 +31,21 @@ import {
   Home,
   Image as ImageIcon,
   Lock,
-  Pencil,
-  ScanEye,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { eliminarCarpetaAction } from "@/app/_actions/carpetas/eliminar";
-import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
-import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
 import { moverDocumentoAction } from "@/app/_actions/carpetas/mover-documento";
 import { moverCarpetaAction } from "@/app/_actions/carpetas/mover";
-import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
 import { DocumentPreviewDrawer } from "./document-preview-drawer";
-import { DocumentSummaryDrawer } from "./document-summary-drawer";
-import { DocumentNewVersionButton } from "./document-new-version-button";
-import { ReprocessOneButton } from "./reprocess-buttons";
 import { MoveToDialog } from "./move-to-dialog";
+import { DocumentActionsMenu } from "@/app/(app)/casos/[id]/_components/document-actions-menu";
 import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
 import { BulkActionsBar } from "./bulk-actions-bar";
 import { IconButton, WithTooltip } from "@/components/ui/icon-button";
-import { PendingIconSubmit } from "@/components/ui/pending-submit";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import type { UploadScope } from "@/lib/uploads/client";
@@ -79,6 +67,7 @@ export type DocumentListItem = {
   version: number;
   sharedWithClient: boolean;
   visibility?: "case" | "private";
+  uploadedById?: string | null;
   createdAt: Date;
   caseId: string | null;
   clientId: string | null;
@@ -117,6 +106,7 @@ export function FolderBrowser({
   aiEnabled = false,
   scope,
   currentFolderId,
+  currentUserId,
 }: {
   basePath: string;
   breadcrumb: BreadcrumbItem[];
@@ -127,6 +117,7 @@ export function FolderBrowser({
   aiEnabled?: boolean;
   scope: FolderScope;
   currentFolderId: string | null;
+  currentUserId?: string;
 }) {
   const router = useRouter();
   // Activation con 8px de distancia — clicks casuales en links no disparan
@@ -320,6 +311,7 @@ export function FolderBrowser({
                   doc={d}
                   aiEnabled={aiEnabled}
                   currentFolderId={currentFolderId}
+                  currentUserId={currentUserId}
                   selected={selectedDocIds.has(d.id)}
                   onToggleSelect={() => toggleDoc(d.id)}
                 />
@@ -505,12 +497,14 @@ function DocumentItem({
   doc,
   aiEnabled,
   currentFolderId,
+  currentUserId,
   selected,
   onToggleSelect,
 }: {
   doc: DocumentListItem;
   aiEnabled: boolean;
   currentFolderId: string | null;
+  currentUserId?: string;
   selected: boolean;
   onToggleSelect: () => void;
 }) {
@@ -618,81 +612,8 @@ function DocumentItem({
           {OCR_STATUS_LABEL[doc.ocrStatus]}
         </Badge>
 
-        {doc.caseId ? (
-          <form action={compartirDocumentoAction} className="inline-block">
-            <input type="hidden" name="documentId" value={doc.id} />
-            <input type="hidden" name="caseId" value={doc.caseId} />
-            <input
-              type="hidden"
-              name="shared"
-              value={doc.sharedWithClient ? "false" : "true"}
-            />
-            <PendingIconSubmit
-              className="h-7 w-7"
-              label={
-                doc.sharedWithClient
-                  ? "Visible para el cliente — clic para ocultarlo"
-                  : "Oculto del cliente — clic para compartirlo"
-              }
-            >
-              {doc.sharedWithClient ? (
-                <Eye className="h-3.5 w-3.5 text-emerald-600" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5" />
-              )}
-            </PendingIconSubmit>
-          </form>
-        ) : (
-          <IconButton
-            className="h-7 w-7 cursor-default opacity-60"
-            disabled
-            label="Sin caso asociado — para compartir con cliente, el documento debe vivir dentro de un caso"
-          >
-            <EyeOff className="h-3.5 w-3.5" />
-          </IconButton>
-        )}
-
-        <DocumentPreviewDrawer
-          documentId={doc.id}
-          documentName={doc.name}
-          mimeType={doc.mimeType}
-          trigger={
-            <IconButton className="h-7 w-7" label="Vista previa (sin descargar)">
-              <ScanEye className="h-3.5 w-3.5" />
-            </IconButton>
-          }
-        />
-
-        <WithTooltip label="Descargar archivo">
-          <Link
-            href={`/api/documentos/${doc.id}/download`}
-            target="_blank"
-            rel="noopener"
-            download={doc.name}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Descargar archivo"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </Link>
-        </WithTooltip>
-
-        {aiEnabled && doc.ocrStatus === "done" ? (
-          <DocumentSummaryDrawer
-            documentId={doc.id}
-            documentName={doc.name}
-            trigger={
-              <IconButton
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                label="Resumir con IA"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </IconButton>
-            }
-          />
-        ) : null}
-
-        <ReprocessOneButton docId={doc.id} />
-
+        {/* Mover a otra carpeta se mantiene como acción propia de la vista
+            por carpetas; el resto se agrupa en el menú "⋮". */}
         <MoveToDialog
           itemKind="document"
           itemId={doc.id}
@@ -700,46 +621,29 @@ function DocumentItem({
           scope={docScope}
           currentFolderId={currentFolderId}
           trigger={
-            <IconButton className="h-7 w-7" label="Mover a otra carpeta">
-              <FolderInput className="h-3.5 w-3.5" />
+            <IconButton className="h-8 w-8" label="Mover a otra carpeta">
+              <FolderInput className="h-4 w-4" />
             </IconButton>
           }
         />
 
-        <DocumentNewVersionButton
-          documentId={doc.id}
-          documentName={doc.name}
-          currentVersion={doc.version}
+        <DocumentActionsMenu
+          doc={{
+            id: doc.id,
+            name: doc.name,
+            mimeType: doc.mimeType,
+            tags: doc.tags,
+            version: doc.version,
+            ocrStatus: doc.ocrStatus,
+            sharedWithClient: doc.sharedWithClient,
+            visibility: doc.visibility ?? "case",
+            uploadedById: doc.uploadedById,
+          }}
+          caseId={doc.caseId}
+          aiEnabled={aiEnabled}
+          currentUserId={currentUserId}
           scope={newVersionScope}
         />
-
-        <DocumentEditDrawer
-          caseId={doc.caseId}
-          doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
-          trigger={
-            <IconButton className="h-7 w-7" label="Editar nombre y etiquetas">
-              <Pencil className="h-3.5 w-3.5" />
-            </IconButton>
-          }
-        />
-
-        <ConfirmButton
-          action={eliminarDocumentoAction}
-          title="¿Eliminar este documento?"
-          description={`"${doc.name}" se archiva (reversible).`}
-          confirmLabel="Eliminar"
-          trigger={
-            <IconButton
-              className="h-7 w-7 text-destructive"
-              label="Eliminar (archivar — reversible)"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </IconButton>
-          }
-        >
-          <input type="hidden" name="documentId" value={doc.id} />
-          <input type="hidden" name="caseId" value={doc.caseId ?? ""} />
-        </ConfirmButton>
       </div>
     </li>
   );

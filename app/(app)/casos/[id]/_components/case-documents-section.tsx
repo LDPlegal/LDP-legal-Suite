@@ -38,10 +38,12 @@ export function CaseDocumentsSection({
   docs,
   caseId,
   aiEnabled,
+  currentUserId,
 }: {
   docs: DocumentListRow[];
   caseId: string;
   aiEnabled?: boolean;
+  currentUserId?: string;
 }) {
   const [query, setQuery] = useState("");
 
@@ -108,6 +110,7 @@ export function CaseDocumentsSection({
                   doc={doc}
                   caseId={caseId}
                   aiEnabled={aiEnabled}
+                  currentUserId={currentUserId}
                 />
               ))
             )}

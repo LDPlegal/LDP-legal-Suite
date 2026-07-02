@@ -14,6 +14,7 @@ export function CaseFolderBrowser({
   folders,
   documents,
   aiEnabled = false,
+  currentUserId,
 }: {
   caseId: string;
   folderId: string | null;
@@ -29,11 +30,13 @@ export function CaseFolderBrowser({
     version: number;
     sharedWithClient: boolean;
     visibility: "case" | "private";
+    uploadedById?: string | null;
     createdAt: Date;
     caseId: string | null;
     clientId: string | null;
   }>;
   aiEnabled?: boolean;
+  currentUserId?: string;
 }) {
   const scope: FolderScope = { kind: "case", caseId };
 
@@ -53,6 +56,7 @@ export function CaseFolderBrowser({
         aiEnabled={aiEnabled}
         scope={scope}
         currentFolderId={folderId}
+        currentUserId={currentUserId}
       />
     </div>
   );

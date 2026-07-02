@@ -27,12 +27,23 @@ export function DocumentSummaryDrawer({
   trigger,
   documentId,
   documentName,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  trigger: ReactNode;
+  /** Opcional: sin trigger, el drawer se controla externamente (kebab). */
+  trigger?: ReactNode;
   documentId: string;
   documentName: string;
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    onOpenChange?.(v);
+    if (!isControlled) setInternalOpen(v);
+  };
   const [state, setState] = useState<ResumirDocumentoState | null>(null);
   const [pending, setPending] = useState(false);
   
@@ -88,7 +99,7 @@ export function DocumentSummaryDrawer({
         if (v && !state && !pending) generate();
       }}
     >
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
+      {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
       <SheetContent className="sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">

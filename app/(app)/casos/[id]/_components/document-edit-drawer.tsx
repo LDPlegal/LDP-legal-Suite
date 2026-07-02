@@ -27,12 +27,23 @@ export function DocumentEditDrawer({
   trigger,
   caseId,
   doc,
+  open: controlledOpen,
+  onOpenChange,
 }: {
-  trigger: ReactNode;
+  /** Opcional: si no se pasa, el drawer se controla externamente (kebab). */
+  trigger?: ReactNode;
   caseId: string | null;
   doc: { id: string; name: string; tags: string[] };
+  open?: boolean;
+  onOpenChange?: (v: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    onOpenChange?.(v);
+    if (!isControlled) setInternalOpen(v);
+  };
   const router = useRouter();
   const [state, action, pending] = useActionState<EditarDocumentoState, FormData>(
     async (prev, fd) => {
@@ -51,7 +62,7 @@ export function DocumentEditDrawer({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{trigger}</SheetTrigger>
+      {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Editar documento</SheetTitle>
