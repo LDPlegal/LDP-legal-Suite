@@ -573,14 +573,13 @@ function DocumentItem({
             mimeType={doc.mimeType}
             aiEnabled={aiEnabled}
             trigger={
-              <WithTooltip label="Abrir vista previa">
-                <button
-                  type="button"
-                  className="block w-full truncate text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:underline"
-                >
-                  {doc.name}
-                </button>
-              </WithTooltip>
+              <button
+                type="button"
+                title="Abrir vista previa"
+                className="block w-full truncate text-left text-sm font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+              >
+                {doc.name}
+              </button>
             }
           />
           <p className="text-xs text-muted-foreground">

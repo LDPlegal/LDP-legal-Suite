@@ -67,14 +67,13 @@ export function DocumentGlobalRow({
             mimeType={doc.mimeType}
             aiEnabled={aiEnabled}
             trigger={
-              <WithTooltip label="Abrir vista previa">
-                <button
-                  type="button"
-                  className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
-                >
-                  {doc.name}
-                </button>
-              </WithTooltip>
+              <button
+                type="button"
+                title="Abrir vista previa"
+                className="text-left font-medium hover:underline focus-visible:outline-none focus-visible:underline"
+              >
+                {doc.name}
+              </button>
             }
           />
           {doc.version > 1 ? (

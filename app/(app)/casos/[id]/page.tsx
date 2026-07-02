@@ -153,9 +153,6 @@ export default async function CasoDetailPage({
   const isCorporate = client?.type === "corporate";
 
   const totalTimeSec = tiempos.reduce((s, t) => s + t.durationSeconds, 0);
-  const billableTimeSec = tiempos
-    .filter((t) => t.billable)
-    .reduce((s, t) => s + t.durationSeconds, 0);
   const totalGastos = totalAmount(gastos);
   const billableGastos = totalAmount(gastos.filter((g) => g.billable));
   const isApprover = user.role === "admin" || user.role === "partner";
@@ -270,7 +267,10 @@ export default async function CasoDetailPage({
                 counterpartyTaxId: c.counterpartyTaxId,
                 tags: c.tags,
                 visibility: c.visibility,
+                leadLawyerId: c.leadLawyerId,
               }}
+              users={usuarios.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
+              assignedUserIds={assignments.map((a) => a.userId)}
               trigger={
                 <Button variant="outline" size="sm">
                   <Pencil className="h-4 w-4" />
@@ -389,18 +389,9 @@ export default async function CasoDetailPage({
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Indicadores</CardTitle>
+                  <CardTitle>Gastos</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Horas registradas</span>
-                    <span className="font-mono tabular-nums">{fmtDuration(totalTimeSec)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Horas facturables</span>
-                    <span className="font-mono tabular-nums">{fmtDuration(billableTimeSec)}</span>
-                  </div>
-                  <Separator />
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total gastos</span>
                     <span className="font-mono tabular-nums">DOP {totalGastos.toFixed(2)}</span>
@@ -413,13 +404,28 @@ export default async function CasoDetailPage({
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Equipo</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+                  <CardTitle>Equipo y acceso</CardTitle>
+                  {c.visibility === "restricted" ? (
+                    <Badge variant="warning" className="gap-1">
+                      <ShieldCheck className="h-3 w-3" />
+                      Restringido
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Toda la firma</Badge>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {c.visibility === "restricted"
+                      ? "Solo los usuarios listados abajo (y los admins) pueden ver este caso."
+                      : "Este caso es visible para toda la firma. Los usuarios listados son el equipo asignado."}
+                  </p>
                   {assignments.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Sin asignaciones específicas (visibilidad: firma).
+                      {c.visibility === "restricted"
+                        ? "Sin usuarios con acceso — solo los admins lo ven. Editá el caso para dar acceso."
+                        : "Sin asignaciones específicas todavía."}
                     </p>
                   ) : (
                     <ul className="space-y-2">
