@@ -339,6 +339,7 @@ export const AI_FEATURE_LABEL: Record<string, string> = {
   matter_context: "Contexto expediente",
   doc_generate: "Generación de documento",
   event_parse: "Parseo de evento",
+  doc_format: "Formato de documento",
 };
 
 // F7+ Bloque 4: trazabilidad de documentos generados por IA. Lista los

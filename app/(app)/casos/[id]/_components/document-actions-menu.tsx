@@ -246,6 +246,7 @@ export function DocumentActionsMenu({
         documentId={doc.id}
         documentName={doc.name}
         mimeType={doc.mimeType}
+        aiEnabled={aiEnabled}
         open={drawer === "preview"}
         onOpenChange={(v) => setDrawer(v ? "preview" : null)}
       />

@@ -11,7 +11,9 @@
 // listado para no inflar la respuesta inicial).
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2, Sparkles, Undo2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -24,6 +26,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getDocumentTextAction } from "@/app/_actions/documentos/get-text";
+import { formatearDocumentoAction } from "@/app/_actions/ai/formatear-documento";
 
 const TEXT_PREVIEW_MIMES = new Set([
   "application/msword",
@@ -38,6 +41,7 @@ export function DocumentPreviewDrawer({
   documentName,
   mimeType,
   trigger,
+  aiEnabled = false,
   open: controlledOpen,
   onOpenChange,
 }: {
@@ -46,6 +50,8 @@ export function DocumentPreviewDrawer({
   mimeType: string;
   /** Opcional: sin trigger, el drawer se controla externamente (kebab). */
   trigger?: ReactNode;
+  /** Habilita el botón "Mejorar formato con IA" para docs de texto. */
+  aiEnabled?: boolean;
   open?: boolean;
   onOpenChange?: (v: boolean) => void;
 }) {
@@ -60,6 +66,20 @@ export function DocumentPreviewDrawer({
   const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Formato IA: markdown estructurado del texto plano, on-demand.
+  const [formatted, setFormatted] = useState<string | null>(null);
+  const [formatting, setFormatting] = useState(false);
+
+  async function doFormat() {
+    setFormatting(true);
+    try {
+      const r = await formatearDocumentoAction(documentId);
+      if (r.ok) setFormatted(r.markdown);
+      else toast.error("No se pudo dar formato", { description: r.error });
+    } finally {
+      setFormatting(false);
+    }
+  }
 
   const isPdf = mimeType === "application/pdf";
   const isImage = mimeType.startsWith("image/");
@@ -144,9 +164,52 @@ export function DocumentPreviewDrawer({
                     </p>
                   </div>
                 ) : ocrText ? (
-                  <article className="prose prose-sm max-w-none whitespace-pre-wrap dark:prose-invert">
-                    {ocrText}
-                  </article>
+                  <div className="space-y-3">
+                    {aiEnabled ? (
+                      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                        <p className="text-xs text-muted-foreground">
+                          {formatted
+                            ? "Vista con formato mejorado por IA (títulos y negritas). El contenido no se modificó."
+                            : "El texto se ve plano. La IA puede darle formato legible sin cambiar el contenido."}
+                        </p>
+                        {formatted ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFormatted(null)}
+                            className="shrink-0"
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                            Ver original
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={doFormat}
+                            disabled={formatting}
+                            className="shrink-0"
+                          >
+                            {formatting ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            )}
+                            Mejorar formato con IA
+                          </Button>
+                        )}
+                      </div>
+                    ) : null}
+                    {formatted ? (
+                      <article className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown>{formatted}</ReactMarkdown>
+                      </article>
+                    ) : (
+                      <article className="prose prose-sm max-w-none whitespace-pre-wrap dark:prose-invert">
+                        {ocrText}
+                      </article>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     El documento se procesó pero no se extrajo texto.

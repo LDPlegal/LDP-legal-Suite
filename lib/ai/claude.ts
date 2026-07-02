@@ -116,7 +116,8 @@ export type RunPromptOptions = {
       | "matter_context"
       | "doc_generate"
       | "event_parse"
-      | "ocr_extract";
+      | "ocr_extract"
+      | "doc_format";
   };
   // Prompt caching: when set, the systemAddendum and any messages flagged
   // with cache:true get a cache_control marker. Anthropic charges 1.25x the
