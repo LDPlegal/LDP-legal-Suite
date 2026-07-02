@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser, hasAdminPowers } from "@/lib/auth/session";
 import { restoreCase } from "@/lib/db/queries/cases";
@@ -12,8 +13,12 @@ export async function restaurarCasoAction(formData: FormData): Promise<void> {
     throw new Error("Solo admin y socios pueden restaurar casos.");
   }
   const id = z.string().uuid().parse(formData.get("caseId"));
-  const ok = await restoreCase(user.firmId, user.userId, id);
-  if (ok) {
+  const result = await restoreCase(user.firmId, user.userId, id);
+  if (result === "parent_archived") {
+    // No se puede restaurar un subcaso mientras su padre siga archivado.
+    redirect("/casos/archivados?error=parent_archived");
+  }
+  if (result === "restored") {
     await logAuditStandalone({
       firmId: user.firmId,
       userId: user.userId,
@@ -25,4 +30,5 @@ export async function restaurarCasoAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/casos");
   revalidatePath(`/casos/${id}`);
+  revalidatePath("/casos/archivados");
 }

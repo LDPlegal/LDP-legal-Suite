@@ -51,3 +51,6 @@ drizzle/meta
 
 # temp commit message files
 .git-commit-tmp.txt
+
+# vercel CLI project linking (generado por `vercel link`)
+.vercel

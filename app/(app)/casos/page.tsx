@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Plus, Search, ShieldCheck } from "lucide-react";
+import { Briefcase, CornerDownRight, Plus, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -169,14 +169,31 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
                         aria-label="Caso restringido"
                       />
                     ) : null}
+                    {c.parentCaseId ? (
+                      <span
+                        className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"
+                        title={`Subcaso de ${c.parentCaseCode ?? "otro caso"}`}
+                      >
+                        <CornerDownRight className="h-3 w-3" />
+                        {c.parentCaseCode ?? "subcaso"}
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <Link
-                      href={`/casos/${c.id}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      {c.title}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/casos/${c.id}`}
+                        className="font-medium text-foreground hover:text-primary transition-colors"
+                      >
+                        {c.title}
+                      </Link>
+                      {c.parentCaseId ? (
+                        <Badge variant="secondary" className="gap-1 text-[10px]">
+                          <CornerDownRight className="h-2.5 w-2.5" />
+                          Subcaso
+                        </Badge>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {c.clientDisplayName ?? "—"}

@@ -30,6 +30,19 @@ type User = { id: string; name: string; role: string };
 type Assignment = { userId: string; roleInCase: "lead" | "associate" | "paralegal" };
 type Template = { id: string; name: string; matterType: string; defaultTasks: unknown[]; defaultEvents: unknown[] };
 
+// Modo subcaso: cuando el drawer se abre desde el detalle de un caso, el
+// nuevo caso cuelga del padre y hereda cliente, materia, visibilidad y
+// asignados (todo editable menos el padre).
+export type ParentCaseForForm = {
+  id: string;
+  code: string;
+  title: string;
+  clientId: string;
+  matterType: string;
+  visibility: "firm" | "restricted";
+  assignments: Assignment[];
+};
+
 const initial: CasoFormState = { ok: true };
 
 export function CasoFormDrawer({
@@ -37,28 +50,36 @@ export function CasoFormDrawer({
   clientes,
   users,
   templates = [],
+  parentCase,
 }: {
   trigger: ReactNode;
   clientes: Cliente[];
   users: User[];
   templates?: Template[];
+  parentCase?: ParentCaseForForm;
 }) {
   const [open, setOpen] = useState(useAutoOpen());
-  const [restricted, setRestricted] = useState(false);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [restricted, setRestricted] = useState(parentCase?.visibility === "restricted");
+  const [assignments, setAssignments] = useState<Assignment[]>(
+    parentCase?.assignments ?? [],
+  );
   // Lista local de clientes — empieza con los del server y se extiende
   // cuando el user crea uno inline desde el quick-create.
   const [clienteList, setClienteList] = useState<Cliente[]>(clientes);
   // Cliente seleccionado actualmente (controlado, así podemos seleccionar
-  // el recién creado automáticamente).
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  // el recién creado automáticamente). En modo subcaso hereda el del padre.
+  const [selectedClientId, setSelectedClientId] = useState<string>(
+    parentCase?.clientId ?? "",
+  );
   // Live values for the conflict-of-interest alert (counterparty fields).
   const [counterpartyName, setCounterpartyName] = useState("");
   const [counterpartyTaxId, setCounterpartyTaxId] = useState("");
   // Matter template selection. The list filters down to the currently
   // selected matterType so partners don't pick a "Civil" template for a
   // "Penal" case by accident.
-  const [matterType, setMatterType] = useState<string>("civil");
+  const [matterType, setMatterType] = useState<string>(
+    parentCase?.matterType ?? "civil",
+  );
   const [templateId, setTemplateId] = useState<string>("");
   const matchingTemplates = templates.filter((t) => t.matterType === matterType);
   const [state, action, pending] = useActionState<CasoFormState, FormData>(
@@ -88,12 +109,26 @@ export function CasoFormDrawer({
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Nuevo caso</SheetTitle>
+          <SheetTitle>{parentCase ? "Nuevo subcaso" : "Nuevo caso"}</SheetTitle>
           <SheetDescription>
-            El código (ej. <span className="font-mono">2026-CIV-014</span>) se genera al guardar.
+            {parentCase ? (
+              <>
+                Se creará dentro de{" "}
+                <span className="font-mono">{parentCase.code}</span> —{" "}
+                {parentCase.title}. El código será{" "}
+                <span className="font-mono">{parentCase.code}-NN</span>.
+              </>
+            ) : (
+              <>
+                El código (ej. <span className="font-mono">2026-CIV-014</span>) se genera al guardar.
+              </>
+            )}
           </SheetDescription>
         </SheetHeader>
         <form action={action} className="flex flex-1 flex-col min-h-0">
+          {parentCase ? (
+            <input type="hidden" name="parentCaseId" value={parentCase.id} />
+          ) : null}
           <SheetBody className="space-y-4">
             <Field label="Título *" error={errFor(state, "title")}>
               <Input name="title" required placeholder="Ej. Demanda en cobro de pesos" />

@@ -11,7 +11,12 @@ const Schema = z.object({ caseId: z.string().uuid() });
 export async function eliminarCasoAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const parsed = Schema.parse({ caseId: formData.get("caseId") });
-  await softDeleteCase(user.firmId, user.userId, parsed.caseId);
+  const result = await softDeleteCase(user.firmId, user.userId, parsed.caseId);
+  if (result === "has_subcases") {
+    // No se archiva un padre con subcasos activos — volvemos al detalle con
+    // un flag que la página muestra como alerta.
+    redirect(`/casos/${parsed.caseId}?error=subcasos`);
+  }
   revalidatePath("/casos");
   redirect("/casos");
 }

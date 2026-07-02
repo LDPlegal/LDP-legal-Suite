@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -293,6 +294,16 @@ export const cases = pgTable(
       .references(() => firms.id, { onDelete: "cascade" }),
     code: text("code").notNull(), // e.g. "2026-CIV-014"
     title: text("title").notNull(),
+    // Subcasos: un caso puede colgar de otro (máx. 1 nivel — un subcaso no
+    // puede tener hijos; se valida en createCase). El código del hijo se
+    // deriva del padre: "2026-CIV-014-01".
+    parentCaseId: uuid("parent_case_id").references((): AnyPgColumn => cases.id, {
+      onDelete: "set null",
+    }),
+    // Contador atómico para numerar subcasos del padre. Nunca se reusa un
+    // número aunque se archive un subcaso (evita choques con el índice
+    // parcial cases_firm_code_unique al restaurar).
+    subcaseLastSeq: integer("subcase_last_seq").notNull().default(0),
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "restrict" }),
@@ -337,6 +348,9 @@ export const cases = pgTable(
     // Conflict-check support (§ 9.6) — UI ships in Fase 4, but the index is
     // here from day 1 so historical data is queryable when that ships.
     index("cases_firm_counterparty_tax_idx").on(t.firmId, t.counterpartyTaxId),
+    index("cases_parent_case_idx")
+      .on(t.parentCaseId)
+      .where(sql`${t.parentCaseId} IS NOT NULL`),
   ],
 );
 
@@ -483,6 +497,12 @@ export const casesRelations = relations(cases, ({ one, many }) => ({
     references: [users.id],
     relationName: "lead_lawyer",
   }),
+  parentCase: one(cases, {
+    fields: [cases.parentCaseId],
+    references: [cases.id],
+    relationName: "case_parent",
+  }),
+  subcases: many(cases, { relationName: "case_parent" }),
   assignments: many(caseAssignments),
 }));
 

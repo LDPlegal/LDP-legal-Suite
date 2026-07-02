@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { withFirm, type Tx } from "../with-firm";
 import {
   caseAssignments,
@@ -30,6 +31,8 @@ export type ListCasesOptions = {
   matterType?: Case["matterType"];
   clientId?: string;
   leadLawyerId?: string;
+  /** Solo los subcasos de este caso padre. */
+  parentCaseId?: string;
   limit?: number;
   offset?: number;
   orderBy?: "code_desc" | "code_asc" | "opened_desc" | "title_asc";
@@ -49,6 +52,7 @@ export async function listCases(
     if (opts.matterType) conds.push(eq(cases.matterType, opts.matterType));
     if (opts.clientId) conds.push(eq(cases.clientId, opts.clientId));
     if (opts.leadLawyerId) conds.push(eq(cases.leadLawyerId, opts.leadLawyerId));
+    if (opts.parentCaseId) conds.push(eq(cases.parentCaseId, opts.parentCaseId));
     if (opts.search?.trim()) {
       const term = `%${opts.search.trim()}%`;
       const s = or(
@@ -71,6 +75,10 @@ export async function listCases(
             ? asc(cases.title)
             : desc(cases.code);
 
+    // Self-join para mostrar el código del padre en la lista. Si el padre no
+    // es visible para el usuario (RLS) el join devuelve null y la fila se
+    // muestra como subcaso sin código de padre.
+    const parentCases = alias(cases, "parent_cases");
     const [rows, totalRow] = await Promise.all([
       tx
         .select({
@@ -90,10 +98,13 @@ export async function listCases(
           clientDisplayName: clients.displayName,
           leadLawyerId: cases.leadLawyerId,
           leadLawyerName: users.name,
+          parentCaseId: cases.parentCaseId,
+          parentCaseCode: parentCases.code,
         })
         .from(cases)
         .leftJoin(clients, eq(clients.id, cases.clientId))
         .leftJoin(users, eq(users.id, cases.leadLawyerId))
+        .leftJoin(parentCases, eq(parentCases.id, cases.parentCaseId))
         .where(and(...conds))
         .orderBy(order)
         .limit(limit)
@@ -143,7 +154,38 @@ export async function getCaseById(
       .innerJoin(users, eq(users.id, caseAssignments.userId))
       .where(eq(caseAssignments.caseId, caseId));
 
-    return { ...row, assignments };
+    // Padre (si es subcaso). Sin filtro deletedAt a propósito: si el padre
+    // está archivado igual queremos mostrar su código (sin link).
+    let parent: { id: string; code: string; title: string; deletedAt: Date | null } | null = null;
+    if (row.case.parentCaseId) {
+      const [p] = await tx
+        .select({
+          id: cases.id,
+          code: cases.code,
+          title: cases.title,
+          deletedAt: cases.deletedAt,
+        })
+        .from(cases)
+        .where(eq(cases.id, row.case.parentCaseId))
+        .limit(1);
+      parent = p ?? null;
+    }
+
+    // Subcasos activos de este caso.
+    const subcases = await tx
+      .select({
+        id: cases.id,
+        code: cases.code,
+        title: cases.title,
+        status: cases.status,
+        matterType: cases.matterType,
+        openedAt: cases.openedAt,
+      })
+      .from(cases)
+      .where(and(eq(cases.parentCaseId, caseId), isNull(cases.deletedAt)))
+      .orderBy(asc(cases.code));
+
+    return { ...row, assignments, parent, subcases };
   });
 }
 
@@ -175,6 +217,15 @@ async function nextCaseCode(
   return `${year}-${prefix}-${seqPadded}`;
 }
 
+// Errores de dominio de subcasos — la action los traduce a mensajes de UI.
+export class SubcaseError extends Error {
+  constructor(
+    public readonly reason: "parent_not_found" | "max_depth",
+  ) {
+    super(`subcase: ${reason}`);
+  }
+}
+
 export async function createCase(
   firmId: string,
   userId: string,
@@ -192,7 +243,36 @@ export async function createCase(
   const year = new Date(caseData.openedAt ?? new Date()).getUTCFullYear();
 
   return withFirm(firmId, userId, async (tx) => {
-    const code = await nextCaseCode(tx, firmId, year, caseData.matterType);
+    let code: string;
+    if (caseData.parentCaseId) {
+      // Subcaso: el código se deriva del padre (2026-CIV-014-01). El bump de
+      // subcase_last_seq con RETURNING dentro de la misma tx hace la
+      // numeración atómica bajo creaciones concurrentes.
+      const [parent] = await tx
+        .select({
+          id: cases.id,
+          code: cases.code,
+          parentCaseId: cases.parentCaseId,
+        })
+        .from(cases)
+        .where(and(eq(cases.id, caseData.parentCaseId), isNull(cases.deletedAt)))
+        .limit(1);
+      if (!parent) throw new SubcaseError("parent_not_found");
+      if (parent.parentCaseId) throw new SubcaseError("max_depth");
+
+      const [bumped] = await tx
+        .update(cases)
+        .set({
+          subcaseLastSeq: sql`${cases.subcaseLastSeq} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(cases.id, parent.id))
+        .returning({ seq: cases.subcaseLastSeq });
+      if (!bumped) throw new Error("createCase: subcase counter bump returned no row");
+      code = `${parent.code}-${bumped.seq.toString().padStart(2, "0")}`;
+    } else {
+      code = await nextCaseCode(tx, firmId, year, caseData.matterType);
+    }
 
     const [row] = await tx
       .insert(cases)
@@ -258,43 +338,90 @@ export async function updateCase(
   });
 }
 
+export type SoftDeleteCaseResult = "archived" | "not_found" | "has_subcases";
+
 export async function softDeleteCase(
   firmId: string,
   userId: string,
   caseId: string,
-): Promise<boolean> {
+): Promise<SoftDeleteCaseResult> {
   return withFirm(firmId, userId, async (tx) => {
+    // Un padre con subcasos activos no se archiva: quedarían huérfanos en la
+    // UI (link roto al padre). Hay que archivar los subcasos primero.
+    const [child] = await tx
+      .select({ id: cases.id })
+      .from(cases)
+      .where(and(eq(cases.parentCaseId, caseId), isNull(cases.deletedAt)))
+      .limit(1);
+    if (child) return "has_subcases";
+
     const [row] = await tx
       .update(cases)
       .set({ deletedAt: new Date() })
       .where(and(eq(cases.id, caseId), isNull(cases.deletedAt)))
       .returning({ id: cases.id });
-    return !!row;
+    return row ? "archived" : "not_found";
   });
 }
 
 export async function listArchivedCases(firmId: string, userId: string) {
   return withFirm(firmId, userId, async (tx) => {
+    // Self-join para el código del padre (mismo patrón que listCases), así la
+    // lista de archivados también distingue subcasos y a qué expediente
+    // pertenecen. Orden: por código, de modo que padre y subcasos queden
+    // contiguos (2026-CIV-014 junto a 2026-CIV-014-01) en vez de dispersos
+    // por fecha de archivado.
+    const parentCases = alias(cases, "parent_cases");
     return tx
-      .select()
+      .select({
+        id: cases.id,
+        code: cases.code,
+        title: cases.title,
+        status: cases.status,
+        matterType: cases.matterType,
+        deletedAt: cases.deletedAt,
+        parentCaseId: cases.parentCaseId,
+        parentCaseCode: parentCases.code,
+      })
       .from(cases)
+      .leftJoin(parentCases, eq(parentCases.id, cases.parentCaseId))
       .where(sql`${cases.deletedAt} IS NOT NULL`)
-      .orderBy(desc(cases.deletedAt));
+      .orderBy(asc(cases.code));
   });
 }
+
+export type RestoreCaseResult = "restored" | "not_found" | "parent_archived";
 
 export async function restoreCase(
   firmId: string,
   userId: string,
   caseId: string,
-): Promise<boolean> {
+): Promise<RestoreCaseResult> {
   return withFirm(firmId, userId, async (tx) => {
+    // Un subcaso no puede restaurarse mientras su padre siga archivado:
+    // quedaría en la lista activa colgando de un caso invisible. Hay que
+    // restaurar el padre primero.
+    const [target] = await tx
+      .select({ parentCaseId: cases.parentCaseId })
+      .from(cases)
+      .where(and(eq(cases.id, caseId), sql`${cases.deletedAt} IS NOT NULL`))
+      .limit(1);
+    if (!target) return "not_found";
+    if (target.parentCaseId) {
+      const [parent] = await tx
+        .select({ id: cases.id })
+        .from(cases)
+        .where(and(eq(cases.id, target.parentCaseId), isNull(cases.deletedAt)))
+        .limit(1);
+      if (!parent) return "parent_archived";
+    }
+
     const [row] = await tx
       .update(cases)
       .set({ deletedAt: null, updatedAt: new Date() })
       .where(and(eq(cases.id, caseId), sql`${cases.deletedAt} IS NOT NULL`))
       .returning({ id: cases.id });
-    return !!row;
+    return row ? "restored" : "not_found";
   });
 }
 

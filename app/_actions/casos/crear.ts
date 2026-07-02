@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { CasoSchema } from "@/lib/schemas/caso";
-import { createCase } from "@/lib/db/queries/cases";
+import { createCase, SubcaseError } from "@/lib/db/queries/cases";
 import { applyTemplateToCase } from "@/lib/db/queries/matter-templates";
 import { notify } from "@/lib/db/queries/notifications";
 
@@ -54,6 +54,7 @@ export async function crearCasoAction(
 
   const parsed = CasoSchema.safeParse({
     title: formData.get("title"),
+    parentCaseId: formData.get("parentCaseId") || undefined,
     clientId: formData.get("clientId"),
     matterType: formData.get("matterType"),
     description: formData.get("description"),
@@ -77,22 +78,37 @@ export async function crearCasoAction(
   }
 
   const data = parsed.data;
-  const created = await createCase(user.firmId, user.userId, {
-    title: data.title,
-    clientId: data.clientId,
-    matterType: data.matterType,
-    description: data.description ?? null,
-    status: data.status,
-    leadLawyerId: data.leadLawyerId ?? null,
-    billingMode: data.billingMode,
-    court: data.court ?? null,
-    counterpartyName: data.counterpartyName ?? null,
-    counterpartyTaxId: data.counterpartyTaxId ?? null,
-    tags: data.tags,
-    visibility: data.visibility,
-    assignments: data.assignments,
-    fees: data.fees,
-  });
+  let created;
+  try {
+    created = await createCase(user.firmId, user.userId, {
+      title: data.title,
+      parentCaseId: data.parentCaseId ?? null,
+      clientId: data.clientId,
+      matterType: data.matterType,
+      description: data.description ?? null,
+      status: data.status,
+      leadLawyerId: data.leadLawyerId ?? null,
+      billingMode: data.billingMode,
+      court: data.court ?? null,
+      counterpartyName: data.counterpartyName ?? null,
+      counterpartyTaxId: data.counterpartyTaxId ?? null,
+      tags: data.tags,
+      visibility: data.visibility,
+      assignments: data.assignments,
+      fees: data.fees,
+    });
+  } catch (err) {
+    if (err instanceof SubcaseError) {
+      return {
+        ok: false,
+        error:
+          err.reason === "max_depth"
+            ? "Un subcaso no puede tener subcasos propios (máximo un nivel)."
+            : "El caso padre no existe o está archivado.",
+      };
+    }
+    throw err;
+  }
   // Optionally apply a matter template — fire after createCase succeeded so
   // we don't leave dangling tasks if the case insert failed. Errors here
   // don't roll back the case; the partner can re-apply manually if needed.

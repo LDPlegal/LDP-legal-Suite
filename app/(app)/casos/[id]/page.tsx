@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare, Pencil, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CornerDownRight, MessageSquare, Pencil, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/icon-button";
@@ -17,6 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getCaseById, listCaseFees } from "@/lib/db/queries/cases";
+import { listClients } from "@/lib/db/queries/clients";
+import { listMatterTemplates } from "@/lib/db/queries/matter-templates";
 import { listTimeEntriesForCase } from "@/lib/db/queries/time-entries";
 import { listExpensesForCase, totalAmount } from "@/lib/db/queries/expenses";
 import { listTasksForCase } from "@/lib/db/queries/tasks";
@@ -67,6 +69,7 @@ import { formatInFirmTz } from "@/lib/datetime/format";
 import { ManualTimeEntryDrawer } from "@/app/(app)/tiempos/_components/manual-entry-drawer";
 import { TaskFormDrawer } from "@/app/(app)/tareas/_components/task-form-drawer";
 import { EventoFormDrawer } from "@/app/(app)/calendario/_components/evento-form-drawer";
+import { SubcaseCreateButton } from "./_components/subcase-create-button";
 import { StartTimerButton } from "./_components/start-timer-button";
 import { GastoFormDrawer } from "./_components/gasto-form-drawer";
 import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
@@ -99,7 +102,7 @@ export default async function CasoDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; folder?: string; docvista?: string }>;
+  searchParams: Promise<{ tab?: string; folder?: string; docvista?: string; error?: string }>;
 }) {
   const user = await requireUser();
   const aiEnabled = isAiEnabled();
@@ -108,13 +111,15 @@ export default async function CasoDetailPage({
   const detail = await getCaseById(user.firmId, user.userId, id);
   if (!detail) notFound();
 
-  const { case: c, client, leadLawyer, assignments } = detail;
+  const { case: c, client, leadLawyer, assignments, parent, subcases } = detail;
+  // Solo los casos raíz pueden tener subcasos (máx. 1 nivel).
+  const canHaveSubcases = !c.parentCaseId;
 
   // Carpetas para el tab documentos. folderId del query string; null = raíz.
   const folderId = sp.folder ?? null;
   const folderScope = { kind: "case" as const, caseId: c.id };
 
-  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios, folderChildren, docsInFolder, folderBreadcrumb, audiencias] = await Promise.all([
+  const [tiempos, gastos, tareas, eventos, documentos, notas, billables, casoInvoices, usuarios, ncfRanges, bitacoraCaso, honorarios, folderChildren, docsInFolder, folderBreadcrumb, audiencias, clientesRes, templates] = await Promise.all([
     listTimeEntriesForCase(user.firmId, user.userId, c.id),
     listExpensesForCase(user.firmId, user.userId, c.id),
     listTasksForCase(user.firmId, user.userId, c.id),
@@ -133,6 +138,8 @@ export default async function CasoDetailPage({
       ? getFolderBreadcrumb(user.firmId, user.userId, folderId)
       : Promise.resolve([]),
     listHearingsForCase(user.firmId, user.userId, c.id),
+    listClients(user.firmId, user.userId, { limit: 200 }),
+    listMatterTemplates(user.firmId, user.userId),
   ]);
   const nowMs = Date.now();
   const availableNcfTypes: NcfType[] = ncfRanges
@@ -155,6 +162,15 @@ export default async function CasoDetailPage({
 
   return (
     <div className="space-y-6">
+      {sp.error === "subcasos" ? (
+        <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <p>
+            No se puede archivar este caso porque tiene subcasos activos.
+            Archiva primero los subcasos (tab &quot;Subcasos&quot;).
+          </p>
+        </div>
+      ) : null}
       <div>
         <Link
           href="/casos"
@@ -169,6 +185,12 @@ export default async function CasoDetailPage({
               <span className="rounded-md border bg-muted px-2 py-0.5 font-mono text-xs">
                 {c.code}
               </span>
+              {parent ? (
+                <Badge variant="secondary" className="gap-1">
+                  <CornerDownRight className="h-3 w-3" />
+                  Subcaso
+                </Badge>
+              ) : null}
               {c.visibility === "restricted" ? (
                 <Badge variant="warning" className="gap-1">
                   <ShieldCheck className="h-3 w-3" />
@@ -185,6 +207,22 @@ export default async function CasoDetailPage({
             <p className="text-sm text-muted-foreground">
               {client?.displayName ?? "—"} · {MATTER_LABEL[c.matterType]}
             </p>
+            {parent ? (
+              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                <CornerDownRight className="h-3.5 w-3.5" />
+                Subcaso de{" "}
+                {parent.deletedAt ? (
+                  <span>
+                    <span className="font-mono">{parent.code}</span> — {parent.title}{" "}
+                    <Badge variant="outline" className="ml-1 text-[10px]">archivado</Badge>
+                  </span>
+                ) : (
+                  <Link href={`/casos/${parent.id}`} className="hover:underline">
+                    <span className="font-mono">{parent.code}</span> — {parent.title}
+                  </Link>
+                )}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <StartTimerButton caseId={c.id} caseTitle={c.title} />
@@ -261,6 +299,9 @@ export default async function CasoDetailPage({
       <Tabs defaultValue={sp.tab ?? "resumen"}>
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          {canHaveSubcases ? (
+            <TabsTrigger value="subcasos">Subcasos ({subcases.length})</TabsTrigger>
+          ) : null}
           <TabsTrigger value="tiempos">Tiempos ({tiempos.length})</TabsTrigger>
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
           <TabsTrigger value="tareas">Tareas ({tareas.length})</TabsTrigger>
@@ -401,6 +442,87 @@ export default async function CasoDetailPage({
             </div>
           </div>
         </TabsContent>
+
+        {/* ----- Subcasos ----- */}
+        {canHaveSubcases ? (
+          <TabsContent value="subcasos" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {subcases.length} {subcases.length === 1 ? "subcaso" : "subcasos"} ·
+                expedientes que cuelgan de este caso
+              </p>
+              <SubcaseCreateButton
+                clientes={clientesRes.rows.map((cl) => ({ id: cl.id, displayName: cl.displayName }))}
+                users={usuarios.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
+                templates={templates.map((t) => ({
+                  id: t.id,
+                  name: t.name,
+                  matterType: t.matterType,
+                  defaultTasks: t.defaultTasks ?? [],
+                  defaultEvents: t.defaultEvents ?? [],
+                }))}
+                parentCase={{
+                  id: c.id,
+                  code: c.code,
+                  title: c.title,
+                  clientId: c.clientId,
+                  matterType: c.matterType,
+                  visibility: c.visibility,
+                  assignments: assignments.map((a) => ({
+                    userId: a.userId,
+                    roleInCase: a.roleInCase,
+                  })),
+                }}
+              />
+            </div>
+            <Card className="overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-36">Código</TableHead>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Materia</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="hidden md:table-cell">Apertura</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subcases.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                        Sin subcasos. Crea el primero con &quot;Nuevo subcaso&quot; —
+                        útil para separar demandas, recursos o incidencias dentro
+                        de este expediente.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    subcases.map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-mono text-xs">
+                          <Link href={`/casos/${s.id}`} className="hover:underline">
+                            {s.code}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <Link href={`/casos/${s.id}`} className="font-medium hover:underline">
+                            {s.title}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-sm">{MATTER_LABEL[s.matterType]}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{CASE_STATUS_LABEL[s.status]}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
+                          {formatInFirmTz(s.openedAt, undefined, "dd/MM/yyyy")}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+        ) : null}
 
         {/* ----- Tiempos ----- */}
         <TabsContent value="tiempos" className="space-y-3">
