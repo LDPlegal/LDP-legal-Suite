@@ -224,6 +224,9 @@ export async function updateDocumentOcr(
       .set({
         ocrStatus: patch.ocrStatus,
         ocrText: patch.ocrText ?? null,
+        // El texto cambió → el formato IA cacheado ya no corresponde. Se
+        // regenera la próxima vez que se abra el preview.
+        formattedMarkdown: null,
         updatedAt: new Date(),
       })
       .where(eq(documents.id, documentId));
@@ -381,6 +384,22 @@ export async function setDocumentSharedWithClient(
       .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
       .returning({ id: documents.id, caseId: documents.caseId });
     return !!row;
+  });
+}
+
+// Guarda el Markdown formateado por IA en la caché del documento. adminDb:
+// se llama desde la action de formateo que ya validó acceso via getDocumentById.
+export async function cacheDocumentFormattedMarkdown(
+  firmId: string,
+  userId: string,
+  documentId: string,
+  markdown: string,
+): Promise<void> {
+  await withFirm(firmId, userId, async (tx) => {
+    await tx
+      .update(documents)
+      .set({ formattedMarkdown: markdown })
+      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)));
   });
 }
 

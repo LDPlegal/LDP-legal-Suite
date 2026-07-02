@@ -571,6 +571,7 @@ function DocumentItem({
             documentId={doc.id}
             documentName={doc.name}
             mimeType={doc.mimeType}
+            aiEnabled={aiEnabled}
             trigger={
               <WithTooltip label="Abrir vista previa">
                 <button

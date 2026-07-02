@@ -1063,6 +1063,9 @@ export const documents = pgTable(
     // ve (default). 'private' = solo el uploaded_by — trabajo individual
     // (borradores, notas personales) que no es para todos.
     visibility: text("visibility").$type<"case" | "private">().notNull().default("case"),
+    // Caché del Markdown reestructurado por IA (preview de DOCX/escaneos).
+    // NULL = todavía no se generó. Se limpia al reprocesar OCR / nueva versión.
+    formattedMarkdown: text("formatted_markdown"),
     version: integer("version").notNull().default(1),
     parentDocumentId: uuid("parent_document_id"),
     // Idempotency key for the scan-ingest worker. When set, a unique index

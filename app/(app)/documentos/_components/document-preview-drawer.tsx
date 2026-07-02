@@ -66,9 +66,11 @@ export function DocumentPreviewDrawer({
   const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Formato IA: markdown estructurado del texto plano, on-demand.
+  // Formato IA: markdown estructurado del texto plano. Se muestra por
+  // defecto (auto) cuando existe; con toggle para ver el texto original.
   const [formatted, setFormatted] = useState<string | null>(null);
   const [formatting, setFormatting] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   async function doFormat() {
     setFormatting(true);
@@ -86,6 +88,8 @@ export function DocumentPreviewDrawer({
   const isTextBased = TEXT_PREVIEW_MIMES.has(mimeType);
 
   // Cargar el OCR text solo cuando hace falta (texto/Word) y solo una vez.
+  // Si la IA está activa y el texto está listo, mostramos el formato: usa
+  // el caché si ya existe, o lo genera automáticamente la primera vez.
   useEffect(() => {
     if (!open) return;
     if (!isTextBased) return;
@@ -97,6 +101,18 @@ export function DocumentPreviewDrawer({
         if (r.ok) {
           setOcrText(r.text);
           setOcrStatus(r.ocrStatus);
+          if (r.formattedMarkdown) {
+            // Caché disponible → mostrar formato al instante, sin costo IA.
+            setFormatted(r.formattedMarkdown);
+          } else if (
+            aiEnabled &&
+            r.ocrStatus === "done" &&
+            r.text &&
+            r.text.trim().length > 0
+          ) {
+            // Primera vez: generar el formato automáticamente en background.
+            void doFormat();
+          }
         } else {
           setError(r.error);
         }
@@ -105,7 +121,8 @@ export function DocumentPreviewDrawer({
         setError(err instanceof Error ? err.message : "Error al cargar texto.");
       })
       .finally(() => setLoading(false));
-  }, [open, isTextBased, documentId, ocrText, ocrStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isTextBased, documentId, ocrText, ocrStatus, aiEnabled]);
 
   const downloadUrl = `/api/documentos/${documentId}/download`;
 
@@ -165,42 +182,47 @@ export function DocumentPreviewDrawer({
                   </div>
                 ) : ocrText ? (
                   <div className="space-y-3">
+                    {/* Barra de estado del formato IA */}
                     {aiEnabled ? (
-                      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
-                        <p className="text-xs text-muted-foreground">
-                          {formatted
-                            ? "Vista con formato mejorado por IA (títulos y negritas). El contenido no se modificó."
-                            : "El texto se ve plano. La IA puede darle formato legible sin cambiar el contenido."}
-                        </p>
-                        {formatted ? (
+                      formatting ? (
+                        <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                          Dando formato con IA… (títulos y negritas, sin cambiar
+                          el contenido)
+                        </div>
+                      ) : formatted ? (
+                        <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                          <p className="text-xs text-muted-foreground">
+                            <Sparkles className="mr-1 inline h-3 w-3 text-primary" />
+                            {showOriginal
+                              ? "Mostrando el texto original extraído."
+                              : "Formato mejorado por IA. El contenido no se modificó."}
+                          </p>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setFormatted(null)}
+                            onClick={() => setShowOriginal((v) => !v)}
                             className="shrink-0"
                           >
                             <Undo2 className="h-3.5 w-3.5" />
-                            Ver original
+                            {showOriginal ? "Ver con formato" : "Ver original"}
                           </Button>
-                        ) : (
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end rounded-md border bg-muted/30 px-3 py-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={doFormat}
-                            disabled={formatting}
                             className="shrink-0"
                           >
-                            {formatting ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-3.5 w-3.5 text-primary" />
-                            )}
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
                             Mejorar formato con IA
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )
                     ) : null}
-                    {formatted ? (
+                    {formatted && !showOriginal ? (
                       <article className="prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown>{formatted}</ReactMarkdown>
                       </article>

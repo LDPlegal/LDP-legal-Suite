@@ -9,7 +9,15 @@ import { requireUser } from "@/lib/auth/session";
 import { getDocumentById } from "@/lib/db/queries/documents";
 
 export type GetTextState =
-  | { ok: true; text: string | null; ocrStatus: string; mimeType: string; name: string }
+  | {
+      ok: true;
+      text: string | null;
+      ocrStatus: string;
+      mimeType: string;
+      name: string;
+      /** Markdown formateado por IA en caché (si ya se generó). */
+      formattedMarkdown: string | null;
+    }
   | { ok: false; error: string };
 
 export async function getDocumentTextAction(docId: string): Promise<GetTextState> {
@@ -23,5 +31,6 @@ export async function getDocumentTextAction(docId: string): Promise<GetTextState
     ocrStatus: doc.ocrStatus,
     mimeType: doc.mimeType,
     name: doc.name,
+    formattedMarkdown: doc.formattedMarkdown ?? null,
   };
 }

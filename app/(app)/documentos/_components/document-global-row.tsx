@@ -2,29 +2,18 @@
 
 import Link from "next/link";
 import {
-  Download,
   Eye,
   EyeOff,
   FileText,
   Folder,
   Image as ImageIcon,
-  Pencil,
-  ScanEye,
-  Trash2,
-  Sparkles,
+  Lock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { IconButton, WithTooltip } from "@/components/ui/icon-button";
-import { PendingIconSubmit } from "@/components/ui/pending-submit";
-import { ConfirmButton } from "@/components/ui/confirm-button";
+import { WithTooltip } from "@/components/ui/icon-button";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { eliminarDocumentoAction } from "@/app/_actions/documentos/eliminar";
-import { compartirDocumentoAction } from "@/app/_actions/documentos/compartir";
-import { DocumentEditDrawer } from "@/app/(app)/casos/[id]/_components/document-edit-drawer";
-import { DocumentSummaryDrawer } from "./document-summary-drawer";
-import { ReprocessOneButton } from "./reprocess-buttons";
 import { DocumentPreviewDrawer } from "./document-preview-drawer";
-import { DocumentNewVersionButton } from "./document-new-version-button";
+import { DocumentActionsMenu } from "@/app/(app)/casos/[id]/_components/document-actions-menu";
 import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
@@ -41,6 +30,8 @@ export type GlobalDocRow = {
   ocrStatus: "pending" | "processing" | "done" | "failed" | "skipped";
   version: number;
   sharedWithClient: boolean;
+  visibility: "case" | "private";
+  uploadedById: string | null;
   createdAt: Date;
   uploadedByName: string | null;
   caseId: string | null;
@@ -54,9 +45,11 @@ export type GlobalDocRow = {
 export function DocumentGlobalRow({
   doc,
   aiEnabled,
+  currentUserId,
 }: {
   doc: GlobalDocRow;
   aiEnabled?: boolean;
+  currentUserId?: string;
 }) {
   const isImage = doc.mimeType.startsWith("image/");
   return (
@@ -72,6 +65,7 @@ export function DocumentGlobalRow({
             documentId={doc.id}
             documentName={doc.name}
             mimeType={doc.mimeType}
+            aiEnabled={aiEnabled}
             trigger={
               <WithTooltip label="Abrir vista previa">
                 <button
@@ -87,6 +81,14 @@ export function DocumentGlobalRow({
             <Badge variant="outline" className="font-mono text-[10px]">
               v{doc.version}
             </Badge>
+          ) : null}
+          {doc.visibility === "private" ? (
+            <WithTooltip label="Privado — solo vos lo ves.">
+              <Badge variant="secondary" className="gap-1 text-[10px]">
+                <Lock className="h-2.5 w-2.5" />
+                Privado
+              </Badge>
+            </WithTooltip>
           ) : null}
           {doc.sharedWithClient ? (
             <Eye className="h-3.5 w-3.5 text-emerald-600" aria-label="Compartido" />
@@ -148,106 +150,23 @@ export function DocumentGlobalRow({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        {/* Toggle compartir con cliente. Solo aplica si el doc está vinculado
-            a un caso (porque el portal filtra por client_id via cases). */}
-        {doc.caseId ? (
-          <form action={compartirDocumentoAction} className="inline-block">
-            <input type="hidden" name="documentId" value={doc.id} />
-            <input type="hidden" name="caseId" value={doc.caseId} />
-            <input
-              type="hidden"
-              name="shared"
-              value={doc.sharedWithClient ? "false" : "true"}
-            />
-            <PendingIconSubmit
-              className="h-7 w-7"
-              label={
-                doc.sharedWithClient
-                  ? "Visible para el cliente — clic para ocultarlo"
-                  : "Oculto del cliente — clic para compartirlo"
-              }
-            >
-              {doc.sharedWithClient ? (
-                <Eye className="h-3.5 w-3.5 text-emerald-600" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5" />
-              )}
-            </PendingIconSubmit>
-          </form>
-        ) : null}
-        <DocumentPreviewDrawer
-          documentId={doc.id}
-          documentName={doc.name}
-          mimeType={doc.mimeType}
-          trigger={
-            <IconButton className="h-7 w-7" label="Vista previa (sin descargar)">
-              <ScanEye className="h-3.5 w-3.5" />
-            </IconButton>
-          }
-        />
-        <WithTooltip label="Descargar archivo">
-          <Link
-            href={`/api/documentos/${doc.id}/download`}
-            target="_blank"
-            rel="noopener"
-            download={doc.name}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Descargar archivo"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </Link>
-        </WithTooltip>
-        {aiEnabled && doc.ocrStatus === "done" ? (
-          <DocumentSummaryDrawer
-            documentId={doc.id}
-            documentName={doc.name}
-            trigger={
-              <IconButton
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                label="Resumir con IA"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </IconButton>
-            }
-          />
-        ) : null}
-        <ReprocessOneButton docId={doc.id} />
-        <DocumentNewVersionButton
-          documentId={doc.id}
-          documentName={doc.name}
-          currentVersion={doc.version}
-          scope={
-            doc.caseId
-              ? { kind: "case", caseId: doc.caseId }
-              : { kind: "firm" }
-          }
-        />
-        <DocumentEditDrawer
+        <DocumentActionsMenu
+          doc={{
+            id: doc.id,
+            name: doc.name,
+            mimeType: doc.mimeType,
+            tags: doc.tags,
+            version: doc.version,
+            ocrStatus: doc.ocrStatus,
+            sharedWithClient: doc.sharedWithClient,
+            visibility: doc.visibility,
+            uploadedById: doc.uploadedById,
+          }}
           caseId={doc.caseId}
-          doc={{ id: doc.id, name: doc.name, tags: doc.tags }}
-          trigger={
-            <IconButton className="h-7 w-7" label="Editar nombre y etiquetas">
-              <Pencil className="h-3.5 w-3.5" />
-            </IconButton>
-          }
+          aiEnabled={aiEnabled}
+          currentUserId={currentUserId}
+          scope={doc.caseId ? { kind: "case", caseId: doc.caseId } : { kind: "firm" }}
         />
-        <ConfirmButton
-          action={eliminarDocumentoAction}
-          title="¿Eliminar este documento?"
-          description={`"${doc.name}" — esta acción es reversible (queda archivado).`}
-          confirmLabel="Eliminar"
-          trigger={
-            <IconButton
-              className="h-7 w-7 text-destructive"
-              label="Eliminar (archivar — reversible)"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </IconButton>
-          }
-        >
-          <input type="hidden" name="documentId" value={doc.id} />
-          <input type="hidden" name="caseId" value={doc.caseId ?? ""} />
-        </ConfirmButton>
       </TableCell>
     </TableRow>
   );

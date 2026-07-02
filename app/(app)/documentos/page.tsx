@@ -219,6 +219,8 @@ export default async function DocumentosPage({
                           ocrStatus: d.ocrStatus,
                           version: d.version,
                           sharedWithClient: d.sharedWithClient,
+                          visibility: d.visibility,
+                          uploadedById: d.uploadedById,
                           createdAt: d.createdAt,
                           uploadedByName: d.uploadedByName,
                           caseId: d.caseId,
@@ -228,6 +230,7 @@ export default async function DocumentosPage({
                           folderPath: d.folderPath,
                         }}
                         aiEnabled={isAiEnabled()}
+                        currentUserId={user.userId}
                       />
                     ))}
                   </TableBody>
