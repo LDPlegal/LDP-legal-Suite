@@ -23,6 +23,49 @@ import { preflightBudget, recordSpendAndMaybeWarn } from "./budget";
 // Thrown when preflightBudget says the firm has hit a hard-cap. Callers
 // (matter chat, doc generate, etc.) deben capturar y mostrar el reason
 // al usuario en lugar de mostrarlo como error genérico.
+// Error del proveedor (Anthropic) traducido a un mensaje legible en español.
+// Evita mostrarle al usuario el JSON crudo del SDK ("400 {type:error…}").
+export class AiProviderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AiProviderError";
+  }
+}
+
+// Traduce un error del SDK de Anthropic a algo entendible. Los casos más
+// comunes: org deshabilitada (facturación), key inválida, rate limit,
+// sobrecarga. Cualquier otro cae a un genérico.
+export function friendlyAiError(err: unknown): AiProviderError {
+  const status =
+    err instanceof Anthropic.APIError ? err.status : undefined;
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("organization has been disabled") || lower.includes("account")) {
+    return new AiProviderError(
+      "La cuenta de IA (Anthropic) está deshabilitada. Revisá el estado y la facturación de tu organización en console.anthropic.com, o generá una API key nueva y actualizala en el servidor.",
+    );
+  }
+  if (status === 401 || lower.includes("authentication") || lower.includes("invalid x-api-key")) {
+    return new AiProviderError(
+      "La API key de Anthropic es inválida o fue revocada. Actualizá ANTHROPIC_API_KEY en el servidor.",
+    );
+  }
+  if (status === 429 || lower.includes("rate limit")) {
+    return new AiProviderError(
+      "Se alcanzó el límite de solicitudes de IA por ahora. Esperá un momento y reintentá.",
+    );
+  }
+  if (status === 529 || status === 500 || lower.includes("overloaded")) {
+    return new AiProviderError(
+      "El servicio de IA está temporalmente sobrecargado. Reintentá en unos minutos.",
+    );
+  }
+  return new AiProviderError(
+    "No se pudo contactar el servicio de IA. Reintentá más tarde o revisá la configuración.",
+  );
+}
+
 export class AiBudgetExceededError extends Error {
   constructor(public readonly reason: string) {
     super(reason);
@@ -193,18 +236,25 @@ export async function runPrompt(
     : systemText;
 
   const model = opts.model ?? DEFAULT_MODEL;
-  const response = await client.messages.create({
-    model,
-    max_tokens: opts.maxTokens ?? 1500,
-    temperature: opts.temperature ?? 0.4,
-    system,
-    messages: opts.messagesRaw
-      ? (opts.messagesRaw as Parameters<typeof client.messages.create>[0]["messages"])
-      : messages.map((m) => ({ role: m.role, content: m.content })),
-    ...(opts.tools && opts.tools.length > 0
-      ? { tools: opts.tools as Parameters<typeof client.messages.create>[0]["tools"] }
-      : {}),
-  });
+  let response;
+  try {
+    response = await client.messages.create({
+      model,
+      max_tokens: opts.maxTokens ?? 1500,
+      temperature: opts.temperature ?? 0.4,
+      system,
+      messages: opts.messagesRaw
+        ? (opts.messagesRaw as Parameters<typeof client.messages.create>[0]["messages"])
+        : messages.map((m) => ({ role: m.role, content: m.content })),
+      ...(opts.tools && opts.tools.length > 0
+        ? { tools: opts.tools as Parameters<typeof client.messages.create>[0]["tools"] }
+        : {}),
+    });
+  } catch (err) {
+    // Traducir el error del SDK a un mensaje legible (org deshabilitada,
+    // key inválida, rate limit…) en vez de propagar el JSON crudo.
+    throw friendlyAiError(err);
+  }
 
   // Concatenate text parts (the API may emit multiple content blocks for
   // tool use etc.).

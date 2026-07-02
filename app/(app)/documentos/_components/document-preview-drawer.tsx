@@ -71,13 +71,23 @@ export function DocumentPreviewDrawer({
   const [formatted, setFormatted] = useState<string | null>(null);
   const [formatting, setFormatting] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  // Si el formateo automático falla (ej. IA caída), NO reintentamos solos ni
+  // molestamos con toasts — mostramos el texto plano. El botón manual sí
+  // muestra el error para que el usuario sepa qué pasó.
+  const [autoFailed, setAutoFailed] = useState(false);
 
-  async function doFormat() {
+  // silent=true para el auto-formato al abrir: falla en silencio (solo baja
+  // la bandera), sin toast. El botón manual usa silent=false.
+  async function doFormat(silent = false) {
     setFormatting(true);
     try {
       const r = await formatearDocumentoAction(documentId);
-      if (r.ok) setFormatted(r.markdown);
-      else toast.error("No se pudo dar formato", { description: r.error });
+      if (r.ok) {
+        setFormatted(r.markdown);
+      } else {
+        if (silent) setAutoFailed(true);
+        else toast.error("No se pudo dar formato", { description: r.error });
+      }
     } finally {
       setFormatting(false);
     }
@@ -110,8 +120,9 @@ export function DocumentPreviewDrawer({
             r.text &&
             r.text.trim().length > 0
           ) {
-            // Primera vez: generar el formato automáticamente en background.
-            void doFormat();
+            // Primera vez: generar el formato automáticamente en background,
+            // en silencio (si falla, mostramos el texto plano sin molestar).
+            void doFormat(true);
           }
         } else {
           setError(r.error);
@@ -209,15 +220,20 @@ export function DocumentPreviewDrawer({
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-end rounded-md border bg-muted/30 px-3 py-2">
+                        <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                          <p className="text-xs text-muted-foreground">
+                            {autoFailed
+                              ? "La IA no está disponible en este momento — mostrando el texto original."
+                              : "El texto se ve plano. La IA puede darle formato legible sin cambiar el contenido."}
+                          </p>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={doFormat}
+                            onClick={() => doFormat(false)}
                             className="shrink-0"
                           >
                             <Sparkles className="h-3.5 w-3.5 text-primary" />
-                            Mejorar formato con IA
+                            {autoFailed ? "Reintentar" : "Mejorar formato con IA"}
                           </Button>
                         </div>
                       )
