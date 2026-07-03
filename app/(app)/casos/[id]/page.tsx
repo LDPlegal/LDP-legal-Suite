@@ -110,7 +110,7 @@ export default async function CasoDetailPage({
   if (!detail) notFound();
 
   const { case: c, client, leadLawyer, assignments, parent, subcases } = detail;
-  // Solo los casos raíz pueden tener subcasos (máx. 1 nivel).
+  // Solo los casos raíz pueden tener expedientes vinculados (máx. 1 nivel).
   const canHaveSubcases = !c.parentCaseId;
 
   // Carpetas para el tab documentos. folderId del query string; null = raíz.
@@ -157,12 +157,12 @@ export default async function CasoDetailPage({
 
   return (
     <div className="space-y-6">
-      {sp.error === "subcasos" ? (
+      {sp.error === "expedientes vinculados" ? (
         <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p>
-            No se puede archivar este caso porque tiene subcasos activos.
-            Archiva primero los subcasos (tab &quot;Subcasos&quot;).
+            No se puede archivar este caso porque tiene expedientes vinculados activos.
+            Archiva primero los expedientes vinculados (tab &quot;Expedientes vinculados&quot;).
           </p>
         </div>
       ) : null}
@@ -183,7 +183,7 @@ export default async function CasoDetailPage({
               {parent ? (
                 <Badge variant="secondary" className="gap-1">
                   <CornerDownRight className="h-3 w-3" />
-                  Subcaso
+                  Expediente vinculado
                 </Badge>
               ) : null}
               {c.visibility === "restricted" ? (
@@ -205,7 +205,7 @@ export default async function CasoDetailPage({
             {parent ? (
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                 <CornerDownRight className="h-3.5 w-3.5" />
-                Subcaso de{" "}
+                Expediente vinculado de{" "}
                 {parent.deletedAt ? (
                   <span>
                     <span className="font-mono">{parent.code}</span> — {parent.title}{" "}
@@ -299,7 +299,7 @@ export default async function CasoDetailPage({
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           {canHaveSubcases ? (
-            <TabsTrigger value="subcasos">Subcasos ({subcases.length})</TabsTrigger>
+            <TabsTrigger value="expedientes vinculados">Expedientes vinculados ({subcases.length})</TabsTrigger>
           ) : null}
           <TabsTrigger value="tiempos">Tiempos ({tiempos.length})</TabsTrigger>
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
@@ -439,12 +439,12 @@ export default async function CasoDetailPage({
           </div>
         </TabsContent>
 
-        {/* ----- Subcasos ----- */}
+        {/* ----- Expedientes vinculados ----- */}
         {canHaveSubcases ? (
-          <TabsContent value="subcasos" className="space-y-3">
+          <TabsContent value="expedientes vinculados" className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {subcases.length} {subcases.length === 1 ? "subcaso" : "subcasos"} ·
+                {subcases.length} {subcases.length === 1 ? "expediente vinculado" : "expedientes vinculados"} ·
                 expedientes que cuelgan de este caso
               </p>
               <SubcaseCreateButton
@@ -486,7 +486,7 @@ export default async function CasoDetailPage({
                   {subcases.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        Sin subcasos. Crea el primero con &quot;Nuevo subcaso&quot; —
+                        Sin expedientes vinculados. Crea el primero con &quot;Nuevo expediente vinculado&quot; —
                         útil para separar demandas, recursos o incidencias dentro
                         de este expediente.
                       </TableCell>

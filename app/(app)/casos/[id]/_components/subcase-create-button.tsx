@@ -7,7 +7,7 @@ import {
   type ParentCaseForForm,
 } from "@/app/(app)/casos/_components/caso-form-drawer";
 
-// Lanzador del drawer "Nuevo subcaso". Existe como client component para que
+// Lanzador del drawer "Nuevo expediente vinculado". Existe como client component para que
 // desde el server component del detalle del caso solo crucen datos planos:
 // pasar a la vez un elemento JSX (trigger) y el objeto parentCase a través
 // de la frontera RSC dentro de un TabsContent hacía que el Sheet no montara.
@@ -41,7 +41,7 @@ export function SubcaseCreateButton({
       trigger={
         <Button variant="outline" size="sm">
           <Plus className="h-3.5 w-3.5" />
-          Nuevo subcaso
+          Nuevo expediente vinculado
         </Button>
       }
     />

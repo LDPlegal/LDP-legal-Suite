@@ -103,7 +103,7 @@ export async function crearCasoAction(
         ok: false,
         error:
           err.reason === "max_depth"
-            ? "Un subcaso no puede tener subcasos propios (máximo un nivel)."
+            ? "Un expediente vinculado no puede tener expedientes vinculados propios (máximo un nivel)."
             : "El caso padre no existe o está archivado.",
       };
     }

@@ -31,7 +31,7 @@ export type ListCasesOptions = {
   matterType?: Case["matterType"];
   clientId?: string;
   leadLawyerId?: string;
-  /** Solo los subcasos de este caso padre. */
+  /** Solo los expedientes vinculados de este caso padre. */
   parentCaseId?: string;
   limit?: number;
   offset?: number;
@@ -77,7 +77,7 @@ export async function listCases(
 
     // Self-join para mostrar el código del padre en la lista. Si el padre no
     // es visible para el usuario (RLS) el join devuelve null y la fila se
-    // muestra como subcaso sin código de padre.
+    // muestra como expediente vinculado sin código de padre.
     const parentCases = alias(cases, "parent_cases");
     const [rows, totalRow] = await Promise.all([
       tx
@@ -154,7 +154,7 @@ export async function getCaseById(
       .innerJoin(users, eq(users.id, caseAssignments.userId))
       .where(eq(caseAssignments.caseId, caseId));
 
-    // Padre (si es subcaso). Sin filtro deletedAt a propósito: si el padre
+    // Padre (si es expediente vinculado). Sin filtro deletedAt a propósito: si el padre
     // está archivado igual queremos mostrar su código (sin link).
     let parent: { id: string; code: string; title: string; deletedAt: Date | null } | null = null;
     if (row.case.parentCaseId) {
@@ -171,7 +171,7 @@ export async function getCaseById(
       parent = p ?? null;
     }
 
-    // Subcasos activos de este caso.
+    // Expedientes vinculados activos de este caso.
     const subcases = await tx
       .select({
         id: cases.id,
@@ -217,7 +217,7 @@ async function nextCaseCode(
   return `${year}-${prefix}-${seqPadded}`;
 }
 
-// Errores de dominio de subcasos — la action los traduce a mensajes de UI.
+// Errores de dominio de expedientes vinculados — la action los traduce a mensajes de UI.
 export class SubcaseError extends Error {
   constructor(
     public readonly reason: "parent_not_found" | "max_depth",
@@ -245,7 +245,7 @@ export async function createCase(
   return withFirm(firmId, userId, async (tx) => {
     let code: string;
     if (caseData.parentCaseId) {
-      // Subcaso: el código se deriva del padre (2026-CIV-014-01). El bump de
+      // Expediente vinculado: el código se deriva del padre (2026-CIV-014-01). El bump de
       // subcase_last_seq con RETURNING dentro de la misma tx hace la
       // numeración atómica bajo creaciones concurrentes.
       const [parent] = await tx
@@ -415,8 +415,8 @@ export async function softDeleteCase(
   caseId: string,
 ): Promise<SoftDeleteCaseResult> {
   return withFirm(firmId, userId, async (tx) => {
-    // Un padre con subcasos activos no se archiva: quedarían huérfanos en la
-    // UI (link roto al padre). Hay que archivar los subcasos primero.
+    // Un padre con expedientes vinculados activos no se archiva: quedarían huérfanos en la
+    // UI (link roto al padre). Hay que archivar los expedientes vinculados primero.
     const [child] = await tx
       .select({ id: cases.id })
       .from(cases)
@@ -436,8 +436,8 @@ export async function softDeleteCase(
 export async function listArchivedCases(firmId: string, userId: string) {
   return withFirm(firmId, userId, async (tx) => {
     // Self-join para el código del padre (mismo patrón que listCases), así la
-    // lista de archivados también distingue subcasos y a qué expediente
-    // pertenecen. Orden: por código, de modo que padre y subcasos queden
+    // lista de archivados también distingue expedientes vinculados y a qué expediente
+    // pertenecen. Orden: por código, de modo que padre y expedientes vinculados queden
     // contiguos (2026-CIV-014 junto a 2026-CIV-014-01) en vez de dispersos
     // por fecha de archivado.
     const parentCases = alias(cases, "parent_cases");
@@ -467,7 +467,7 @@ export async function restoreCase(
   caseId: string,
 ): Promise<RestoreCaseResult> {
   return withFirm(firmId, userId, async (tx) => {
-    // Un subcaso no puede restaurarse mientras su padre siga archivado:
+    // Un expediente vinculado no puede restaurarse mientras su padre siga archivado:
     // quedaría en la lista activa colgando de un caso invisible. Hay que
     // restaurar el padre primero.
     const [target] = await tx

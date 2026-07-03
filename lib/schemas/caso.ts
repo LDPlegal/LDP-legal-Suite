@@ -90,7 +90,7 @@ export const BILLING_MODE_LABEL: Record<
 export const CasoSchema = z
   .object({
     title: z.string().trim().min(3, "Título muy corto").max(240),
-    // Subcaso: id del caso padre (opcional). Máx. 1 nivel — lo valida createCase.
+    // Expediente vinculado: id del caso padre (opcional). Máx. 1 nivel — lo valida createCase.
     parentCaseId: z
       .string()
       .uuid("Caso padre inválido")

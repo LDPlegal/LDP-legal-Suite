@@ -69,8 +69,8 @@ del código; los tests de integración dependen de que el seed haya corrido.
 
 ## Estado de features
 
-- ✅ **Subcasos (casos hijos)** — un caso puede contener subcasos (`parent_case_id`,
-  código derivado `PADRE-NN`). Tab "Subcasos" en el detalle, badges en listas,
+- ✅ **Expedientes vinculados (casos hijos)** — un caso puede contener expedientes vinculados (`parent_case_id`,
+  código derivado `PADRE-NN`). Tab "Expedientes vinculados" en el detalle, badges en listas,
   guards de archivar/restaurar. Migración `0032`. **En producción.**
 - ✅ **Vista previa de documentos** — clic en el nombre abre preview
   (`DocumentPreviewDrawer`), con menú de acciones ⋮, carpetas y docs privados.
@@ -93,13 +93,13 @@ del código; los tests de integración dependen de que el seed haya corrido.
 
 ## Bitácora de sesiones
 
-### 2026-07-02 — Subcasos + auto-migración en deploy (commit `fc691d2`)
-- **Subcasos**: `cases.parent_case_id` (self-FK, máx 1 nivel) + `subcase_last_seq`
+### 2026-07-02 — Expedientes vinculados + auto-migración en deploy (commit `fc691d2`)
+- **Expedientes vinculados**: `cases.parent_case_id` (self-FK, máx 1 nivel) + `subcase_last_seq`
   (contador atómico → código `2026-CIV-014-01`). Migración `0032_subcases.sql`.
   Queries en `lib/db/queries/cases.ts` (`listCases` self-join, `getCaseById`
   devuelve `parent`+`subcases`, `createCase` deriva código y valida profundidad
   con `SubcaseError`, `softDeleteCase`→`has_subcases`, `restoreCase`→
-  `parent_archived`). UI: tab "Subcasos" + `subcase-create-button.tsx` (wrapper
+  `parent_archived`). UI: tab "Expedientes vinculados" + `subcase-create-button.tsx` (wrapper
   client necesario por la frontera RSC dentro de TabsContent), badges en
   `casos/page.tsx` y `casos/archivados/page.tsx`, header con link al padre.
 - **Infra de deploy**: `scripts/migrate-deploy.ts` + `vercel.json buildCommand`
@@ -108,7 +108,7 @@ del código; los tests de integración dependen de que el seed haya corrido.
   `origin/main` (`DocumentPreviewDrawer`), más completa que mi intento — descarté
   el mío para no pisarla. Quedó vivo su preview.
 - **Verificado**: typecheck ✓, build ✓, cadena completa de migraciones 0000-0032
-  aplica limpio ✓, 12/12 asserts de integración de subcasos ✓, deploy Ready y
+  aplica limpio ✓, 12/12 asserts de integración de expedientes vinculados ✓, deploy Ready y
   `app.ldplegal.com.do` respondiendo.
 - **Pendiente**: dashboard personalizable con widgets (ver arriba).
 
@@ -139,7 +139,7 @@ del código; los tests de integración dependen de que el seed haya corrido.
   (`lib/ai/claude.ts`) ya lo traduce a un mensaje legible que apunta a
   console.anthropic.com. Acción pendiente del lado del usuario: reactivar la org
   o poner una `ANTHROPIC_API_KEY` nueva en el server.
-- **Subcasos**: verificados de forma estática (typecheck + `next build` OK; lógica
+- **Expedientes vinculados**: verificados de forma estática (typecheck + `next build` OK; lógica
   de profundidad/código/archivar-restaurar de la sesión previa intacta). No se
   tocó el modelo; **no hay migración nueva** (próxima sigue siendo `0033`).
 - **Sin migraciones**: todo usó tablas existentes (`leadLawyerId`, `visibility`,

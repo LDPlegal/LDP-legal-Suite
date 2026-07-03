@@ -172,10 +172,10 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
                     {c.parentCaseId ? (
                       <span
                         className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"
-                        title={`Subcaso de ${c.parentCaseCode ?? "otro caso"}`}
+                        title={`Expediente vinculado de ${c.parentCaseCode ?? "otro caso"}`}
                       >
                         <CornerDownRight className="h-3 w-3" />
-                        {c.parentCaseCode ?? "subcaso"}
+                        {c.parentCaseCode ?? "expediente vinculado"}
                       </span>
                     ) : null}
                   </TableCell>
@@ -190,7 +190,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
                       {c.parentCaseId ? (
                         <Badge variant="secondary" className="gap-1 text-[10px]">
                           <CornerDownRight className="h-2.5 w-2.5" />
-                          Subcaso
+                          Expediente vinculado
                         </Badge>
                       ) : null}
                     </div>

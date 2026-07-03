@@ -15,7 +15,7 @@ export async function restaurarCasoAction(formData: FormData): Promise<void> {
   const id = z.string().uuid().parse(formData.get("caseId"));
   const result = await restoreCase(user.firmId, user.userId, id);
   if (result === "parent_archived") {
-    // No se puede restaurar un subcaso mientras su padre siga archivado.
+    // No se puede restaurar un expediente vinculado mientras su padre siga archivado.
     redirect("/casos/archivados?error=parent_archived");
   }
   if (result === "restored") {

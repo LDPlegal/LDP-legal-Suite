@@ -294,14 +294,14 @@ export const cases = pgTable(
       .references(() => firms.id, { onDelete: "cascade" }),
     code: text("code").notNull(), // e.g. "2026-CIV-014"
     title: text("title").notNull(),
-    // Subcasos: un caso puede colgar de otro (máx. 1 nivel — un subcaso no
+    // Expedientes vinculados: un caso puede colgar de otro (máx. 1 nivel — un expediente vinculado no
     // puede tener hijos; se valida en createCase). El código del hijo se
     // deriva del padre: "2026-CIV-014-01".
     parentCaseId: uuid("parent_case_id").references((): AnyPgColumn => cases.id, {
       onDelete: "set null",
     }),
-    // Contador atómico para numerar subcasos del padre. Nunca se reusa un
-    // número aunque se archive un subcaso (evita choques con el índice
+    // Contador atómico para numerar expedientes vinculados del padre. Nunca se reusa un
+    // número aunque se archive un expediente vinculado (evita choques con el índice
     // parcial cases_firm_code_unique al restaurar).
     subcaseLastSeq: integer("subcase_last_seq").notNull().default(0),
     clientId: uuid("client_id")

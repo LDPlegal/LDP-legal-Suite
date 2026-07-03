@@ -28,7 +28,7 @@ export default async function CasosArchivadosPage({
   const sp = await searchParams;
   const rows = await listArchivedCases(user.firmId, user.userId);
   const canRestore = user.role === "admin" || user.role === "partner";
-  // Ids de casos también archivados: un subcaso no se restaura hasta que su
+  // Ids de casos también archivados: un expediente vinculado no se restaura hasta que su
   // padre salga de archivados.
   const archivedIds = new Set(rows.map((r) => r.id));
 
@@ -38,7 +38,7 @@ export default async function CasosArchivadosPage({
         <div className="flex items-start gap-2 rounded-md border border-warning/50 bg-warning/10 p-3 text-sm">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p>
-            No se puede restaurar un subcaso mientras su caso padre siga
+            No se puede restaurar un expediente vinculado mientras su caso padre siga
             archivado. Restaura primero el caso padre.
           </p>
         </div>
@@ -81,7 +81,7 @@ export default async function CasosArchivadosPage({
               </TableHeader>
               <TableBody>
                 {rows.map((c) => {
-                  // Un subcaso solo se puede restaurar si su padre NO está
+                  // Un expediente vinculado solo se puede restaurar si su padre NO está
                   // también en la lista de archivados (mismo invariante que
                   // valida restoreCase en el servidor).
                   const parentAlsoArchived =
@@ -93,10 +93,10 @@ export default async function CasosArchivadosPage({
                         {c.parentCaseId ? (
                           <span
                             className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"
-                            title={`Subcaso de ${c.parentCaseCode ?? "otro caso"}`}
+                            title={`Expediente vinculado de ${c.parentCaseCode ?? "otro caso"}`}
                           >
                             <CornerDownRight className="h-3 w-3" />
-                            {c.parentCaseCode ?? "subcaso"}
+                            {c.parentCaseCode ?? "expediente vinculado"}
                           </span>
                         ) : null}
                       </TableCell>
@@ -106,7 +106,7 @@ export default async function CasosArchivadosPage({
                           {c.parentCaseId ? (
                             <Badge variant="secondary" className="gap-1 text-[10px]">
                               <CornerDownRight className="h-2.5 w-2.5" />
-                              Subcaso
+                              Expediente vinculado
                             </Badge>
                           ) : null}
                         </div>

@@ -30,7 +30,7 @@ type User = { id: string; name: string; role: string };
 type Assignment = { userId: string; roleInCase: "lead" | "associate" | "paralegal" };
 type Template = { id: string; name: string; matterType: string; defaultTasks: unknown[]; defaultEvents: unknown[] };
 
-// Modo subcaso: cuando el drawer se abre desde el detalle de un caso, el
+// Modo expediente vinculado: cuando el drawer se abre desde el detalle de un caso, el
 // nuevo caso cuelga del padre y hereda cliente, materia, visibilidad y
 // asignados (todo editable menos el padre).
 export type ParentCaseForForm = {
@@ -67,7 +67,7 @@ export function CasoFormDrawer({
   // cuando el user crea uno inline desde el quick-create.
   const [clienteList, setClienteList] = useState<Cliente[]>(clientes);
   // Cliente seleccionado actualmente (controlado, así podemos seleccionar
-  // el recién creado automáticamente). En modo subcaso hereda el del padre.
+  // el recién creado automáticamente). En modo expediente vinculado hereda el del padre.
   const [selectedClientId, setSelectedClientId] = useState<string>(
     parentCase?.clientId ?? "",
   );
@@ -109,7 +109,7 @@ export function CasoFormDrawer({
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{parentCase ? "Nuevo subcaso" : "Nuevo caso"}</SheetTitle>
+          <SheetTitle>{parentCase ? "Nuevo expediente vinculado" : "Nuevo caso"}</SheetTitle>
           <SheetDescription>
             {parentCase ? (
               <>
