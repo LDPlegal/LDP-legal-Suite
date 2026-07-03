@@ -32,6 +32,7 @@ const Schema = z.object({
   counterpartyTaxId: z.string().trim().max(50).optional().or(z.literal("").transform(() => undefined)),
   tags: z.string().optional(),
   visibility: z.enum(["firm", "restricted"]).default("firm"),
+  billingMode: z.enum(["hourly", "flat_fee", "retainer", "contingency"]),
   // Líder del caso. "" → sin asignar (null).
   leadLawyerId: z
     .string()
@@ -60,6 +61,7 @@ export async function editarCasoAction(
     counterpartyTaxId: formData.get("counterpartyTaxId"),
     tags: formData.get("tags") ?? "",
     visibility: formData.get("visibility") || "firm",
+    billingMode: formData.get("billingMode") || "hourly",
     leadLawyerId: formData.get("leadLawyerId"),
   });
   if (!parsed.success) {
@@ -97,6 +99,7 @@ export async function editarCasoAction(
     counterpartyTaxId: data.counterpartyTaxId ?? null,
     tags,
     visibility: data.visibility,
+    billingMode: data.billingMode,
     leadLawyerId,
   });
   if (!updated) return { ok: false, error: "Caso no encontrado." };

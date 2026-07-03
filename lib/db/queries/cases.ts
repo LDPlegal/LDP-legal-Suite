@@ -322,6 +322,75 @@ export async function listCaseFees(
   });
 }
 
+type CaseFeeInput = {
+  feeType: "flat_fee" | "retainer" | "success_fee" | "other";
+  description?: string | null;
+  amountUsd?: string | null;
+  amountDop?: string | null;
+};
+
+/** Agrega un honorario a un caso existente (post-creación). */
+export async function addCaseFee(
+  firmId: string,
+  userId: string,
+  caseId: string,
+  data: CaseFeeInput,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .insert(caseFees)
+      .values({
+        firmId,
+        caseId,
+        feeType: data.feeType,
+        description: data.description ?? null,
+        amountUsd: data.amountUsd ?? null,
+        amountDop: data.amountDop ?? null,
+      })
+      .returning();
+    return row ?? null;
+  });
+}
+
+/** Edita un honorario existente. Devuelve null si no existe (o RLS lo oculta). */
+export async function updateCaseFee(
+  firmId: string,
+  userId: string,
+  feeId: string,
+  data: CaseFeeInput,
+) {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .update(caseFees)
+      .set({
+        feeType: data.feeType,
+        description: data.description ?? null,
+        amountUsd: data.amountUsd ?? null,
+        amountDop: data.amountDop ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(caseFees.id, feeId))
+      .returning();
+    return row ?? null;
+  });
+}
+
+/** Elimina un honorario. Hard delete: los honorarios no facturan solos —
+ *  el registro histórico de lo cobrado vive en las facturas. */
+export async function deleteCaseFee(
+  firmId: string,
+  userId: string,
+  feeId: string,
+): Promise<boolean> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [row] = await tx
+      .delete(caseFees)
+      .where(eq(caseFees.id, feeId))
+      .returning({ id: caseFees.id });
+    return !!row;
+  });
+}
+
 export async function updateCase(
   firmId: string,
   userId: string,

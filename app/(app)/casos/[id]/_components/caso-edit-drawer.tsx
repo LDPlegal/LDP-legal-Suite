@@ -25,7 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { editarCasoAction, type EditarCasoState } from "@/app/_actions/casos/editar";
-import { MATTER_LABEL, CASE_STATUS_LABEL } from "@/lib/schemas/caso";
+import { BILLING_MODE_LABEL, MATTER_LABEL, CASE_STATUS_LABEL } from "@/lib/schemas/caso";
 
 const initial: EditarCasoState = { ok: true };
 
@@ -56,6 +56,7 @@ export type EditableCase = {
   counterpartyTaxId: string | null;
   tags: string[];
   visibility: "firm" | "restricted";
+  billingMode: "hourly" | "flat_fee" | "retainer" | "contingency";
   leadLawyerId: string | null;
 };
 
@@ -179,6 +180,26 @@ export function CasoEditDrawer({
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ce-billing">Modo de facturación *</Label>
+              <select
+                id="ce-billing"
+                name="billingMode"
+                defaultValue={caseData.billingMode}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {Object.entries(BILLING_MODE_LABEL).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Cambia cómo se generan los conceptos a facturar de aquí en
+                adelante; lo ya facturado no se toca.
+              </p>
             </div>
 
             {/* Líder del caso — antes no se podía cambiar acá. */}

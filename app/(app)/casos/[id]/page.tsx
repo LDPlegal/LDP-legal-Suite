@@ -52,10 +52,8 @@ import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
 import { GenerarFacturaDrawer } from "./_components/generar-factura-drawer";
 import { num, formatMoney } from "@/lib/invoicing/calculate";
-import { formatFeeAmounts } from "@/lib/currencies";
 import {
   BILLING_MODE_LABEL,
-  CASE_FEE_TYPE_LABEL,
   CASE_STATUS_LABEL,
   MATTER_LABEL,
 } from "@/lib/schemas/caso";
@@ -77,6 +75,7 @@ import { MatterChatPanel } from "./_components/matter-chat-panel";
 import { ConfidentialTierSwitch } from "./_components/confidential-tier-switch";
 import { HearingReportsTab } from "./_components/hearing-reports-tab";
 import { CasoEditDrawer } from "./_components/caso-edit-drawer";
+import { HonorariosPanel } from "./_components/honorarios-panel";
 import { EventoRowActions } from "./_components/evento-row-actions";
 import { TareaRowActions } from "./_components/tarea-row-actions";
 import { GastoRowActions } from "./_components/gasto-row-actions";
@@ -267,6 +266,7 @@ export default async function CasoDetailPage({
                 counterpartyTaxId: c.counterpartyTaxId,
                 tags: c.tags,
                 visibility: c.visibility,
+                billingMode: c.billingMode,
                 leadLawyerId: c.leadLawyerId,
               }}
               users={usuarios.map((u) => ({ id: u.id, name: u.name, role: u.role }))}
@@ -332,27 +332,19 @@ export default async function CasoDetailPage({
                 </Row>
                 <Row label="Líder">{leadLawyer?.name ?? "Sin asignar"}</Row>
                 <Row label="Modo de facturación">{BILLING_MODE_LABEL[c.billingMode]}</Row>
-                {honorarios.length > 0 ? (
-                  <Row label="Honorarios">
-                    <div className="flex flex-col gap-1">
-                      {honorarios.map((h) => (
-                        <div key={h.id} className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                            {CASE_FEE_TYPE_LABEL[h.feeType]}
-                          </span>
-                          <span className="font-mono">
-                            {formatFeeAmounts(h.amountUsd, h.amountDop)}
-                          </span>
-                          {h.description ? (
-                            <span className="text-[12px] text-muted-foreground">
-                              · {h.description}
-                            </span>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  </Row>
-                ) : null}
+                <Row label="Honorarios">
+                  <HonorariosPanel
+                    caseId={c.id}
+                    canEdit={isApprover}
+                    fees={honorarios.map((h) => ({
+                      id: h.id,
+                      feeType: h.feeType,
+                      description: h.description,
+                      amountUsd: h.amountUsd,
+                      amountDop: h.amountDop,
+                    }))}
+                  />
+                </Row>
                 {c.court ? <Row label="Tribunal">{c.court}</Row> : null}
                 <Separator />
                 <Row label="Contraparte">
