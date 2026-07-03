@@ -147,4 +147,32 @@ del código; los tests de integración dependen de que el seed haya corrido.
 - **Pendiente**: estética macOS más global (solo se aplicó en documentos/editar
   caso); dashboard personalizable con widgets.
 
+### 2026-07-02 (noche) — Honorarios editables + fix sistémico de botones muertos + auditoría
+- **Honorarios editables post-creación** (`7aa7c43`): antes los honorarios solo se
+  definían al crear el caso y quedaban congelados. Ahora `HonorariosPanel` en el
+  Resumen permite agregar/editar/eliminar (solo admin/partner). Nuevas queries
+  `addCaseFee`/`updateCaseFee`/`deleteCaseFee` + actions
+  `app/_actions/casos/honorarios.ts` con guard `hasAdminPowers`. El **modo de
+  facturación** también pasó a ser editable en Editar caso.
+- **Fix sistémico de botones muertos** (`257e661`): `WithTooltip` no era
+  `forwardRef` ni reenviaba props → cualquier `<XTrigger asChild><WithTooltip>
+  <button/></WithTooltip></XTrigger>` dejaba el botón MUERTO (el Slot de Radix no
+  podía inyectar el onClick). Ahora `WithTooltip` es `forwardRef` y pasa
+  `...rest`+`ref` al `TooltipTrigger`, componiendo hover+click. Esto revivió el
+  botón **"Asistente IA"** del caso (usaba `SheetTrigger asChild`) y previene la
+  recurrencia de esta clase de bug en toda la app. (`IconButton` ya lo hacía
+  bien; el `ClienteFormDrawer` usa un wrapper `span onClick display:contents`,
+  también OK.)
+- **Auditoría inline** (el workflow multi-agente murió por límite de sesión de la
+  cuenta): barrido de `href="#"`, `onClick={() => {}}`, stubs "próximamente",
+  triggers rotos → **sin hallazgos** salvo el de WithTooltip. Configuración
+  verificada como completa: NCF, datos del firm, branding, equipo (CRUD total de
+  usuarios: crear/editar/rol/desactivar/reset password), tarifas por
+  usuario/materia/cliente, plantillas, 2FA, integraciones, notificaciones,
+  presupuesto IA. Ningún panel huérfano.
+- **Pendiente de auditoría exhaustiva** (cuando resetee el límite de sesión):
+  correr el workflow de 11 áreas (casos/documentos/clientes-portal/facturación/
+  agenda/configuración/rutas/actions-wiring/hardcodes/misc) con verificación
+  adversarial. Guardado en `.claude/.../workflows/scripts/audit-ldp-app-*.js`.
+
 <!-- Próxima sesión: copiá este bloque como plantilla y añadí tu entrada ARRIBA de esta línea. -->
