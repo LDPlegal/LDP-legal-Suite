@@ -73,10 +73,9 @@ import { GastoFormDrawer } from "./_components/gasto-form-drawer";
 import { AiSummaryDrawer } from "./_components/ai-summary-drawer";
 import { MatterChatPanel } from "./_components/matter-chat-panel";
 import { ConfidentialTierSwitch } from "./_components/confidential-tier-switch";
-import { HearingReportsTab } from "./_components/hearing-reports-tab";
 import { CasoEditDrawer } from "./_components/caso-edit-drawer";
 import { HonorariosPanel } from "./_components/honorarios-panel";
-import { EventoRowActions } from "./_components/evento-row-actions";
+import { EventoRowActions, EventoRowWithTitle, EVENT_TYPE_LABEL, type EventReportData } from "./_components/evento-row-actions";
 import { TareaRowActions } from "./_components/tarea-row-actions";
 import { GastoRowActions } from "./_components/gasto-row-actions";
 import { TiempoRowActions } from "./_components/tiempo-row-actions";
@@ -306,7 +305,6 @@ export default async function CasoDetailPage({
           <TabsTrigger value="gastos">Gastos ({gastos.length})</TabsTrigger>
           <TabsTrigger value="tareas">Tareas ({tareas.length})</TabsTrigger>
           <TabsTrigger value="eventos">Eventos ({eventos.length})</TabsTrigger>
-          <TabsTrigger value="audiencias">Audiencias ({audiencias.length})</TabsTrigger>
           <TabsTrigger value="documentos">Documentos ({documentos.length})</TabsTrigger>
           <TabsTrigger value="notas">Gestiones ({notas.length})</TabsTrigger>
           <TabsTrigger value="facturacion">Facturación ({facturasCaso.length})</TabsTrigger>
@@ -815,7 +813,7 @@ export default async function CasoDetailPage({
           </Card>
         </TabsContent>
 
-        {/* ----- Eventos ----- */}
+        {/* ----- Eventos (unificado con audiencias) ----- */}
         <TabsContent value="eventos" className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
@@ -826,7 +824,7 @@ export default async function CasoDetailPage({
               users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
               currentUserId={user.userId}
               defaultCaseId={c.id}
-              redirectTo={`/casos/${c.id}`}
+              redirectTo={`/casos/${c.id}?tab=eventos`}
               trigger={
                 <Button variant="outline" size="sm">
                   <Plus className="h-3.5 w-3.5" />
@@ -840,6 +838,7 @@ export default async function CasoDetailPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Título</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Inicio</TableHead>
                   <TableHead>Fin</TableHead>
                   <TableHead>Lugar</TableHead>
@@ -849,7 +848,7 @@ export default async function CasoDetailPage({
               <TableBody>
                 {eventos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Sin eventos en este caso.
                     </TableCell>
                   </TableRow>
@@ -858,9 +857,51 @@ export default async function CasoDetailPage({
                     const attendeeNames = e.attendees
                       .map((id) => usuarios.find((u) => u.id === id)?.name)
                       .filter((n): n is string => !!n);
+                    // Si es audiencia, buscar datos del reporte en la data de audiencias.
+                    const hearingRow = e.eventType === "audiencia"
+                      ? audiencias.find((a) => a.eventId === e.id)
+                      : null;
+                    const reportData: EventReportData | undefined = e.eventType === "audiencia"
+                      ? {
+                          reportId: hearingRow?.reportId ?? null,
+                          reportTitle: hearingRow?.reportTitle ?? null,
+                          lastSentAt: hearingRow?.lastSentAt ?? null,
+                          lastSentToCount: hearingRow?.lastSentToCount ?? 0,
+                        }
+                      : undefined;
                     return (
                       <TableRow key={e.id}>
-                        <TableCell className="text-sm font-medium">{e.title}</TableCell>
+                        <TableCell className="text-sm">
+                          <EventoRowWithTitle
+                            event={{
+                              id: e.id,
+                              title: e.title,
+                              description: e.description,
+                              location: e.location,
+                              caseId: e.caseId,
+                              startAt: e.startAt,
+                              endAt: e.endAt,
+                              allDay: e.allDay,
+                              attendees: e.attendees,
+                              reminderMinutes: e.reminderMinutes,
+                              eventType: e.eventType,
+                            }}
+                            caseId={c.id}
+                            casos={[{ id: c.id, code: c.code, title: c.title }]}
+                            users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
+                            attendeeNames={attendeeNames}
+                            reportData={reportData}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {e.eventType ? (
+                            <Badge variant={e.eventType === "audiencia" ? "default" : "outline"}>
+                              {EVENT_TYPE_LABEL[e.eventType] ?? e.eventType}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {formatInFirmTz(e.startAt, undefined, "dd/MM HH:mm")}
                         </TableCell>
@@ -887,6 +928,7 @@ export default async function CasoDetailPage({
                             casos={[{ id: c.id, code: c.code, title: c.title }]}
                             users={usuarios.map((u) => ({ id: u.id, name: u.name }))}
                             attendeeNames={attendeeNames}
+                            reportData={reportData}
                           />
                         </TableCell>
                       </TableRow>
@@ -898,16 +940,6 @@ export default async function CasoDetailPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="audiencias" className="space-y-3">
-          <HearingReportsTab
-            caseId={c.id}
-            caseCode={c.code}
-            caseTitle={c.title}
-            currentUserId={user.userId}
-            hearings={audiencias}
-            usuarios={usuarios.map((u) => ({ id: u.id, name: u.name }))}
-          />
-        </TabsContent>
 
         <TabsContent value="documentos" className="space-y-4">
           {(() => {
