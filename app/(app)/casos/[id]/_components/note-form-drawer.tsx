@@ -26,12 +26,19 @@ const initial: NotaFormState = { ok: true, noteId: "" };
 
 const EMPTY_DOC: TiptapDoc = { type: "doc", content: [{ type: "paragraph" }] };
 
+// Date → yyyy-mm-dd (local) para <input type="date">.
+function toDateInput(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function NoteFormDrawer({
   trigger,
   caseId,
   noteId,
   initialTitle,
   initialContent,
+  initialNoteDate,
   aiEnabled = false,
 }: {
   trigger: ReactNode;
@@ -39,6 +46,8 @@ export function NoteFormDrawer({
   noteId?: string;
   initialTitle?: string | null;
   initialContent?: TiptapDoc;
+  /** Fecha de la gestión en yyyy-mm-dd. Sin valor → hoy (gestión nueva). */
+  initialNoteDate?: string | null;
   aiEnabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -121,15 +130,27 @@ export function NoteFormDrawer({
           className="flex flex-1 flex-col min-h-0"
         >
           <SheetBody className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="title">Título (opcional)</Label>
-              <Input
-                id="title"
-                name="title"
-                defaultValue={initialTitle ?? ""}
-                onChange={(e) => setTitleValue(e.currentTarget.value)}
-                placeholder="Ej. Reunión con cliente 7-may"
-              />
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="title">Título (opcional)</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  defaultValue={initialTitle ?? ""}
+                  onChange={(e) => setTitleValue(e.currentTarget.value)}
+                  placeholder="Ej. Reunión con cliente"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="noteDate">Fecha</Label>
+                <Input
+                  id="noteDate"
+                  name="noteDate"
+                  type="date"
+                  defaultValue={initialNoteDate ?? toDateInput(new Date())}
+                  className="w-[9.5rem]"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">

@@ -8,6 +8,11 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { NoteFormDrawer } from "./note-form-drawer";
 import { preview } from "@/lib/tiptap/extract-text";
 
+function toDateInput(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function NoteCard({
   note,
   caseId,
@@ -18,6 +23,7 @@ export function NoteCard({
     title: string | null;
     content: Record<string, unknown>;
     authorName: string | null;
+    noteDate: Date;
     updatedAt: Date;
   };
   caseId: string;
@@ -32,11 +38,11 @@ export function NoteCard({
             <p className="truncate font-medium leading-tight">{note.title}</p>
           ) : null}
           <p className="text-[11px] text-muted-foreground">
-            {note.authorName ?? "—"} ·{" "}
-            {new Date(note.updatedAt).toLocaleString("es-DO", {
-              dateStyle: "medium",
-              timeStyle: "short",
+            {new Date(note.noteDate).toLocaleDateString("es-DO", {
+              dateStyle: "long",
             })}
+            {" · "}
+            {note.authorName ?? "—"}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -45,6 +51,7 @@ export function NoteCard({
             noteId={note.id}
             initialTitle={note.title}
             initialContent={note.content}
+            initialNoteDate={toDateInput(new Date(note.noteDate))}
             aiEnabled={aiEnabled}
             trigger={
               <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar gestión">

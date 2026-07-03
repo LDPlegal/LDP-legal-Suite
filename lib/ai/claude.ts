@@ -41,14 +41,35 @@ export function friendlyAiError(err: unknown): AiProviderError {
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
 
-  if (lower.includes("organization has been disabled") || lower.includes("account")) {
+  // Org deshabilitada — SOLO el mensaje textual exacto de Anthropic. No matchear
+  // "account" a secas: es demasiado amplio y disfrazaba errores no relacionados
+  // (p. ej. saldo insuficiente, modelo inválido) como "cuenta deshabilitada".
+  if (lower.includes("organization has been disabled")) {
     return new AiProviderError(
-      "La cuenta de IA (Anthropic) está deshabilitada. Revisá el estado y la facturación de tu organización en console.anthropic.com, o generá una API key nueva y actualizala en el servidor.",
+      "La organización de Anthropic está deshabilitada. Revisá el estado de la cuenta en console.anthropic.com → Settings.",
+    );
+  }
+  // Saldo insuficiente — la causa #1 cuando "billing se ve bien" pero igual falla:
+  // el método de pago está OK pero no hay créditos cargados.
+  if (lower.includes("credit balance") || lower.includes("insufficient")) {
+    return new AiProviderError(
+      "El saldo de créditos de Anthropic es insuficiente. Agregá créditos en console.anthropic.com → Billing (tener tarjeta no basta: hay que cargar saldo).",
     );
   }
   if (status === 401 || lower.includes("authentication") || lower.includes("invalid x-api-key")) {
     return new AiProviderError(
-      "La API key de Anthropic es inválida o fue revocada. Actualizá ANTHROPIC_API_KEY en el servidor.",
+      "La API key de Anthropic es inválida o fue revocada. Generá una nueva en console.anthropic.com → API Keys y actualizá ANTHROPIC_API_KEY en el servidor.",
+    );
+  }
+  if (status === 403 || lower.includes("permission")) {
+    return new AiProviderError(
+      "La API key no tiene permiso para este modelo. Revisá los permisos de la key/workspace en console.anthropic.com.",
+    );
+  }
+  // Modelo inexistente/mal escrito (ej. ANTHROPIC_MODEL mal seteado en el server).
+  if (status === 404 || lower.includes("not_found") || lower.includes("model:")) {
+    return new AiProviderError(
+      "El modelo de IA configurado no existe. Revisá la variable ANTHROPIC_MODEL en el servidor (dejala vacía para usar el default).",
     );
   }
   if (status === 429 || lower.includes("rate limit")) {
@@ -61,8 +82,11 @@ export function friendlyAiError(err: unknown): AiProviderError {
       "El servicio de IA está temporalmente sobrecargado. Reintentá en unos minutos.",
     );
   }
+  // Fallback: en vez de un genérico opaco, mostrá el status + un extracto del
+  // mensaje real para poder diagnosticar (antes esto ocultaba la causa).
+  const detail = raw.replace(/\s+/g, " ").slice(0, 160);
   return new AiProviderError(
-    "No se pudo contactar el servicio de IA. Reintentá más tarde o revisá la configuración.",
+    `Error del servicio de IA${status ? ` (HTTP ${status})` : ""}: ${detail}`,
   );
 }
 

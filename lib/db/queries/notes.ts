@@ -8,6 +8,7 @@ export type NoteListRow = {
   content: Record<string, unknown>;
   authorId: string | null;
   authorName: string | null;
+  noteDate: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -25,13 +26,14 @@ export async function listNotesForCase(
         content: notes.content,
         authorId: notes.authorId,
         authorName: users.name,
+        noteDate: notes.noteDate,
         createdAt: notes.createdAt,
         updatedAt: notes.updatedAt,
       })
       .from(notes)
       .leftJoin(users, eq(users.id, notes.authorId))
       .where(and(eq(notes.caseId, caseId), isNull(notes.deletedAt)))
-      .orderBy(desc(notes.updatedAt));
+      .orderBy(desc(notes.noteDate), desc(notes.updatedAt));
   });
 }
 
@@ -69,7 +71,7 @@ export async function updateNote(
   firmId: string,
   userId: string,
   noteId: string,
-  data: { title?: string | null; content?: Record<string, unknown> },
+  data: { title?: string | null; content?: Record<string, unknown>; noteDate?: Date },
 ): Promise<Note | null> {
   return withFirm(firmId, userId, async (tx) => {
     const [row] = await tx

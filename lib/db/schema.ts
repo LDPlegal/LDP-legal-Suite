@@ -1164,6 +1164,8 @@ export const notes = pgTable(
     authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
     title: text("title"),
     content: jsonb("content").$type<Record<string, unknown>>().notNull(),
+    // Fecha de la gestión (puede diferir de created_at). Editable en el form.
+    noteDate: timestamp("note_date", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
