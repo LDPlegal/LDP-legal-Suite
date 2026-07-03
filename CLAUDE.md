@@ -40,7 +40,7 @@ Gestión de casos/expedientes, clientes, documentos, tiempos, gastos, facturaci�
    `drizzle/migrations/meta/_journal.json` (idx, when incremental, tag).
    Separá sentencias con `--> statement-breakpoint`. Toda tabla con `firm_id`
    habilita RLS con política `<tabla>_firm_isolation` (ver 0018 como ejemplo).
-   **Próxima migración: `0033`** (la última es `0032_subcases`).
+   **Próxima migración: `0034`** (la última es `0033_note_date`).
 4. **Deploy = migración**: `vercel.json` tiene
    `buildCommand: "pnpm run db:migrate:deploy && pnpm run build"`. Es decir,
    **cada deploy aplica automáticamente las migraciones pendientes a Neon**
@@ -174,5 +174,32 @@ del código; los tests de integración dependen de que el seed haya corrido.
   correr el workflow de 11 áreas (casos/documentos/clientes-portal/facturación/
   agenda/configuración/rutas/actions-wiring/hardcodes/misc) con verificación
   adversarial. Guardado en `.claude/.../workflows/scripts/audit-ldp-app-*.js`.
+
+### 2026-07-03 — Honorarios editables, fecha en gestiones, IA legible, fix botones
+- **Honorarios editables post-creación** (`7aa7c43`): `HonorariosPanel` en el
+  Resumen (agregar/editar/eliminar, solo admin/partner) + queries `addCaseFee`/
+  `updateCaseFee`/`deleteCaseFee` + `app/_actions/casos/honorarios.ts`. Modo de
+  facturación también editable en Editar caso.
+- **Fix sistémico de botones muertos** (`257e661`): `WithTooltip` ahora es
+  `forwardRef` y reenvía props+ref → cualquier `<XTrigger asChild><WithTooltip>`
+  compone bien (revivió "Asistente IA"). No revertir.
+- **Fecha en gestiones** (`fd28889`, migración **0033_note_date**): las notas
+  tienen `note_date` editable (la fecha de la gestión, distinta de created_at).
+  Form con `<input type=date>`, orden por fecha, NoteCard la muestra. Backfill =
+  created_at.
+- **IA — errores legibles** (`fd28889`): `friendlyAiError` dejó de matchear
+  "account" a secas (disfrazaba todo como "cuenta deshabilitada"). Ahora
+  distingue org-deshabilitada / saldo insuficiente / key inválida / sin permiso
+  de modelo / modelo inexistente / rate-limit / overload, y el fallback muestra
+  HTTP status + extracto real. **El modelo default `claude-sonnet-4-6` es VÁLIDO
+  (verificado con el catálogo oficial) — no era la causa.** Con billing OK, el
+  error real más probable es falta de créditos cargados en console.anthropic.com.
+- **Auditoría inline**: sin más botones muertos ni stubs; Configuración ya es
+  completa (usuarios CRUD, tarifas, NCF, firma, branding, etc.). El workflow
+  multi-agente de 11 áreas murió por límite de sesión de la cuenta — queda el
+  script en `.claude/.../workflows/scripts/audit-ldp-app-*.js` para correrlo
+  cuando resetee el límite (4:30am RD).
+- **Pendiente**: estética macOS más global; dashboard con widgets; correr la
+  auditoría exhaustiva multi-agente.
 
 <!-- Próxima sesión: copiá este bloque como plantilla y añadí tu entrada ARRIBA de esta línea. -->
