@@ -69,25 +69,34 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 );
 
 /** Envoltorio "puro" para casos donde necesitás un trigger custom (un <Link>,
- *  un input dentro de un form, etc.) — solo agrega el tooltip alrededor de un
- *  child arbitrario. */
-export function WithTooltip({
-  label,
-  side = "top",
-  delayDuration,
-  children,
-  asChild = true,
-}: {
-  label: string;
-  side?: "top" | "right" | "bottom" | "left";
-  delayDuration?: number;
-  children: React.ReactNode;
-  asChild?: boolean;
-}) {
+ *  un input dentro de un form, etc.) — agrega el tooltip alrededor de un child
+ *  arbitrario.
+ *
+ *  IMPORTANTE — composición con otros Trigger (Sheet/Dialog/DropdownMenu):
+ *  este componente es `forwardRef` y REENVÍA todas las props que reciba
+ *  (`...rest`) + el `ref` al `TooltipTrigger` interno. Por eso, cuando se usa
+ *  como hijo de `<XTrigger asChild><WithTooltip>…</WithTooltip></XTrigger>`, el
+ *  `onClick`/`ref` que inyecta el Slot de Radix llega hasta el botón real: la
+ *  cadena de Slots (XTrigger → TooltipTrigger → botón) compone hover + click.
+ *  Sin este forwarding el botón quedaba MUERTO (el click se perdía en el
+ *  componente Tooltip que no renderiza nodo DOM). No lo quites. */
+export const WithTooltip = React.forwardRef<
+  React.ElementRef<typeof TooltipTrigger>,
+  React.ComponentPropsWithoutRef<typeof TooltipTrigger> & {
+    label: string;
+    side?: "top" | "right" | "bottom" | "left";
+    delayDuration?: number;
+  }
+>(function WithTooltip(
+  { label, side = "top", delayDuration, children, asChild = true, ...rest },
+  ref,
+) {
   return (
     <Tooltip delayDuration={delayDuration ?? 200}>
-      <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
+      <TooltipTrigger asChild={asChild} ref={ref} {...rest}>
+        {children}
+      </TooltipTrigger>
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   );
-}
+});
