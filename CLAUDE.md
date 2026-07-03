@@ -112,4 +112,39 @@ del código; los tests de integración dependen de que el seed haya corrido.
   `app.ldplegal.com.do` respondiendo.
 - **Pendiente**: dashboard personalizable con widgets (ver arriba).
 
+### 2026-07-02 (tarde) — Fix vista previa + acceso por usuario + rediseño de documentos
+- **Bug vista previa (click en el nombre)**: el trigger del nombre iba envuelto en
+  `WithTooltip` dentro de `<SheetTrigger asChild>`. El `Slot` de Radix clona el
+  hijo inmediato para inyectar el `onClick`, pero `WithTooltip` devuelve un
+  `<Tooltip>` (sin nodo DOM que reenvíe props) → el click se perdía. Fix:
+  `<button title="…">` directo en `document-row`, `document-global-row` y
+  `folder-browser`. (commit `f11b5c0`)
+- **Acceso por usuario + líder editable + visibilidad**: `caso-edit-drawer` ahora
+  edita el **líder** (`leadLawyerId`) y el **acceso usuario-por-usuario**
+  (checkboxes que pueblan `case_assignments`). Con `visibility='restricted'` solo
+  esos usuarios (+ admins) ven el caso — lo hace cumplir la RLS
+  (`cases_firm_visibility`, ver 0001). El líder siempre queda con acceso (lo
+  fuerza `editarCasoAction`). La card "Equipo y acceso" del Resumen ahora lee
+  `c.visibility` (antes estaba hardcodeada → no reflejaba el cambio). Se quitaron
+  las líneas de "Horas" del recuadro de indicadores (queda "Gastos"). (`f11b5c0`)
+- **Documentos — vistas + drop zone**: `FolderBrowser` (compartido por
+  `/documentos` y el tab del caso) ahora tiene selector de vista tipo Finder/
+  Explorer — **Íconos** (tiles cuadrados con nombre completo), **Lista**,
+  **Compacta** — persistido en `localStorage` (`ldp-docs-view`). Nueva
+  `UploadDropZone` al fondo: arrastrás archivos del escritorio y se suben a la
+  carpeta actual (DnD nativo + `uploadFileDirect` presigned R2, barra de progreso).
+  El DnD de `@dnd-kit` (mover docs existentes) sigue en Lista/Compacta. (`6f2259d`)
+- **IA**: el error que veía Gabriel ("This organization has been disabled") es de
+  **cuenta/facturación de Anthropic**, no de código. `friendlyAiError`
+  (`lib/ai/claude.ts`) ya lo traduce a un mensaje legible que apunta a
+  console.anthropic.com. Acción pendiente del lado del usuario: reactivar la org
+  o poner una `ANTHROPIC_API_KEY` nueva en el server.
+- **Subcasos**: verificados de forma estática (typecheck + `next build` OK; lógica
+  de profundidad/código/archivar-restaurar de la sesión previa intacta). No se
+  tocó el modelo; **no hay migración nueva** (próxima sigue siendo `0033`).
+- **Sin migraciones**: todo usó tablas existentes (`leadLawyerId`, `visibility`,
+  `case_assignments`).
+- **Pendiente**: estética macOS más global (solo se aplicó en documentos/editar
+  caso); dashboard personalizable con widgets.
+
 <!-- Próxima sesión: copiá este bloque como plantilla y añadí tu entrada ARRIBA de esta línea. -->
