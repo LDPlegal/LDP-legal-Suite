@@ -31,6 +31,10 @@ import {
 } from "@/components/ui/sheet";
 import { RichTextEditor, type TiptapDoc } from "@/components/editor/rich-text-editor";
 import { EventoFormDrawer } from "@/app/(app)/calendario/_components/evento-form-drawer";
+import {
+  EventoEditDrawer,
+  type EditableEvent,
+} from "@/app/(app)/calendario/_components/evento-edit-drawer";
 import { Plus } from "lucide-react";
 import { formatInFirmTz } from "@/lib/datetime/format";
 import {
@@ -38,6 +42,7 @@ import {
   enviarReporteAudienciaAction,
   eliminarReporteAudienciaAction,
 } from "@/app/_actions/audiencias";
+import { eliminarEventoAction } from "@/app/_actions/eventos/eliminar";
 import { ConfirmButton } from "@/components/ui/confirm-button";
 import { IconButton } from "@/components/ui/icon-button";
 import type { HearingListRow } from "@/lib/db/queries/hearing-reports";
@@ -100,6 +105,9 @@ export function HearingReportsTab({
               key={h.eventId}
               h={h}
               caseId={caseId}
+              caseCode={caseCode}
+              caseTitle={caseTitle}
+              usuarios={usuarios}
               onView={() => setOpenFor({ h, mode: "view" })}
               onEdit={() => setOpenFor({ h, mode: "edit" })}
             />
@@ -123,14 +131,36 @@ export function HearingReportsTab({
 function HearingCard({
   h,
   caseId,
+  caseCode,
+  caseTitle,
+  usuarios,
   onView,
   onEdit,
 }: {
   h: HearingListRow;
   caseId: string;
+  caseCode: string;
+  caseTitle: string;
+  usuarios: Array<{ id: string; name: string }>;
   onView: () => void;
   onEdit: () => void;
 }) {
+  const [editEventOpen, setEditEventOpen] = useState(false);
+
+  const editableEvent: EditableEvent = {
+    id: h.eventId,
+    title: h.eventTitle,
+    description: h.eventDescription,
+    location: h.eventLocation,
+    caseId: h.eventCaseId,
+    startAt: h.eventStartAt,
+    endAt: h.eventEndAt,
+    allDay: h.eventAllDay,
+    attendees: h.eventAttendees,
+    reminderMinutes: h.eventReminderMinutes,
+    eventType: h.eventType,
+  };
+
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -168,6 +198,36 @@ function HearingCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1">
+          {/* ── Acciones del evento (audiencia) ── */}
+          <IconButton
+            className="h-8 w-8"
+            label="Editar audiencia"
+            onClick={() => setEditEventOpen(true)}
+          >
+            <Pencil className="h-4 w-4" />
+          </IconButton>
+          <ConfirmButton
+            action={eliminarEventoAction}
+            title="¿Eliminar esta audiencia?"
+            description={`"${h.eventTitle}" — se archiva y desaparece del calendario. Si tiene reporte asociado, también se dejará de mostrar.`}
+            confirmLabel="Eliminar"
+            trigger={
+              <IconButton
+                className="h-8 w-8 text-destructive"
+                label="Eliminar audiencia (archivar)"
+              >
+                <Trash2 className="h-4 w-4" />
+              </IconButton>
+            }
+          >
+            <input type="hidden" name="eventId" value={h.eventId} />
+            <input type="hidden" name="caseId" value={caseId} />
+          </ConfirmButton>
+
+          {/* ── Separador visual ── */}
+          <div className="mx-1 h-5 w-px bg-border" />
+
+          {/* ── Acciones del reporte ── */}
           {h.reportId ? (
             <>
               <IconButton
@@ -178,8 +238,8 @@ function HearingCard({
                 <Eye className="h-4 w-4" />
               </IconButton>
               <Button variant="outline" size="sm" onClick={onEdit}>
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
+                <FileText className="h-3.5 w-3.5" />
+                Editar reporte
               </Button>
               <ConfirmButton
                 action={eliminarReporteAudienciaAction}
@@ -207,6 +267,15 @@ function HearingCard({
           )}
         </div>
       </div>
+
+      {/* Drawer de edición del evento audiencia (controlled) */}
+      <EventoEditDrawer
+        open={editEventOpen}
+        onOpenChange={setEditEventOpen}
+        event={editableEvent}
+        casos={[{ id: caseId, code: caseCode, title: caseTitle }]}
+        users={usuarios}
+      />
     </Card>
   );
 }

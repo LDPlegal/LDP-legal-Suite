@@ -19,9 +19,15 @@ import { tiptapJsonToHtml } from "@/lib/editor/tiptap-to-html";
 export type HearingListRow = {
   eventId: string;
   eventTitle: string;
+  eventDescription: string | null;
   eventStartAt: Date;
   eventEndAt: Date;
   eventLocation: string | null;
+  eventAllDay: boolean;
+  eventAttendees: string[];
+  eventReminderMinutes: number | null;
+  eventType: string | null;
+  eventCaseId: string | null;
   reportId: string | null;
   reportTitle: string | null;
   reportUpdatedAt: Date | null;
@@ -42,9 +48,15 @@ export async function listHearingsForCase(
       .select({
         id: events.id,
         title: events.title,
+        description: events.description,
         startAt: events.startAt,
         endAt: events.endAt,
         location: events.location,
+        allDay: events.allDay,
+        attendees: events.attendees,
+        reminderMinutes: events.reminderMinutes,
+        eventType: events.eventType,
+        caseId: events.caseId,
       })
       .from(events)
       .where(
@@ -107,9 +119,15 @@ export async function listHearingsForCase(
       return {
         eventId: a.id,
         eventTitle: a.title,
+        eventDescription: a.description,
         eventStartAt: a.startAt,
         eventEndAt: a.endAt,
         eventLocation: a.location,
+        eventAllDay: a.allDay,
+        eventAttendees: a.attendees,
+        eventReminderMinutes: a.reminderMinutes,
+        eventType: a.eventType,
+        eventCaseId: a.caseId,
         reportId: r?.id ?? null,
         reportTitle: r?.title ?? null,
         reportUpdatedAt: r?.updatedAt ?? null,
