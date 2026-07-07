@@ -1,11 +1,37 @@
 # CLAUDE.md — LDP Legal Suite
 
-> **LÉEME PRIMERO (para cualquier sesión de Claude, cualquier cuenta).**
+> **LÉEME PRIMERO — OBLIGATORIO para CUALQUIER sesión de Claude, CUALQUIER cuenta.**
 > Este archivo es la fuente de verdad del estado del proyecto y el registro de
-> traspaso entre sesiones. Antes de trabajar: **leé este archivo completo.**
-> Al terminar: **añadí una entrada a la "Bitácora de sesiones" al final**
-> (fecha, qué cambiaste, por qué, archivos/commits, qué queda pendiente).
-> Así cualquier cuenta que retome el proyecto sabe qué pasó sin adivinar.
+> traspaso entre sesiones/cuentas. **Trabajamos con varias cuentas de Claude en
+> paralelo**, así que seguí este protocolo SIEMPRE para no duplicar trabajo:
+>
+> 1. **ANTES de empezar**: `git pull`, leé este archivo COMPLETO (estado de
+>    features + la sección "🚧 Trabajo en curso"), y revisá `git log` reciente.
+>    Si lo que ibas a hacer ya está hecho o **reclamado** por otra cuenta, NO lo
+>    repitas — elegí otra cosa o coordiná.
+> 2. **AL EMPEZAR una mejora**: reclámala en la sección "🚧 Trabajo en curso"
+>    (abajo), commiteá y pusheá ESE cambio de una vez, para que la otra cuenta lo
+>    vea enseguida.
+> 3. **AL TERMINAR**: sacá tu fila de "🚧 Trabajo en curso", añadí una entrada a la
+>    "Bitácora de sesiones" (fecha, qué, por qué, archivos/commits, pendientes) y
+>    actualizá "Estado de features". Commiteá todo junto.
+> 4. **Si encontrás que otra cuenta ya hizo lo tuyo** (colisión): descartá tu
+>    versión y quedate con la de `origin/main` (no la pises); dejá constancia en
+>    la bitácora.
+>
+> Este protocolo es parte del trabajo, no opcional. Si sos otra cuenta leyendo
+> esto: seguilo igual y mantené vivo este archivo.
+
+---
+
+## 🚧 Trabajo en curso (reclamá tu tarea aquí antes de empezar)
+
+> Una fila por mejora activa. Al terminar, borrá tu fila y pasá el resumen a la
+> Bitácora. Si una fila lleva días sin avanzar, asumila libre.
+
+| Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
+|-------|-----------------|-----------------|---------------|
+| 2026-07-07 | Claude (cuenta principal) | **Dashboard personalizable con widgets** por usuario | `app/(app)/dashboard/*`, migración `0034` (prefs por usuario), registry de widgets |
 
 ---
 
