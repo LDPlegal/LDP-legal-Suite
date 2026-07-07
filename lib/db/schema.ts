@@ -162,6 +162,15 @@ export const users = pgTable(
     // saliente generado por la IA o redactado manualmente. Puede contener
     // saltos de línea y HTML básico.
     emailSignature: text("email_signature"),
+    // Preferencias de UI por usuario (jsonb libre). Hoy guarda la config del
+    // dashboard personalizable: { dashboardWidgets: [{ id, visible }] } en el
+    // orden elegido por el usuario. Ver lib/dashboard/widgets.ts.
+    preferences: jsonb("preferences")
+      .$type<{
+        dashboardWidgets?: Array<{ id: string; visible: boolean }>;
+      }>()
+      .notNull()
+      .default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

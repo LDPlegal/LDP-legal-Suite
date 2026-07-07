@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| 2026-07-07 | Claude (cuenta principal) | **Dashboard personalizable con widgets** por usuario | `app/(app)/dashboard/*`, migración `0034` (prefs por usuario), registry de widgets |
+| — | (nadie) | — | — |
 
 ---
 
@@ -66,7 +66,7 @@ Gestión de casos/expedientes, clientes, documentos, tiempos, gastos, facturaci�
    `drizzle/migrations/meta/_journal.json` (idx, when incremental, tag).
    Separá sentencias con `--> statement-breakpoint`. Toda tabla con `firm_id`
    habilita RLS con política `<tabla>_firm_isolation` (ver 0018 como ejemplo).
-   **Próxima migración: `0034`** (la última es `0033_note_date`).
+   **Próxima migración: `0035`** (la última es `0034_user_preferences`).
 4. **Deploy = migración**: `vercel.json` tiene
    `buildCommand: "pnpm run db:migrate:deploy && pnpm run build"`. Es decir,
    **cada deploy aplica automáticamente las migraciones pendientes a Neon**
@@ -101,11 +101,12 @@ del código; los tests de integración dependen de que el seed haya corrido.
 - ✅ **Vista previa de documentos** — clic en el nombre abre preview
   (`DocumentPreviewDrawer`), con menú de acciones ⋮, carpetas y docs privados.
   **En producción.**
-- ⏭️ **Dashboard personalizable con widgets** — PENDIENTE. Cada usuario elegiría
-  qué widgets ver y se crearían más widgets funcionales. No existe tabla de
-  preferencias por-usuario todavía (habría que agregar `users.preferences` jsonb
-  o una tabla `user_dashboard_widgets`). El dashboard actual está en
-  `app/(app)/dashboard/page.tsx` (cards inline, sin personalización).
+- ✅ **Dashboard personalizable con widgets** — cada usuario elige qué widgets ve
+  y en qué orden (mostrar/ocultar + reordenar con ↑/↓ desde "Personalizar").
+  Preferencias en `users.preferences` jsonb (migración `0034`). Registry en
+  `lib/dashboard/widgets.ts`; el dashboard resuelve el layout mezclando prefs +
+  registry (widgets nuevos aparecen solos). 12 widgets, incluyendo nuevos
+  (KPI mis tareas, Casos recientes). Migración `0034`. **En producción.**
 
 ## Protocolo de traspaso entre sesiones/cuentas
 
@@ -118,6 +119,30 @@ del código; los tests de integración dependen de que el seed haya corrido.
 ---
 
 ## Bitácora de sesiones
+
+### 2026-07-07 — Dashboard personalizable con widgets (migración `0034`)
+- **Qué**: cada usuario personaliza su dashboard — mostrar/ocultar widgets y
+  reordenarlos (botón "Personalizar" → diálogo con ↑/↓ + ojo). Se pidió también
+  crear más widgets elegibles.
+- **Modelo**: `users.preferences` jsonb (migración `0034_user_preferences`), guarda
+  `{ dashboardWidgets: [{id, visible}] }` en el orden del usuario. Merge jsonb
+  (`||`) al guardar para no pisar otras prefs.
+- **Registry**: `lib/dashboard/widgets.ts` — lista TODOS los widgets (id, label,
+  span, defaultVisible). `resolveDashboardLayout(prefs)` mezcla prefs+registry, así
+  widgets nuevos aparecen solos para todos. `normalizeDashboardLayout` valida el
+  input del cliente contra el registry (whitelist de ids).
+- **UI**: `page.tsx` arma un mapa `nodes` (id→JSX, reusa KpiCard/AgingChart/etc.) y
+  emite en orden del layout en una grilla de 12 col (`SPAN_CLASS`). Nuevo
+  `dashboard-customize.tsx` (client, diálogo). Query `lib/db/queries/preferences.ts`
+  + action `app/_actions/preferences/dashboard.ts`.
+- **Widgets nuevos** (aparte de los existentes): `kpi_tareas` (KPI mis tareas) y
+  `casos_recientes` (últimos casos abiertos) — ambos default ocultos, elegibles.
+- **Verificado** (BD local, carmen.almonte): render por defecto 9 widgets con spans
+  correctos; personalizar → activar 2 ocultos → guardar → persiste en
+  `users.preferences` y re-render 11 widgets. typecheck ✓, build ✓.
+- **Protocolo**: reclamé la tarea en "🚧 Trabajo en curso" y pusheé el reclamo ANTES
+  de codear (commit `cc637d8`), para no chocar con la otra cuenta. Al terminar,
+  liberé la fila. **Esto es lo que hay que hacer siempre.**
 
 ### 2026-07-02 — Expedientes vinculados + auto-migración en deploy (commit `fc691d2`)
 - **Expedientes vinculados**: `cases.parent_case_id` (self-FK, máx 1 nivel) + `subcase_last_seq`
