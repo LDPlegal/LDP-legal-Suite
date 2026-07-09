@@ -28,6 +28,7 @@ export async function listEventsInRange(
         endAt: events.endAt,
         allDay: events.allDay,
         attendees: events.attendees,
+        eventType: events.eventType,
         caseId: events.caseId,
         caseCode: cases.code,
         caseTitle: cases.title,

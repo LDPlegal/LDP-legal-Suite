@@ -23,7 +23,8 @@ import {
 } from "@/lib/db/queries/audit";
 import type { AgingBucket } from "@/lib/db/queries/audit";
 import { listEventsInRange } from "@/lib/db/queries/events";
-import { listMyOpenTasks } from "@/lib/db/queries/tasks";
+import { listMyOpenTasks, listTasks } from "@/lib/db/queries/tasks";
+import { listInvoices } from "@/lib/db/queries/invoices";
 import { listPendingSuggestions } from "@/lib/db/queries/ai-suggestions";
 import { getFirmOnboardingProgress } from "@/lib/db/queries/onboarding";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
@@ -75,6 +76,14 @@ export default async function DashboardPage() {
   const next7 = new Date(now);
   next7.setUTCDate(next7.getUTCDate() + 7);
 
+  // Resolvemos el layout ANTES de traer datos para poder cargar los widgets
+  // "pesados" (facturas, tareas del equipo, casos recientes) SOLO si el
+  // usuario los tiene activos. Así personalizar el dashboard también aligera
+  // lo que consulta la BD.
+  const prefs = await getUserPreferences(user.firmId, user.userId);
+  const layout = resolveDashboardLayout(prefs.dashboardWidgets);
+  const vis = (id: string) => layout.some((w) => w.id === id && w.visible);
+
   const [
     casesRes,
     openCasesRes,
@@ -89,7 +98,8 @@ export default async function DashboardPage() {
     onboarding,
     firm,
     recentCasesRes,
-    prefs,
+    overdueInvoices,
+    teamTasks,
   ] = await Promise.all([
     listCases(user.firmId, user.userId, { limit: 1 }),
     listCases(user.firmId, user.userId, { status: "open", limit: 1 }),
@@ -106,8 +116,15 @@ export default async function DashboardPage() {
     arAgingReport(user.firmId, user.userId),
     getFirmOnboardingProgress(user.firmId, user.userId),
     getCurrentFirm(user.firmId, user.userId),
-    listCases(user.firmId, user.userId, { limit: 5, orderBy: "opened_desc" }),
-    getUserPreferences(user.firmId, user.userId),
+    vis("casos_recientes")
+      ? listCases(user.firmId, user.userId, { limit: 5, orderBy: "opened_desc" })
+      : Promise.resolve(null),
+    vis("facturas_vencidas")
+      ? listInvoices(user.firmId, user.userId, { limit: 50 })
+      : Promise.resolve(null),
+    vis("tareas_equipo")
+      ? listTasks(user.firmId, user.userId, { limit: 20 })
+      : Promise.resolve(null),
   ]);
 
   // Normalize aging buckets so the 5 always appear, even if empty.
@@ -136,8 +153,22 @@ export default async function DashboardPage() {
           ? "Buenas tardes"
           : "Buenas noches";
 
-  // Layout personalizable: mezcla las prefs del usuario con el registry.
-  const layout = resolveDashboardLayout(prefs.dashboardWidgets);
+  // Eventos de HOY (para el widget "Agenda de hoy") — se derivan de los
+  // próximos 7 días ya cargados, sin consulta extra.
+  const todayStr = now.toDateString();
+  const eventosHoy = proximosEventos.filter(
+    (e) => new Date(e.startAt).toDateString() === todayStr,
+  );
+
+  // Facturas vencidas: con saldo pendiente y fecha de pago pasada.
+  const facturasVencidas = (overdueInvoices?.rows ?? [])
+    .filter((f) => num(f.balance) > 0 && new Date(f.dueOn).getTime() < now.getTime())
+    .slice(0, 6);
+
+  // Tareas del equipo pendientes (excluye completadas), top 6.
+  const tareasEquipo = (teamTasks ?? [])
+    .filter((t) => t.status !== "done")
+    .slice(0, 6);
 
   // Cada widget → su JSX. Se emiten abajo en el orden del layout. Los que no
   // aplican (p. ej. sugerencias vacías) devuelven null y se omiten.
@@ -270,7 +301,12 @@ export default async function DashboardPage() {
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{e.title}</p>
+                        <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                          {e.title}
+                          {e.eventType === "audiencia" ? (
+                            <Badge variant="default" className="shrink-0 text-[9px]">Audiencia</Badge>
+                          ) : null}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {isToday ? "Hoy" : startAt.toLocaleDateString("es-DO", { weekday: "long" })}
                           {" · "}
@@ -474,7 +510,7 @@ export default async function DashboardPage() {
           </Link>
         </CardHeader>
         <CardContent>
-          {recentCasesRes.rows.length === 0 ? (
+          {(recentCasesRes?.rows ?? []).length === 0 ? (
             <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center">
               <span className="grid h-12 w-12 place-items-center rounded-full bg-muted/50">
                 <Briefcase className="h-5 w-5 text-muted-foreground" />
@@ -483,7 +519,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <ul className="space-y-1.5">
-              {recentCasesRes.rows.map((c, idx) => (
+              {(recentCasesRes?.rows ?? []).map((c, idx) => (
                 <li
                   key={c.id}
                   className="fade-in-up"
@@ -511,6 +547,182 @@ export default async function DashboardPage() {
                       {CASE_STATUS_LABEL[c.status]}
                     </Badge>
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    agenda_hoy: (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="h-4 w-4 text-blue-500" />
+            Agenda de hoy
+          </CardTitle>
+          <Link
+            href="/calendario"
+            className="text-xs font-medium text-primary hover:underline underline-offset-4"
+          >
+            Calendario →
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {eventosHoy.length === 0 ? (
+            <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-muted/50">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+              </span>
+              <p className="text-sm text-muted-foreground">Nada agendado para hoy.</p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {eventosHoy.map((e, idx) => {
+                const startAt = new Date(e.startAt);
+                return (
+                  <li key={e.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                    <Link
+                      href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
+                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    >
+                      <span className="shrink-0 rounded-lg border border-blue-200/50 bg-blue-500/10 px-2 py-1 font-mono text-xs font-semibold text-blue-600 dark:border-blue-800/40 dark:text-blue-400">
+                        {startAt.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                          {e.title}
+                          {e.eventType === "audiencia" ? (
+                            <Badge variant="default" className="shrink-0 text-[9px]">Audiencia</Badge>
+                          ) : null}
+                        </p>
+                        {e.caseCode ? (
+                          <p className="font-mono text-xs text-muted-foreground">{e.caseCode}</p>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    facturas_vencidas: (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Receipt className="h-4 w-4 text-rose-500" />
+            Facturas vencidas
+            {facturasVencidas.length > 0 ? (
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500/15 px-1.5 text-[10px] font-semibold text-rose-700 dark:text-rose-400">
+                {facturasVencidas.length}
+              </span>
+            ) : null}
+          </CardTitle>
+          <Link
+            href="/facturacion"
+            className="text-xs font-medium text-primary hover:underline underline-offset-4"
+          >
+            Facturación →
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {facturasVencidas.length === 0 ? (
+            <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
+                <Receipt className="h-5 w-5 text-emerald-500" />
+              </span>
+              <p className="text-sm text-muted-foreground">Sin facturas vencidas. 👌</p>
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {facturasVencidas.map((f, idx) => {
+                const dias = Math.floor((now.getTime() - new Date(f.dueOn).getTime()) / 86400000);
+                return (
+                  <li key={f.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
+                    <Link
+                      href={`/facturacion/${f.id}`}
+                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          <span className="font-mono">{f.number}</span>
+                          {f.clientName ? ` · ${f.clientName}` : ""}
+                        </p>
+                        <p className="text-xs text-rose-600 dark:text-rose-400">
+                          Vencida hace {dias} {dias === 1 ? "día" : "días"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-mono text-sm font-medium tabular-nums">
+                        {formatMoney(num(f.balance), f.currency)}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    tareas_equipo: (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ListChecks className="h-4 w-4 text-emerald-500" />
+            Tareas del equipo
+          </CardTitle>
+          <Link
+            href="/tareas"
+            className="text-xs font-medium text-primary hover:underline underline-offset-4"
+          >
+            Ver todo →
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {tareasEquipo.length === 0 ? (
+            <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
+                <CheckSquare className="h-5 w-5 text-emerald-500" />
+              </span>
+              <p className="text-sm text-muted-foreground">Sin tareas pendientes en la firma.</p>
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {tareasEquipo.map((t, idx) => (
+                <li
+                  key={t.id}
+                  className="fade-in-up flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium leading-tight">{t.title}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span>{t.assigneeName ?? "Sin asignar"}</span>
+                      {t.caseCode ? (
+                        <>
+                          <span className="opacity-50">·</span>
+                          <Link href={`/casos/${t.caseId}`} className="font-mono hover:underline">
+                            {t.caseCode}
+                          </Link>
+                        </>
+                      ) : null}
+                      {t.dueAt ? (
+                        <>
+                          <span className="opacity-50">·</span>
+                          <span>{formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy")}</span>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={TASK_PRIORITY_VARIANT[t.priority] ?? "outline"}
+                    className="text-[10px] capitalize"
+                  >
+                    {t.priority}
+                  </Badge>
                 </li>
               ))}
             </ul>

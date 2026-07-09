@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| 2026-07-09 | Claude (cuenta principal) | **Más widgets de dashboard** (facturas vencidas, tareas del equipo, agenda de hoy) + fetch condicional | `app/(app)/dashboard/*`, `lib/dashboard/widgets.ts` |
+| — | (nadie) | — | — |
 
 ---
 
@@ -119,6 +119,24 @@ del código; los tests de integración dependen de que el seed haya corrido.
 ---
 
 ## Bitácora de sesiones
+
+### 2026-07-09 — Más widgets de dashboard + badge Audiencia + fetch condicional
+- **3 widgets nuevos** (default ocultos, elegibles desde "Personalizar"):
+  `agenda_hoy` (eventos de hoy, derivados de los próximos 7 días sin query
+  extra), `facturas_vencidas` (facturas con saldo y `dueOn` pasado — reusa
+  `listInvoices`), `tareas_equipo` (tareas pendientes de toda la firma — reusa
+  `listTasks`). Registro en `lib/dashboard/widgets.ts`, render en el mapa
+  `nodes` de `dashboard/page.tsx`.
+- **Fetch condicional**: el dashboard resuelve el layout ANTES del `Promise.all`
+  y solo consulta los widgets "pesados" (`casos_recientes`, `facturas_vencidas`,
+  `tareas_equipo`) si el usuario los tiene activos (`vis(id)`). Personalizar
+  ahora también aligera la BD.
+- **Mejora estilo Gabriel (foco en audiencias)**: `listEventsInRange` ahora trae
+  `eventType`; los widgets "Próximos 7 días" y "Agenda de hoy" marcan las
+  audiencias con un badge "Audiencia".
+- **Verificado** (BD local, carmen.almonte): activar los 3 widgets → persisten y
+  renderizan (estados vacíos correctos); badge "Audiencia" visible en Próximos 7
+  días. typecheck ✓, build ✓. Sin migración nueva (próxima sigue `0035`).
 
 ### 2026-07-07 — Dashboard personalizable con widgets (migración `0034`)
 - **Qué**: cada usuario personaliza su dashboard — mostrar/ocultar widgets y

@@ -105,6 +105,27 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
     span: "half",
     defaultVisible: false,
   },
+  {
+    id: "agenda_hoy",
+    label: "Agenda de hoy",
+    description: "Solo los eventos y audiencias de hoy.",
+    span: "half",
+    defaultVisible: false,
+  },
+  {
+    id: "facturas_vencidas",
+    label: "Facturas vencidas",
+    description: "Facturas con saldo pendiente y fecha de pago vencida.",
+    span: "half",
+    defaultVisible: false,
+  },
+  {
+    id: "tareas_equipo",
+    label: "Tareas del equipo",
+    description: "Tareas pendientes de toda la firma (no solo las tuyas).",
+    span: "half",
+    defaultVisible: false,
+  },
 ];
 
 const WIDGET_IDS = new Set(DASHBOARD_WIDGETS.map((w) => w.id));
