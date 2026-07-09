@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| — | (nadie) | — | — |
+| 2026-07-09 | Claude (cuenta principal) | **Auditoría exhaustiva multi-agente (11 áreas) + fixes de lo confirmado** | toda la app (solo lectura en la auditoría; fixes puntuales después) |
 
 ---
 
