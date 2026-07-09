@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| — | (nadie) | — | — |
+| 2026-07-09 | Claude (cuenta principal) | **Más widgets de dashboard** (facturas vencidas, tareas del equipo, agenda de hoy) + fetch condicional | `app/(app)/dashboard/*`, `lib/dashboard/widgets.ts` |
 
 ---
 
