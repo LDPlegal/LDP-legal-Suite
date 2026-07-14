@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| 2026-07-09 | Claude (cuenta principal) | **Auditoría exhaustiva multi-agente (11 áreas) + fixes de lo confirmado** | toda la app (solo lectura en la auditoría; fixes puntuales después) |
+| 2026-07-14 | Claude (cuenta principal) | **Diagnóstico y fix de la IA en producción (usuario reporta que sigue sin funcionar)** — la auditoría de 11 áreas queda cancelada por pedido del usuario | `lib/ai/*`, endpoint de diagnóstico `app/api/ai/diag`, env de Vercel |
 
 ---
 
