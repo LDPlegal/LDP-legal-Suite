@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| 2026-07-14 | Claude (cuenta principal) | **Diagnóstico y fix de la IA en producción (usuario reporta que sigue sin funcionar)** — la auditoría de 11 áreas queda cancelada por pedido del usuario | `lib/ai/*`, endpoint de diagnóstico `app/api/ai/diag`, env de Vercel |
+| _(libre)_ | | | |
 
 ---
 
@@ -119,6 +119,37 @@ del código; los tests de integración dependen de que el seed haya corrido.
 ---
 
 ## Bitácora de sesiones
+
+### 2026-07-14 — Diagnóstico de la IA en producción: org de Anthropic deshabilitada (NO es código)
+- **Contexto**: el usuario reportó que la IA "sigue sin funcionar". Se canceló la
+  auditoría exhaustiva de 11 áreas para atender esto (queda el script del workflow
+  para retomarla).
+- **Cómo se diagnosticó**: la `ANTHROPIC_API_KEY` de Vercel es *sensitive* (no se
+  puede leer desde la CLI ni con `vercel env pull`), así que no había forma de ver
+  el error real desde afuera. Creé **`app/api/ai/diag/route.ts`** (GET protegido por
+  `Bearer AI_DIAG_SECRET`) que hace una llamada mínima a Anthropic **desde el runtime
+  de producción** y devuelve el error crudo + el `friendlyAiError`. Sin la env var
+  `AI_DIAG_SECRET` el endpoint responde 404 (inerte). Además hubo que **excluir
+  `api/ai/diag` del matcher del `middleware.ts`** (si no, redirige a `/login`).
+- **Resultado (definitivo)**: `{"keyPresent":true,"model":"claude-sonnet-4-6",
+  "status":400,"raw":"This organization has been disabled."}`. Es decir:
+  - La key SÍ está cargada en el runtime (no falta la variable).
+  - El modelo `claude-sonnet-4-6` es válido.
+  - **El error es de la CUENTA de Anthropic, no del código**: la organización dueña
+    de la key está deshabilitada → Anthropic rechaza *toda* llamada (chat, resúmenes,
+    generar docs, OCR — todo pasa por la misma key). `friendlyAiError` ya lo traduce
+    bien; no hay fix de código pendiente.
+- **Acción pendiente del USUARIO** (no se puede hacer desde acá): reactivar la org en
+  console.anthropic.com → Settings/Billing (causa típica: método de pago rechazado o
+  sin créditos cargados — tener tarjeta no basta), **o** poner una `ANTHROPIC_API_KEY`
+  nueva de otra org activa en Vercel (Production) y redeploy.
+- **Cómo re-verificar** cuando lo resuelva:
+  `curl -H "Authorization: Bearer <AI_DIAG_SECRET>" https://app.ldplegal.com.do/api/ai/diag`
+  → debe dar `{"ok":true,...,"text":"ok"}`. `AI_DIAG_SECRET` está en Vercel (Production).
+  Una vez confirmado que la IA volvió, se puede **borrar el endpoint** `app/api/ai/diag/`
+  y la env var `AI_DIAG_SECRET` (es solo para diagnóstico).
+- Verificado: typecheck ✓. Sin migración nueva (próxima sigue `0035`). Commits:
+  `494bc61` (reclamo), `8cbb671` (endpoint diag), `446fbb7` (fix middleware).
 
 ### 2026-07-09 — Más widgets de dashboard + badge Audiencia + fetch condicional
 - **3 widgets nuevos** (default ocultos, elegibles desde "Personalizar"):
