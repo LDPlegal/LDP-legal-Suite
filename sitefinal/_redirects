@@ -1,0 +1,15 @@
+# Redirecciones para enlaces viejos indexados por Google (301 = Permanente)
+/copy-of-equipo-1 /gabriel-peralta-rizik 301
+/copy-of-equipo-2 /jorge-dominguez-michelen 301
+/copy-of-equipo-3 /marc-ledesma-bitzer 301
+
+/our-team /equipo 301
+/our-firm /firma 301
+/nuestra-firma /firma 301
+/re /index.html 301
+/jorge-dominguez-michelen-1 /jorge-dominguez-michelen 301
+
+# Asegurar que las URLs limpias funcionen en Netlify sin escribir .html
+/gabriel-peralta-rizik /gabriel-peralta-rizik.html 200
+/jorge-dominguez-michelen /jorge-dominguez-michelen.html 200
+/marc-ledesma-bitzer /marc-ledesma-bitzer.html 200

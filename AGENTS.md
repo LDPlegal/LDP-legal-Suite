@@ -1,8 +1,8 @@
-# CLAUDE.md — LDP Legal Suite
+# AGENTS.md — LDP Legal Suite
 
-> **LÉEME PRIMERO — OBLIGATORIO para CUALQUIER sesión de Claude, CUALQUIER cuenta.**
+> **LÉEME PRIMERO — OBLIGATORIO para CUALQUIER sesión de Codex, CUALQUIER cuenta.**
 > Este archivo es la fuente de verdad del estado del proyecto y el registro de
-> traspaso entre sesiones/cuentas. **Trabajamos con varias cuentas de Claude en
+> traspaso entre sesiones/cuentas. **Trabajamos con varias cuentas de Codex en
 > paralelo**, así que seguí este protocolo SIEMPRE para no duplicar trabajo:
 >
 > 1. **ANTES de empezar**: `git pull`, leé este archivo COMPLETO (estado de
@@ -50,7 +50,7 @@ Gestión de casos/expedientes, clientes, documentos, tiempos, gastos, facturaci�
   estático aparte (RD Vial)**, sin relación con la app — no la toques ni la
   commitees como parte de la app.
 - Docs de fondo: `README.md` (setup) y `DECISIONS.md` (decisiones de arquitectura,
-  esp. §9 sobre RLS multi-tenant). Este CLAUDE.md no los duplica.
+  esp. §9 sobre RLS multi-tenant). Este AGENTS.md no los duplica.
 
 ## Reglas críticas (romper esto rompe producción)
 
@@ -120,26 +120,6 @@ del código; los tests de integración dependen de que el seed haya corrido.
 
 ## Bitácora de sesiones
 
-### 2026-07-14 (tarde) — IA RESUELTA: era una API key vieja de una org deshabilitada
-- **Resolución del caso de arriba.** Revisando console.anthropic.com (vía la extensión
-  de Claude en el navegador) se vio que la cuenta tiene **una sola org sana**
-  ("LDP Legal Advisors", org id `8a677f87-…`, billing activo, $5 de crédito, sin banner
-  de suspensión) con **una sola API key** creada el 18-jun cuyo "Last used" era **Never**.
-- **Causa exacta**: la `ANTHROPIC_API_KEY` que estaba en Vercel (creada ~mediados de mayo)
-  era de **otra** organización — la que Anthropic deshabilitó y que ya no figura en la
-  cuenta. Por eso toda llamada daba "This organization has been disabled": no era la org
-  actual ni el código, era una key huérfana apuntando a una org muerta.
-- **Fix aplicado por el usuario**: creó una key nueva en la org sana y reemplazó
-  `ANTHROPIC_API_KEY` en Vercel (Production). Verificado con el endpoint de diagnóstico →
-  `{"ok":true,"model":"claude-sonnet-4-6","text":"ok"}`. **La IA funciona** (chat, resúmenes,
-  generar docs, OCR — todo usa esa key).
-- **Limpieza**: se borró el endpoint `app/api/ai/diag/`, se restauró el matcher del
-  `middleware.ts` (sin la exclusión temporal) y se eliminó la env var `AI_DIAG_SECRET`
-  de Vercel. Sin migración nueva (próxima sigue `0035`).
-- **Aprendizaje para la próxima**: si la IA vuelve a fallar con "organization has been
-  disabled" y el billing se ve bien, revisá que la key de Vercel sea de la org **actual**
-  (en console → API keys, "Last used" debe mostrar actividad si es la que usa producción).
-
 ### 2026-07-14 — Diagnóstico de la IA en producción: org de Anthropic deshabilitada (NO es código)
 - **Contexto**: el usuario reportó que la IA "sigue sin funcionar". Se canceló la
   auditoría exhaustiva de 11 áreas para atender esto (queda el script del workflow
@@ -151,10 +131,10 @@ del código; los tests de integración dependen de que el seed haya corrido.
   de producción** y devuelve el error crudo + el `friendlyAiError`. Sin la env var
   `AI_DIAG_SECRET` el endpoint responde 404 (inerte). Además hubo que **excluir
   `api/ai/diag` del matcher del `middleware.ts`** (si no, redirige a `/login`).
-- **Resultado (definitivo)**: `{"keyPresent":true,"model":"claude-sonnet-4-6",
+- **Resultado (definitivo)**: `{"keyPresent":true,"model":"Codex-sonnet-4-6",
   "status":400,"raw":"This organization has been disabled."}`. Es decir:
   - La key SÍ está cargada en el runtime (no falta la variable).
-  - El modelo `claude-sonnet-4-6` es válido.
+  - El modelo `Codex-sonnet-4-6` es válido.
   - **El error es de la CUENTA de Anthropic, no del código**: la organización dueña
     de la key está deshabilitada → Anthropic rechaza *toda* llamada (chat, resúmenes,
     generar docs, OCR — todo pasa por la misma key). `friendlyAiError` ya lo traduce
@@ -256,7 +236,7 @@ del código; los tests de integración dependen de que el seed haya corrido.
   El DnD de `@dnd-kit` (mover docs existentes) sigue en Lista/Compacta. (`6f2259d`)
 - **IA**: el error que veía Gabriel ("This organization has been disabled") es de
   **cuenta/facturación de Anthropic**, no de código. `friendlyAiError`
-  (`lib/ai/claude.ts`) ya lo traduce a un mensaje legible que apunta a
+  (`lib/ai/Codex.ts`) ya lo traduce a un mensaje legible que apunta a
   console.anthropic.com. Acción pendiente del lado del usuario: reactivar la org
   o poner una `ANTHROPIC_API_KEY` nueva en el server.
 - **Expedientes vinculados**: verificados de forma estática (typecheck + `next build` OK; lógica
@@ -293,7 +273,7 @@ del código; los tests de integración dependen de que el seed haya corrido.
 - **Pendiente de auditoría exhaustiva** (cuando resetee el límite de sesión):
   correr el workflow de 11 áreas (casos/documentos/clientes-portal/facturación/
   agenda/configuración/rutas/actions-wiring/hardcodes/misc) con verificación
-  adversarial. Guardado en `.claude/.../workflows/scripts/audit-ldp-app-*.js`.
+  adversarial. Guardado en `.Codex/.../workflows/scripts/audit-ldp-app-*.js`.
 
 ### 2026-07-03 — Honorarios editables, fecha en gestiones, IA legible, fix botones
 - **Honorarios editables post-creación** (`7aa7c43`): `HonorariosPanel` en el
@@ -311,13 +291,13 @@ del código; los tests de integración dependen de que el seed haya corrido.
   "account" a secas (disfrazaba todo como "cuenta deshabilitada"). Ahora
   distingue org-deshabilitada / saldo insuficiente / key inválida / sin permiso
   de modelo / modelo inexistente / rate-limit / overload, y el fallback muestra
-  HTTP status + extracto real. **El modelo default `claude-sonnet-4-6` es VÁLIDO
+  HTTP status + extracto real. **El modelo default `Codex-sonnet-4-6` es VÁLIDO
   (verificado con el catálogo oficial) — no era la causa.** Con billing OK, el
   error real más probable es falta de créditos cargados en console.anthropic.com.
 - **Auditoría inline**: sin más botones muertos ni stubs; Configuración ya es
   completa (usuarios CRUD, tarifas, NCF, firma, branding, etc.). El workflow
   multi-agente de 11 áreas murió por límite de sesión de la cuenta — queda el
-  script en `.claude/.../workflows/scripts/audit-ldp-app-*.js` para correrlo
+  script en `.Codex/.../workflows/scripts/audit-ldp-app-*.js` para correrlo
   cuando resetee el límite (4:30am RD).
 - **Pendiente**: estética macOS más global; dashboard con widgets; correr la
   auditoría exhaustiva multi-agente.

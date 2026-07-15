@@ -38,10 +38,6 @@ export const config = {
     //
     // `api/uploads/local` también — usa HMAC en query string (dev only),
     // no cookies.
-    //
-    // `api/ai/diag` también — hace su propio auth con Bearer AI_DIAG_SECRET
-    // (ver app/api/ai/diag/route.ts). Sin esto el middleware lo mandaría a
-    // /login y nunca podríamos diagnosticar la IA desde afuera.
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/documentos|api/portal/documentos|api/cron|api/ai/diag|api/uploads/local|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/documentos|api/portal/documentos|api/cron|api/uploads/local|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|css|js|woff2?)$).*)",
   ],
 };
