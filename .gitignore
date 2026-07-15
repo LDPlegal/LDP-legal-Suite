@@ -54,3 +54,7 @@ drizzle/meta
 
 # vercel CLI project linking (generado por `vercel link`)
 .vercel
+
+# Sitio estático RD Vial (proyecto aparte — NO es parte de la app)
+/sitefinal/
+/AGENTS.md
