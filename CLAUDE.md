@@ -31,7 +31,7 @@
 
 | Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
 |-------|-----------------|-----------------|---------------|
-| _(libre)_ | | | |
+| 2026-07-16 | Claude (cuenta principal) | **Repositorio documental — Fase 1: carpetas personales por miembro + biblioteca general de la firma** (sin OCR de libros grandes; todo in-house/sin costo). Migración `0035`. | `folders` (col `owner_user_id` + RLS), `documents` (RLS folder-owner), `lib/db/queries` de folders/docs, acciones y UI de `/documentos` |
 
 ---
 
