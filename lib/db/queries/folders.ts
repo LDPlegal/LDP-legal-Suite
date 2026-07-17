@@ -19,6 +19,109 @@ export type FolderScope =
   | { kind: "case"; caseId: string }
   | { kind: "client"; clientId: string };
 
+// Nombres de las carpetas raíz especiales (migración 0035). La carpeta
+// personal de cada usuario y la biblioteca compartida de la firma.
+export const PERSONAL_ROOT_NAME = "Mi carpeta";
+export const LIBRARY_ROOT_NAME = "Biblioteca";
+
+/**
+ * Devuelve (creándola si hace falta) la carpeta PERSONAL raíz del usuario.
+ * Idempotente y a prueba de carreras: el índice único parcial
+ * folders_personal_root_unique garantiza una sola por usuario; si dos
+ * requests la crean a la vez, ON CONFLICT DO NOTHING evita el error y luego
+ * releemos. La migración 0035 ya la sembró para los usuarios existentes; esto
+ * cubre a los nuevos sin tocar el flujo de signup.
+ */
+export async function ensurePersonalRootFolder(
+  firmId: string,
+  userId: string,
+): Promise<Folder> {
+  return withFirm(firmId, userId, async (tx) => {
+    const find = async (): Promise<Folder | null> => {
+      const rows = await tx
+        .select()
+        .from(folders)
+        .where(
+          and(
+            eq(folders.firmId, firmId),
+            eq(folders.ownerUserId, userId),
+            isNull(folders.parentFolderId),
+            isNull(folders.deletedAt),
+          ),
+        )
+        .limit(1);
+      return rows[0] ?? null;
+    };
+    const existing = await find();
+    if (existing) return existing;
+    await tx
+      .insert(folders)
+      .values({
+        firmId,
+        ownerUserId: userId,
+        name: PERSONAL_ROOT_NAME,
+        path: "/",
+        createdBy: userId,
+      })
+      .onConflictDoNothing({
+        target: [folders.firmId, folders.ownerUserId],
+        where: sql`owner_user_id IS NOT NULL AND parent_folder_id IS NULL AND deleted_at IS NULL`,
+      });
+    const after = await find();
+    if (!after) throw new Error("No se pudo asegurar la carpeta personal.");
+    return after;
+  });
+}
+
+/**
+ * Devuelve (creándola si hace falta) la BIBLIOTECA compartida de la firma
+ * (carpeta raíz firm-wide, owner NULL → todos la ven). Idempotente vía el
+ * índice folders_firmwide_root_unique.
+ */
+export async function ensureLibraryRootFolder(
+  firmId: string,
+  userId: string,
+): Promise<Folder> {
+  return withFirm(firmId, userId, async (tx) => {
+    const find = async (): Promise<Folder | null> => {
+      const rows = await tx
+        .select()
+        .from(folders)
+        .where(
+          and(
+            eq(folders.firmId, firmId),
+            isNull(folders.ownerUserId),
+            isNull(folders.parentFolderId),
+            isNull(folders.caseId),
+            isNull(folders.clientId),
+            eq(folders.name, LIBRARY_ROOT_NAME),
+            isNull(folders.deletedAt),
+          ),
+        )
+        .limit(1);
+      return rows[0] ?? null;
+    };
+    const existing = await find();
+    if (existing) return existing;
+    await tx
+      .insert(folders)
+      .values({
+        firmId,
+        ownerUserId: null,
+        name: LIBRARY_ROOT_NAME,
+        path: "/",
+        createdBy: userId,
+      })
+      .onConflictDoNothing({
+        target: [folders.firmId, folders.name],
+        where: sql`owner_user_id IS NULL AND parent_folder_id IS NULL AND case_id IS NULL AND client_id IS NULL AND deleted_at IS NULL`,
+      });
+    const after = await find();
+    if (!after) throw new Error("No se pudo asegurar la biblioteca.");
+    return after;
+  });
+}
+
 /**
  * Lista las carpetas hijas directas de un padre (o de la raíz del scope).
  * No incluye soft-deleted.
@@ -113,6 +216,11 @@ export async function createFolder(
     let parentPath = "/";
     let caseId: string | null = null;
     let clientId: string | null = null;
+    // Dueño de la carpeta (migración 0035). Se HEREDA del padre: si el padre
+    // es una carpeta personal (owner set), la subcarpeta también es personal
+    // del mismo dueño. Crear en la raíz del scope = compartida (owner null).
+    // Invariante: el owner de una carpeta = el owner de su raíz de espacio.
+    let ownerUserId: string | null = null;
 
     if (input.parentFolderId) {
       const parentRows = await tx
@@ -127,6 +235,7 @@ export async function createFolder(
       parentPath = parent.path === "/" ? `/${parent.name}` : `${parent.path}/${parent.name}`;
       caseId = parent.caseId;
       clientId = parent.clientId;
+      ownerUserId = parent.ownerUserId;
     } else {
       // En la raíz del scope, derivamos caseId/clientId del scope.
       if (input.scope.kind === "case") caseId = input.scope.caseId;
@@ -137,6 +246,7 @@ export async function createFolder(
       firmId,
       caseId,
       clientId,
+      ownerUserId,
       parentFolderId: input.parentFolderId,
       name: input.name,
       path: parentPath,
@@ -264,6 +374,19 @@ export async function softDeleteFolder(
 ): Promise<boolean> {
   const deleteDocuments = options.deleteDocuments === true;
   return withFirm(firmId, userId, async (tx) => {
+    // Cargar el folder para saber a dónde reubicar sus documentos si NO se
+    // borran: van a su carpeta PADRE, no a la raíz de la firma. Esto mantiene
+    // el espacio (una carpeta personal borrada deja sus docs en el padre, que
+    // sigue siendo personal → no se filtran a la firma). Para una carpeta raíz
+    // (parent null) el destino es null = raíz del scope (comportamiento previo).
+    const [target] = await tx
+      .select({ parentFolderId: folders.parentFolderId })
+      .from(folders)
+      .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)))
+      .limit(1);
+    if (!target) return false;
+    const reparentTo = target.parentFolderId;
+
     // PASO 1: marcar el folder y todos sus descendientes como soft-deleted.
     // CTE recursiva enfocada al subárbol del folder dado.
     await tx.execute(sql`
@@ -303,6 +426,10 @@ export async function softDeleteFolder(
           AND deleted_at IS NULL;
       `);
     } else {
+      // Reubicar los documentos en la carpeta padre (reparentTo). Si la
+      // carpeta borrada era raíz, reparentTo = NULL = raíz del scope. Nunca
+      // "sube" un documento personal a la raíz compartida de la firma salvo
+      // que su carpeta ya fuera raíz.
       await tx.execute(sql`
         WITH RECURSIVE descendants AS (
           SELECT id FROM folders WHERE id = ${folderId}
@@ -312,7 +439,7 @@ export async function softDeleteFolder(
           INNER JOIN descendants d ON f.parent_folder_id = d.id
         )
         UPDATE documents
-        SET folder_id = NULL, updated_at = now()
+        SET folder_id = ${reparentTo}, updated_at = now()
         WHERE folder_id IN (SELECT id FROM descendants);
       `);
     }
@@ -429,6 +556,13 @@ export async function moveFolder(
       .limit(1);
     if (!folder) return { ok: false, error: "Carpeta no encontrada." };
 
+    // No se puede mover la carpeta personal raíz (owner set + sin padre): es la
+    // base del espacio personal del usuario. Moverla la desanclaría y la app
+    // recrearía otra vacía.
+    if (folder.parentFolderId === null && folder.ownerUserId !== null) {
+      return { ok: false, error: "No podés mover tu carpeta personal." };
+    }
+
     // Validar no-cycle: si newParentFolderId es descendiente de folderId,
     // estaríamos creando un ciclo.
     if (newParentFolderId) {
@@ -450,6 +584,8 @@ export async function moveFolder(
     let newParentPath = "/";
     let newCaseId: string | null = null;
     let newClientId: string | null = null;
+    // Dueño del espacio destino: el del parent, o null si va a la raíz.
+    let destOwnerUserId: string | null = null;
     if (newParentFolderId) {
       const [parent] = await tx
         .select()
@@ -460,10 +596,23 @@ export async function moveFolder(
       newParentPath = parent.path === "/" ? `/${parent.name}` : `${parent.path}/${parent.name}`;
       newCaseId = parent.caseId;
       newClientId = parent.clientId;
+      destOwnerUserId = parent.ownerUserId;
     } else {
       // Mover a raíz: heredamos el scope original del folder.
       newCaseId = folder.caseId;
       newClientId = folder.clientId;
+    }
+
+    // No permitir mover carpetas ENTRE espacios (personal ↔ compartido): el
+    // owner de una carpeta debe coincidir con el de su raíz de espacio, y un
+    // cruce expondría documentos personales al equipo (o escondería docs
+    // compartidos dentro de un espacio personal). Ambos extremos deben tener
+    // el mismo dueño (ambos null, o ambos el mismo usuario).
+    if ((folder.ownerUserId ?? null) !== (destOwnerUserId ?? null)) {
+      return {
+        ok: false,
+        error: "No podés mover carpetas entre tu espacio personal y las carpetas compartidas.",
+      };
     }
 
     // Update del folder principal.

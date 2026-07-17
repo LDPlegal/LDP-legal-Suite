@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Trash2, Upload } from "lucide-react";
+import { Library, Lock, Search, Trash2, Upload, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WithTooltip } from "@/components/ui/icon-button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,8 @@ import {
 import { requireUser } from "@/lib/auth/session";
 import { listAllDocuments } from "@/lib/db/queries/documents";
 import {
+  ensureLibraryRootFolder,
+  ensurePersonalRootFolder,
   getFolderBreadcrumb,
   getFolderById,
   listDocumentsInFolder,
@@ -60,6 +62,18 @@ export default async function DocumentosPage({
 
   // Modo carpetas (default): leemos folderId del query string. null = raíz.
   const scope = { kind: "firm" as const };
+
+  // En la raíz del explorador aseguramos los dos "espacios": la carpeta
+  // personal del usuario (privada, migración 0035) y la biblioteca compartida
+  // de la firma. Idempotente — los usuarios/firmas nuevos las obtienen acá.
+  const atRoot = !isSearchMode && folderId === null;
+  const [personalRoot, libraryRoot] = atRoot
+    ? await Promise.all([
+        ensurePersonalRootFolder(user.firmId, user.userId),
+        ensureLibraryRootFolder(user.firmId, user.userId),
+      ])
+    : [null, null];
+
   const [breadcrumb, folderChildren, docsInFolder, searchResults] =
     await Promise.all([
       // Breadcrumb sólo si estamos dentro de una carpeta.
@@ -90,6 +104,16 @@ export default async function DocumentosPage({
   const currentFolder = folderId
     ? await getFolderById(user.firmId, user.userId, folderId)
     : null;
+
+  // En la raíz, los dos espacios se muestran como tarjetas dedicadas, así que
+  // los sacamos del listado del explorador para no duplicarlos. Las demás
+  // carpetas firm-wide (heredadas) sí se listan abajo.
+  const specialRootIds = new Set(
+    [personalRoot?.id, libraryRoot?.id].filter((v): v is string => Boolean(v)),
+  );
+  const browserFolders = atRoot
+    ? folderChildren.filter((f) => !specialRootIds.has(f.id))
+    : folderChildren;
 
   return (
     <div className="space-y-6">
@@ -262,10 +286,46 @@ export default async function DocumentosPage({
           .
         </Card>
       ) : (
-        <FolderBrowser
-          basePath="/documentos"
-          breadcrumb={breadcrumb.map((b) => ({ id: b.id, name: b.name }))}
-          folders={folderChildren.map((f) => ({ id: f.id, name: f.name }))}
+        <div className="space-y-6">
+          {atRoot && personalRoot && libraryRoot ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                href={`/documentos?folder=${personalRoot.id}`}
+                className="group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
+              >
+                <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <User className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    Mi carpeta
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    Privada — solo vos ves lo que guardás acá.
+                  </span>
+                </span>
+              </Link>
+              <Link
+                href={`/documentos?folder=${libraryRoot.id}`}
+                className="group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
+              >
+                <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Library className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-medium">Biblioteca</span>
+                  <span className="block text-sm text-muted-foreground">
+                    Compartida — leyes, libros y plantillas para toda la firma.
+                  </span>
+                </span>
+              </Link>
+            </div>
+          ) : null}
+          <FolderBrowser
+            basePath="/documentos"
+            breadcrumb={breadcrumb.map((b) => ({ id: b.id, name: b.name }))}
+            folders={browserFolders.map((f) => ({ id: f.id, name: f.name }))}
           documents={docsInFolder.map((d) => ({
             id: d.id,
             name: d.name,
@@ -279,10 +339,11 @@ export default async function DocumentosPage({
             caseId: d.caseId,
             clientId: d.clientId,
           }))}
-          aiEnabled={isAiEnabled()}
-          scope={scope}
-          currentFolderId={folderId}
-        />
+            aiEnabled={isAiEnabled()}
+            scope={scope}
+            currentFolderId={folderId}
+          />
+        </div>
       )}
     </div>
   );

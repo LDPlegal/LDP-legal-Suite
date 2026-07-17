@@ -1038,6 +1038,10 @@ export const folders = pgTable(
     // case_id NULL y client_id NULL → carpeta global del firm.
     caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    // Dueño de una carpeta PERSONAL (migración 0035). NULL = carpeta
+    // compartida (biblioteca de la firma, o carpetas de caso/cliente). Set =
+    // carpeta privada: solo su dueño la ve/edita, hecho cumplir por RLS.
+    ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     parentFolderId: uuid("parent_folder_id"), // self-FK, declarada en SQL para evitar circularidad
     name: text("name").notNull(),
     // Path materializada — "/Demandas/2026/Caso-X". Se reconstruye al mover.
@@ -1053,6 +1057,9 @@ export const folders = pgTable(
     index("folders_firm_parent_idx").on(t.firmId, t.parentFolderId),
     index("folders_firm_case_idx").on(t.firmId, t.caseId),
     index("folders_firm_client_idx").on(t.firmId, t.clientId),
+    index("folders_firm_owner_idx")
+      .on(t.firmId, t.ownerUserId)
+      .where(sql`${t.deletedAt} IS NULL`),
     // Unicidad: dentro del mismo parent (o raíz) no puede haber dos carpetas
     // con el mismo nombre (case-sensitive). Se enforza en SQL con índice
     // único parcial considerando NULL en parent_folder_id como root.

@@ -29,9 +29,7 @@
 > Una fila por mejora activa. Al terminar, borrá tu fila y pasá el resumen a la
 > Bitácora. Si una fila lleva días sin avanzar, asumila libre.
 
-| Desde | Cuenta / sesión | Mejora en curso | Archivos/área |
-|-------|-----------------|-----------------|---------------|
-| 2026-07-16 | Claude (cuenta principal) | **Repositorio documental — Fase 1: carpetas personales por miembro + biblioteca general de la firma** (sin OCR de libros grandes; todo in-house/sin costo). Migración `0035`. | `folders` (col `owner_user_id` + RLS), `documents` (RLS folder-owner), `lib/db/queries` de folders/docs, acciones y UI de `/documentos` |
+| _(libre)_ | | | |
 
 ---
 
@@ -66,7 +64,7 @@ Gestión de casos/expedientes, clientes, documentos, tiempos, gastos, facturaci�
    `drizzle/migrations/meta/_journal.json` (idx, when incremental, tag).
    Separá sentencias con `--> statement-breakpoint`. Toda tabla con `firm_id`
    habilita RLS con política `<tabla>_firm_isolation` (ver 0018 como ejemplo).
-   **Próxima migración: `0035`** (la última es `0034_user_preferences`).
+   **Próxima migración: `0036`** (la última es `0035_personal_folders`).
 4. **Deploy = migración**: `vercel.json` tiene
    `buildCommand: "pnpm run db:migrate:deploy && pnpm run build"`. Es decir,
    **cada deploy aplica automáticamente las migraciones pendientes a Neon**
@@ -95,6 +93,16 @@ del código; los tests de integración dependen de que el seed haya corrido.
 
 ## Estado de features
 
+- ✅ **Repositorio documental — carpetas personales + biblioteca (Fase 1)** — cada
+  usuario tiene una carpeta **personal privada** ("Mi carpeta", `folders.owner_user_id`
+  = él) y la firma una **biblioteca compartida** ("Biblioteca", owner NULL). La
+  privacidad la hace cumplir la **RLS** (policy `folders_firm_visibility` con cláusula
+  de owner + helper `app_folder_owner` en la policy de `documents`): nadie ve la carpeta
+  personal de otro, ni sus documentos (aunque el doc tenga `visibility='case'`), ni puede
+  escribir en ella. En `/documentos` la raíz muestra ambos espacios como tarjetas; lo
+  personal = lo que vive dentro de "Mi carpeta" (owner heredado en `createFolder`).
+  `ensurePersonalRootFolder`/`ensureLibraryRootFolder` las autocrean (idempotente).
+  Migración `0035`. **Falta desplegar.** (Sin RAG/OCR de libros — eso es fase futura.)
 - ✅ **Expedientes vinculados (casos hijos)** — un caso puede contener expedientes vinculados (`parent_case_id`,
   código derivado `PADRE-NN`). Tab "Expedientes vinculados" en el detalle, badges en listas,
   guards de archivar/restaurar. Migración `0032`. **En producción.**
@@ -119,6 +127,47 @@ del código; los tests de integración dependen de que el seed haya corrido.
 ---
 
 ## Bitácora de sesiones
+
+### 2026-07-16 — Repositorio documental Fase 1: carpetas personales + biblioteca (migración `0035`)
+- **Qué pidió el jefe**: un lugar para subir libros PDF / docs de casos / material de la
+  firma, con **una carpeta por cada uno de los 5 miembros** y una **biblioteca general**.
+  Se acordó hacerlo **in-house/sin costo** y SIN el OCR de libros grandes (esa parte, y el
+  RAG, quedan para una fase futura — ver el artifact del plan por fases).
+- **Decisión build-vs-buy**: extender LDP Legal Suite (ya tiene documentos, carpetas,
+  storage R2, RLS). No se montó nada nuevo ni servicio externo.
+- **Modelo**: se agregó `folders.owner_user_id` (migración `0035_personal_folders`).
+  NULL = carpeta compartida (biblioteca / caso / cliente, comportamiento previo intacto).
+  Set = carpeta personal privada. **La RLS hace cumplir la privacidad** (no es solo un
+  filtro de query): policy `folders_firm_visibility` recreada con `(owner IS NULL OR
+  owner = app.user_id)`, y policy `documents_firm_case_visibility` recreada con una
+  cláusula que usa el helper nuevo `app_folder_owner(uuid)` (SECURITY DEFINER) para que
+  un documento dentro de una carpeta personal solo lo vea/escriba su dueño — aunque el
+  doc tenga `visibility='case'`. Índices: `folders_firm_owner_idx`,
+  `folders_personal_root_unique` (1 carpeta personal raíz por usuario),
+  `folders_firmwide_root_unique` (evita biblioteca duplicada). Seed idempotente de
+  "Mi carpeta" por usuario staff + "Biblioteca" por firma.
+- **Invariante clave**: el owner de una carpeta = el de su raíz de espacio. Se hace
+  cumplir en `lib/db/queries/folders.ts`: `createFolder` **hereda `ownerUserId` del
+  padre** (sin esto, una subcarpeta de "Mi carpeta" quedaría compartida → fuga);
+  `moveFolder` bloquea mover la carpeta personal raíz y mover carpetas ENTRE espacios
+  (personal↔compartido); `softDeleteFolder` ahora reubica los documentos en la carpeta
+  **padre** en vez de la raíz de la firma (antes: `folder_id=NULL` → habría filtrado los
+  docs personales a toda la firma). Nuevas funciones `ensurePersonalRootFolder` /
+  `ensureLibraryRootFolder` (idempotentes con `ON CONFLICT`, cubren usuarios/firmas nuevos
+  sin tocar el signup).
+- **UI**: `/documentos` en la raíz muestra dos tarjetas de espacio — "Mi carpeta"
+  (privada) y "Biblioteca" (compartida) — y las excluye del listado del explorador para
+  no duplicarlas. Dentro de un espacio, el FolderBrowser normal. No se tocó el
+  FolderBrowser (bajo riesgo).
+- **Verificado**: typecheck ✓; `next build` ✓; migración `0035` aplica limpio en local
+  (columna, 3 índices, helper, 2 policies, seed) ✓; **test de RLS con dos usuarios**
+  (script ad-hoc como rol `app_user`): A ve su carpeta y la Biblioteca pero NO la de B,
+  el doc personal de A (con `visibility='case'`) queda oculto para B, y B no puede
+  escribir en la carpeta de A (WITH CHECK) — 10/10 asserts ✓; navegador: las dos tarjetas
+  renderizan y la navegación al espacio funciona (breadcrumb) ✓. Warning benigno de `pg`
+  (query concurrente) preexistente, no bloquea.
+- **Pendiente**: desplegar (push → Vercel aplica `0035` en el build). Fases futuras:
+  OCR de libros grandes y RAG in-house (ver artifact del plan).
 
 ### 2026-07-14 (tarde) — IA RESUELTA: era una API key vieja de una org deshabilitada
 - **Resolución del caso de arriba.** Revisando console.anthropic.com (vía la extensión
