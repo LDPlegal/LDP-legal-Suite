@@ -55,6 +55,7 @@ import { UploadDropZone } from "./upload-drop-zone";
 import { DocumentActionsMenu } from "@/app/(app)/casos/[id]/_components/document-actions-menu";
 import { ShareFolderButton } from "./share-folder-button";
 import { RenameFolderDialog } from "./rename-folder-dialog";
+import { NewFolderDialog } from "./new-folder-dialog";
 import { BulkActionsBar } from "./bulk-actions-bar";
 import { IconButton, WithTooltip } from "@/components/ui/icon-button";
 import { formatBytes, OCR_STATUS_LABEL } from "@/lib/documents/format";
@@ -278,7 +279,10 @@ export function FolderBrowser({
               );
             })}
           </nav>
-          <ViewToggle view={view} onChange={changeView} />
+          <div className="flex items-center gap-2">
+            <NewFolderDialog parentFolderId={currentFolderId} scope={scope} />
+            <ViewToggle view={view} onChange={changeView} />
+          </div>
         </div>
 
         {/* Carpetas */}
@@ -344,7 +348,7 @@ export function FolderBrowser({
           {documents.length === 0 ? (
             <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
               {folders.length === 0
-                ? "Carpeta vacía. Arrastrá archivos abajo o creá una sub-carpeta."
+                ? 'Carpeta vacía. Arrastrá archivos a la zona de abajo, o usá el botón "Nueva carpeta" (arriba a la derecha) para crear una sub-carpeta.'
                 : "Sin documentos en este nivel. Hay sub-carpetas arriba."}
             </p>
           ) : isGrid ? (

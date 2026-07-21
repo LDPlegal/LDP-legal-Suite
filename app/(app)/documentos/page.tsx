@@ -28,7 +28,6 @@ import { DocumentGlobalRow } from "./_components/document-global-row";
 import { DocumentUploadGlobalDrawer } from "./_components/document-upload-global-drawer";
 import { ReprocessAllButton } from "./_components/reprocess-buttons";
 import { FolderBrowser } from "./_components/folder-browser";
-import { NewFolderDialog } from "./_components/new-folder-dialog";
 import { UploadFolderButton } from "./_components/upload-folder-button";
 import { PaginationStrip } from "./_components/pagination-strip";
 
@@ -142,10 +141,7 @@ export default async function DocumentosPage({
         </WithTooltip>
         <ReprocessAllButton />
         {!isSearchMode ? (
-          <>
-            <NewFolderDialog parentFolderId={folderId} scope={scope} />
-            <UploadFolderButton parentFolderId={folderId} scope={scope} />
-          </>
+          <UploadFolderButton parentFolderId={folderId} scope={scope} />
         ) : null}
         <DocumentUploadGlobalDrawer
           folderId={folderId}
