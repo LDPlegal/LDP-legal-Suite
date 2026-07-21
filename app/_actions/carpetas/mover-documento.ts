@@ -23,13 +23,15 @@ export async function moverDocumentoAction(input: {
   const parsed = Schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
 
-  const ok = await moveDocumentToFolder(
+  const result = await moveDocumentToFolder(
     user.firmId,
     user.userId,
     parsed.data.documentId,
     parsed.data.folderId,
   );
-  if (!ok) return { ok: false, error: "Documento no encontrado." };
+  if (!result.ok) {
+    return { ok: false, error: result.error ?? "No se pudo mover el documento." };
+  }
 
   revalidatePath("/documentos");
   return { ok: true };

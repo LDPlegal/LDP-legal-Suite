@@ -102,7 +102,10 @@ del código; los tests de integración dependen de que el seed haya corrido.
   escribir en ella. En `/documentos` la raíz muestra ambos espacios como tarjetas; lo
   personal = lo que vive dentro de "Mi carpeta" (owner heredado en `createFolder`).
   `ensurePersonalRootFolder`/`ensureLibraryRootFolder` las autocrean (idempotente).
-  Migración `0035`. **Falta desplegar.** (Sin RAG/OCR de libros — eso es fase futura.)
+  Endurecido: `moveDocumentToFolder` bloquea mover un documento de un caso a una
+  carpeta personal (evita "esconder" del equipo); aviso de contexto en la UI
+  (privada vs compartida). Migración `0035`. **En producción.** (Sin RAG/OCR de
+  libros — eso es fase futura.)
 - ✅ **Expedientes vinculados (casos hijos)** — un caso puede contener expedientes vinculados (`parent_case_id`,
   código derivado `PADRE-NN`). Tab "Expedientes vinculados" en el detalle, badges en listas,
   guards de archivar/restaurar. Migración `0032`. **En producción.**
@@ -166,8 +169,17 @@ del código; los tests de integración dependen de que el seed haya corrido.
   escribir en la carpeta de A (WITH CHECK) — 10/10 asserts ✓; navegador: las dos tarjetas
   renderizan y la navegación al espacio funciona (breadcrumb) ✓. Warning benigno de `pg`
   (query concurrente) preexistente, no bloquea.
-- **Pendiente**: desplegar (push → Vercel aplica `0035` en el build). Fases futuras:
-  OCR de libros grandes y RAG in-house (ver artifact del plan).
+- **Endurecimiento (mismo día, commit siguiente)**: `moveDocumentToFolder` ahora
+  devuelve `{ok, error?}` y **bloquea mover un documento con `case_id` a una carpeta
+  personal** (se detacharía del equipo; el usuario debe subir una copia). Se actualizaron
+  los dos callers (`mover-documento.ts`, `bulk.ts`). Aviso de contexto en `/documentos`
+  al entrar a un espacio ("carpeta personal — privada" vs "espacio compartido"). Verificado
+  con tsx contra la BD: doc suelto → carpeta personal OK, doc de caso → bloqueado con
+  mensaje, y **regresión** de que la policy de `documents` no sobre-restringe (doc de caso
+  sigue visible bajo RLS). typecheck ✓, build ✓.
+- **Desplegado**: commit `587f3da` (core) + endurecimiento. Vercel aplicó `0035` en el
+  build (deploy Ready; `/documentos` responde). Fases futuras: OCR de libros grandes y
+  RAG in-house (ver artifact del plan).
 
 ### 2026-07-14 (tarde) — IA RESUELTA: era una API key vieja de una org deshabilitada
 - **Resolución del caso de arriba.** Revisando console.anthropic.com (vía la extensión

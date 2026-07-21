@@ -63,14 +63,17 @@ export async function moverItemsBulkAction(input: {
       }
     }
     for (const did of documentIds) {
-      const ok = await moveDocumentToFolder(
+      const r = await moveDocumentToFolder(
         user.firmId,
         user.userId,
         did,
         targetFolderId,
       );
-      if (ok) moved += 1;
-      else failed += 1;
+      if (r.ok) moved += 1;
+      else {
+        failed += 1;
+        if (r.error && !errors.includes(r.error)) errors.push(r.error);
+      }
     }
 
     revalidatePath("/documentos");

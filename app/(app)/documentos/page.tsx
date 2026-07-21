@@ -322,6 +322,27 @@ export default async function DocumentosPage({
               </Link>
             </div>
           ) : null}
+          {!atRoot && currentFolder ? (
+            <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {currentFolder.ownerUserId === user.userId ? (
+                <>
+                  <Lock className="h-4 w-4 flex-none text-primary" />
+                  <span>
+                    Estás en tu <strong className="font-medium text-foreground">carpeta personal</strong> — privada.
+                    Solo vos ves lo que guardás acá.
+                  </span>
+                </>
+              ) : currentFolder.ownerUserId === null ? (
+                <>
+                  <Library className="h-4 w-4 flex-none text-primary" />
+                  <span>
+                    Estás en un <strong className="font-medium text-foreground">espacio compartido</strong> —
+                    visible para toda la firma.
+                  </span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
           <FolderBrowser
             basePath="/documentos"
             breadcrumb={breadcrumb.map((b) => ({ id: b.id, name: b.name }))}

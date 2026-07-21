@@ -449,20 +449,49 @@ export async function softDeleteFolder(
 
 /**
  * Mueve un documento a una carpeta. folder=null lo deja en la raíz.
+ *
+ * Regla (migración 0035): un documento que pertenece a un CASO no puede
+ * moverse a una carpeta PERSONAL — se detacharía del equipo del caso y
+ * quedaría oculto para el resto. Si alguien quiere una versión privada, que
+ * suba una copia a su carpeta personal. Documentos sueltos (sin caso) sí
+ * pueden ir a carpetas personales.
  */
 export async function moveDocumentToFolder(
   firmId: string,
   userId: string,
   documentId: string,
   folderId: string | null,
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: string }> {
   return withFirm(firmId, userId, async (tx) => {
+    const [doc] = await tx
+      .select({ id: documents.id, caseId: documents.caseId })
+      .from(documents)
+      .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
+      .limit(1);
+    if (!doc) return { ok: false, error: "Documento no encontrado." };
+
+    if (folderId) {
+      const [dest] = await tx
+        .select({ ownerUserId: folders.ownerUserId })
+        .from(folders)
+        .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)))
+        .limit(1);
+      if (!dest) return { ok: false, error: "La carpeta destino no existe." };
+      if (dest.ownerUserId !== null && doc.caseId !== null) {
+        return {
+          ok: false,
+          error:
+            "No podés mover un documento de un caso a una carpeta personal. Si necesitás una versión privada, subí una copia.",
+        };
+      }
+    }
+
     const [row] = await tx
       .update(documents)
       .set({ folderId, updatedAt: new Date() })
       .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
       .returning({ id: documents.id });
-    return !!row;
+    return row ? { ok: true } : { ok: false, error: "Documento no encontrado." };
   });
 }
 
