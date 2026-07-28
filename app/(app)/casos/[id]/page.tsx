@@ -46,7 +46,6 @@ import { DocumentUploadDrawer } from "./_components/document-upload-drawer";
 import { CaseDocumentsSection } from "./_components/case-documents-section";
 import { CaseFolderBrowser } from "./_components/case-folder-browser";
 import { CaseDocumentsView } from "./_components/case-documents-view";
-import { NewFolderDialog } from "@/app/(app)/documentos/_components/new-folder-dialog";
 import { UploadFolderButton } from "@/app/(app)/documentos/_components/upload-folder-button";
 import { NoteFormDrawer } from "./_components/note-form-drawer";
 import { NoteCard } from "./_components/note-card";
@@ -1001,7 +1000,6 @@ export default async function CasoDetailPage({
                             </Button>
                           }
                         />
-                        <NewFolderDialog parentFolderId={folderId} scope={folderScope} />
                         <UploadFolderButton parentFolderId={folderId} scope={folderScope} />
                       </>
                     }

@@ -67,6 +67,7 @@ export type FolderListItem = {
   id: string;
   name: string;
   documentCount?: number;
+  isPersonal?: boolean;
 };
 
 export type DocumentListItem = {
@@ -489,7 +490,9 @@ function FolderActions({
   return (
     <>
       <RenameFolderDialog folderId={folder.id} currentName={folder.name} />
-      <ShareFolderButton folderId={folder.id} folderName={folder.name} />
+      {!folder.isPersonal ? (
+        <ShareFolderButton folderId={folder.id} folderName={folder.name} />
+      ) : null}
       <MoveToDialog
         itemKind="folder"
         itemId={folder.id}

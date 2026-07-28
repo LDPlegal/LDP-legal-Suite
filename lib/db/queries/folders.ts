@@ -464,7 +464,7 @@ export async function moveDocumentToFolder(
 ): Promise<{ ok: boolean; error?: string }> {
   return withFirm(firmId, userId, async (tx) => {
     const [doc] = await tx
-      .select({ id: documents.id, caseId: documents.caseId })
+      .select({ id: documents.id, caseId: documents.caseId, folderId: documents.folderId })
       .from(documents)
       .where(and(eq(documents.id, documentId), isNull(documents.deletedAt)))
       .limit(1);
@@ -477,12 +477,25 @@ export async function moveDocumentToFolder(
         .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)))
         .limit(1);
       if (!dest) return { ok: false, error: "La carpeta destino no existe." };
-      if (dest.ownerUserId !== null && doc.caseId !== null) {
-        return {
-          ok: false,
-          error:
-            "No podés mover un documento de un caso a una carpeta personal. Si necesitás una versión privada, subí una copia.",
-        };
+
+      if (dest.ownerUserId !== null) {
+        let sourceIsPersonal = false;
+        if (doc.folderId) {
+          const [src] = await tx
+            .select({ ownerUserId: folders.ownerUserId })
+            .from(folders)
+            .where(eq(folders.id, doc.folderId))
+            .limit(1);
+          sourceIsPersonal = src?.ownerUserId === dest.ownerUserId;
+        }
+        if (!sourceIsPersonal) {
+          return {
+            ok: false,
+            error: doc.caseId
+              ? "No podés mover un documento de un caso a una carpeta personal. Si necesitás una versión privada, subí una copia."
+              : "No podés mover un documento compartido a una carpeta personal. Subí una copia nueva en su lugar.",
+          };
+        }
       }
     }
 

@@ -44,8 +44,7 @@ export async function eliminarCarpetaAction(formData: FormData): Promise<void> {
 
     // Revalidamos los paths donde la carpeta podría haber estado visible.
     revalidatePath("/documentos");
-    // No sabemos a qué caso/cliente pertenecía sin otra query, pero el
-    // listado global se refresca.
+    revalidatePath("/casos", "layout");
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[eliminarCarpetaAction] uncaught:", msg);

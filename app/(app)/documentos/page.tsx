@@ -342,7 +342,7 @@ export default async function DocumentosPage({
           <FolderBrowser
             basePath="/documentos"
             breadcrumb={breadcrumb.map((b) => ({ id: b.id, name: b.name }))}
-            folders={browserFolders.map((f) => ({ id: f.id, name: f.name }))}
+            folders={browserFolders.map((f) => ({ id: f.id, name: f.name, isPersonal: f.ownerUserId !== null }))}
           documents={docsInFolder.map((d) => ({
             id: d.id,
             name: d.name,
