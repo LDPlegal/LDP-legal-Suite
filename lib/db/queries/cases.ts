@@ -528,4 +528,33 @@ export async function setCaseAssignments(
   });
 }
 
+export async function setCaseConfidentialTier(
+  firmId: string,
+  userId: string,
+  caseId: string,
+  tier: "normal" | "confidential" | "ultra_confidential",
+): Promise<{ id: string; code: string; title: string; previousTier: string } | null> {
+  return withFirm(firmId, userId, async (tx) => {
+    const [caso] = await tx
+      .select({
+        id: cases.id,
+        currentTier: cases.confidentialTier,
+        code: cases.code,
+        title: cases.title,
+      })
+      .from(cases)
+      .where(eq(cases.id, caseId))
+      .limit(1);
+    if (!caso) return null;
+    if (caso.currentTier === tier) return { id: caso.id, code: caso.code, title: caso.title, previousTier: tier };
+
+    await tx
+      .update(cases)
+      .set({ confidentialTier: tier, updatedAt: new Date() })
+      .where(eq(cases.id, caseId));
+
+    return { id: caso.id, code: caso.code, title: caso.title, previousTier: caso.currentTier };
+  });
+}
+
 export const matterPrefix = MATTER_PREFIX;
