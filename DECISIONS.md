@@ -508,7 +508,7 @@ Documentar qué se posterga conscientemente para no reabrir la conversación:
 
 # Fase 2 — Documentos · Notas · Facturación · OCR
 
-Decisiones específicas tomadas durante la Fase 2 (commit en `claude/awesome-montalcini-809449`).
+Decisiones específicas tomadas durante la Fase 2.
 Tests de visibilidad en `tests/integration/fase2-rls.test.ts` (8/8).
 
 ## F2.1 — Cascada de visibilidad para tablas hijas de cases (igual que Fase 1)
