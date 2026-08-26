@@ -210,7 +210,6 @@ Ver `drizzle/migrations/0023_case_fees.sql` como ejemplo del estilo
 ## Punteros
 
 - [BRIEF de ejecución](./BRIEF%20final.md) — los 11 pasos con verificaciones y trampas.
-- [Documento maestro](./prompt-claude-code-ldp-legal-suite_final.md) — alcance, modelo, fases.
 - [DECISIONS.md](./DECISIONS.md) — las 7 decisiones del § 9 implementadas + 5 excepciones documentadas.
 
 ---
