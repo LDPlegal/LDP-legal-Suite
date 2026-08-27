@@ -283,40 +283,24 @@ export default async function DocumentosPage({
         </Card>
       ) : (
         <div className="space-y-6">
-          {atRoot && personalRoot && libraryRoot ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Link
-                href={`/documentos?folder=${personalRoot.id}`}
-                className="group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
-              >
-                <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <User className="h-5 w-5" />
+          {atRoot && personalRoot ? (
+            <Link
+              href={`/documentos?folder=${personalRoot.id}`}
+              className="group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent sm:max-w-sm"
+            >
+              <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
+                <User className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 font-medium">
+                  Mi carpeta
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                 </span>
-                <span className="min-w-0">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    Mi carpeta
-                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                  </span>
-                  <span className="block text-sm text-muted-foreground">
-                    Privada — solo vos ves lo que guardás acá.
-                  </span>
+                <span className="block text-sm text-muted-foreground">
+                  Privada — solo vos ves lo que guardás acá.
                 </span>
-              </Link>
-              <Link
-                href={`/documentos?folder=${libraryRoot.id}`}
-                className="group flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent"
-              >
-                <span className="mt-0.5 flex h-10 w-10 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Library className="h-5 w-5" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-medium">Biblioteca</span>
-                  <span className="block text-sm text-muted-foreground">
-                    Compartida — leyes, libros y plantillas para toda la firma.
-                  </span>
-                </span>
-              </Link>
-            </div>
+              </span>
+            </Link>
           ) : null}
           {!atRoot && currentFolder ? (
             <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
