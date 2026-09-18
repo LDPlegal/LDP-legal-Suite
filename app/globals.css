@@ -544,3 +544,99 @@
 .fc {
   max-width: 100%;
 }
+
+/* =============================================================================
+   FullCalendar — paleta del rediseño (handoff 3i)
+   ============================================================================= */
+
+/* Cabeceras de día: microetiqueta sobre superficie alterna. */
+.fc .fc-col-header-cell {
+  background: var(--color-surface-alt);
+  border-color: var(--color-line);
+}
+.fc .fc-col-header-cell-cushion {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-4);
+  text-decoration: none;
+}
+
+/* "Hoy" — el amarillo por defecto de FullCalendar no pertenece a la paleta.
+   Se reemplaza por el azul tenue de selección. */
+.fc .fc-day-today {
+  background: var(--action-soft2) !important;
+}
+.fc .fc-col-header-cell.fc-day-today {
+  background: var(--color-brand-700) !important;
+}
+.fc .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: #fff;
+}
+
+.fc .fc-daygrid-day-number {
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--color-text-2);
+  text-decoration: none;
+}
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--color-text-5);
+}
+
+.fc .fc-scrollgrid,
+.fc td,
+.fc th {
+  border-color: var(--color-line);
+}
+
+/* Eventos: bloques con borde izquierdo de 3px, sin radio.
+   Audiencias y plazos en rojo de alerta; el resto en azul de acción.
+   El color real lo asigna el componente vía backgroundColor/borderColor. */
+.fc .fc-daygrid-event,
+.fc .fc-timegrid-event {
+  border-radius: 0;
+  border: none;
+  border-left: 3px solid var(--action);
+  background: var(--action-soft2);
+  color: var(--color-text);
+  padding: 2px 5px;
+  font-size: 11.5px;
+  box-shadow: none;
+}
+
+/* Botones del toolbar — planos, sin radio ni sombra. */
+.fc .fc-button,
+.fc .fc-button-primary {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  color: var(--color-text-2);
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-transform: none;
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+}
+.fc .fc-button-primary:not(:disabled):hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--color-brand-700);
+  border-color: var(--color-brand-700);
+  color: #fff;
+}
+.fc .fc-button-primary:focus,
+.fc .fc-button-primary:not(:disabled).fc-button-active:focus {
+  box-shadow: none;
+}
+
+/* Título del mes en Charter. */
+.fc .fc-toolbar-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  color: var(--color-ink);
+}
