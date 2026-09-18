@@ -5,28 +5,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Login — handoff 3b. Sin citas ni texto de marketing: titular "Acceder",
 // el formulario, y la nota de acceso restringido al pie.
+//
+// El enlace "¿Olvidó su contraseña?" vive dentro del formulario, en línea
+// con la etiqueta CONTRASEÑA, tal como el diseño.
 export default function LoginPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-[28px] leading-tight">Acceder</h1>
+    <div className="flex flex-col gap-[26px]">
+      <h1 className="text-[29px] leading-tight">Acceder</h1>
 
-      <Suspense fallback={<Skeleton className="h-44 w-full" />}>
+      <Suspense fallback={<Skeleton className="h-52 w-full" />}>
         <LoginForm />
       </Suspense>
 
-      <div className="space-y-3 text-center">
-        <p className="text-[13px]">
-          <Link
-            href="/forgot-password"
-            className="text-[#0F4C81] underline-offset-4 transition-colors hover:text-[#0A3A63] hover:underline"
-          >
-            ¿Olvidó su contraseña?
-          </Link>
-        </p>
-        <p className="text-[12.5px] text-[#8E8F89]">
+      <div className="space-y-2">
+        <p className="text-[12px] text-[#9C9D96]">
           Acceso restringido al personal de la firma.
         </p>
-        <p className="text-[12.5px] text-[#8E8F89]">
+        <p className="text-[12px] text-[#9C9D96]">
           ¿No tienes una firma registrada?{" "}
           <Link
             href="/signup"

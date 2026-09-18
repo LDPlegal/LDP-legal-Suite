@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Icon } from "@/components/ui/icon";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SignInSchema } from "@/lib/schemas/auth";
@@ -15,6 +17,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   // useRef da un guard SINCRÓNICO. useState es asíncrono — entre múltiples
   // submits rápidos (Enter spam, doble click) el react schedule no aplica
   // setPending(true) entre uno y otro y se disparan N requests al server.
@@ -85,28 +88,48 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="password" className="microlabel">
-          Contraseña
-        </Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          className="h-auto py-[11px]"
-        />
+        {/* El enlace de recuperación va en línea con la etiqueta, alineado
+            a la derecha por baseline (diseño 3b). */}
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password" className="microlabel">
+            Contraseña
+          </Label>
+          <Link
+            href="/forgot-password"
+            className="text-[12.5px] text-[#0F4C81] underline-offset-4 transition-colors hover:text-[#0A3A63] hover:underline"
+          >
+            ¿Olvidó su contraseña?
+          </Link>
+        </div>
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            className="h-auto py-[11px] pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center text-[#8E8F89] transition-colors hover:text-[#3D4038]"
+          >
+            <Icon name={showPassword ? "visibility_off" : "visibility"} size={19} />
+          </button>
+        </div>
       </div>
-      <label className="flex items-center gap-2 text-[13px] text-[#3D4038]">
+      <label className="flex items-center gap-[9px] text-[13px] text-[#3D4038]">
         <input
           type="checkbox"
           name="rememberMe"
           defaultChecked
-          className="h-[15px] w-[15px] rounded-none border-[#C9CCC5] accent-[#0B2239]"
+          className="h-[15px] w-[15px] flex-none rounded-none border border-[#9FA39B] accent-[#0B2239]"
         />
         Mantener la sesión abierta
       </label>
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="h-auto w-full py-[13px]" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : null}
         Entrar
       </Button>

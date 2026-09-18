@@ -5,17 +5,20 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   LDP Legal Suite — Liquid Glass Design System
+   LDP Legal Suite — Sistema visual (rediseño 2026)
    =============================================================================
-   Brand: LDP navy (#0F4C81 → #1E6FBA) con acento teal (#14B8A6).
+   Referencia: design_handoff_rediseno_visual.
    Filosofía:
-     - Superficies translúcidas con backdrop-blur (vidrio líquido).
-     - Profundidad por capas (shadows soft + glass tinting).
-     - Tipografía generosa (Inter con jerarquía clara).
-     - Animaciones sutiles (no decorativas — funcionales).
-     - Bordes con luz catch (1px gradient en cards y botones).
-     - Modo claro: ambiente blanco con tinte azul muy sutil.
-     - Modo oscuro: navy profundo con highlights translúcidos.
+     - Superficies planas: blanco sobre lienzo #F4F5F3. Sin translucidez,
+       sin blur, sin sombras, sin gradientes decorativos.
+     - Un solo acento por pantalla: azul de acción #0F4C81. El marino
+       #0B2239 es branding/CTA; el oro #B89254 es exclusivo del asistente.
+     - Tipografía: Charis SIL (titulares, equivalente libre de Charter) +
+       Libre Franklin (interfaz). Cifras con numerales tabulares.
+     - Iconografía: Material Symbols Sharp, FILL 1. Nunca outline, nunca emoji.
+     - Radios de 0 a 4px. Botones CTA sin radio.
+     - Movimiento: solo transiciones de color de 120-150ms. Sin animaciones
+       de entrada ni movimiento decorativo.
    ============================================================================= */
 
 @theme inline {
@@ -382,9 +385,9 @@
 
   /* Microetiqueta: 11-11.5px, 600, tracking .06-.07em, mayúsculas */
   .microlabel {
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
-    letter-spacing: 0.065em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var(--color-text-4);
   }

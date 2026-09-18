@@ -3,13 +3,16 @@ import Image from "next/image";
 
 // Layout de autenticación — handoff 3b.
 //
-// Grid 600px / 1fr: izquierda marino #0B2239 con el monograma sobre oscuro
-// arriba y la foto de los socios abajo, fundida hacia arriba con máscara
-// (no con una capa encima). Derecha: el formulario centrado.
+// Grid 600px / 1fr: izquierda marino #0B2239 con el monograma arriba y la
+// foto de los socios ocupando TODO el espacio restante (flex-1, como en el
+// diseño), fundida hacia arriba con máscara — no con una capa encima.
 //
-// PENDIENTE: la foto final de los socios. El handoff indica pedir los
-// archivos definitivos y servirlos desde public/marketing-photos/. Mientras
-// tanto se usa firma-atlas.jpg, que ya está en el repo.
+// El panel solo aparece desde lg (1024px). Con `md` el panel de 600px fijos
+// dejaba el formulario en ~200px y era inusable entre 768 y 1024px.
+// Debajo de lg el formulario ocupa la pantalla completa.
+//
+// PENDIENTE: la foto final de los socios. El zip del handoff trae los
+// <image-slot> vacíos, así que el archivo definitivo hay que pedirlo.
 const PARTNERS_PHOTO = "/marketing-photos/firma-atlas.jpg";
 
 const PHOTO_MASK =
@@ -17,9 +20,9 @@ const PHOTO_MASK =
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[600px_1fr]">
-      <div className="relative hidden flex-col overflow-hidden bg-[#0B2239] md:flex">
-        <div className="relative z-10 p-10">
+    <div className="grid min-h-screen w-full lg:grid-cols-[minmax(0,600px)_minmax(400px,1fr)]">
+      <div className="hidden flex-col bg-[#0B2239] lg:flex">
+        <div className="flex-none px-11 pb-8 pt-10">
           <Image
             src="/marketing-photos/monogram-onDark.png"
             alt="LDP Legal Advisors"
@@ -30,31 +33,26 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           />
         </div>
 
-        {/* Foto de los socios, fundida hacia arriba con máscara. Es
-            decorativa: ningún texto se apoya sobre la zona visible. */}
-        <div className="relative mt-auto h-[58%] w-full">
-          <div
-            className="absolute inset-0"
-            style={{
-              maskImage: PHOTO_MASK,
-              WebkitMaskImage: PHOTO_MASK,
-            }}
-          >
-            <Image
-              src={PARTNERS_PHOTO}
-              alt=""
-              aria-hidden
-              fill
-              priority
-              sizes="600px"
-              className="object-cover object-top"
-            />
-          </div>
+        {/* La foto llena todo lo que queda bajo el monograma. El fondo
+            #1B3651 es el que se ve donde la máscara la desvanece. */}
+        <div
+          className="relative min-h-0 flex-1 overflow-hidden bg-[#1B3651]"
+          style={{ maskImage: PHOTO_MASK, WebkitMaskImage: PHOTO_MASK }}
+        >
+          <Image
+            src={PARTNERS_PHOTO}
+            alt=""
+            aria-hidden
+            fill
+            priority
+            sizes="600px"
+            className="object-cover object-center"
+          />
         </div>
       </div>
 
       <main className="flex items-center justify-center bg-[#F4F5F3] p-6">
-        <div className="w-full max-w-[392px]">{children}</div>
+        <div className="w-full max-w-[376px]">{children}</div>
       </main>
     </div>
   );
