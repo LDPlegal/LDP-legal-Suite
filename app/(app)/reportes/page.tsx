@@ -37,7 +37,7 @@ import {
 import { isAiEnabled } from "@/lib/ai";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
-import { AgingChart, HoursMonthlyChart } from "./_components/charts";
+import { HoursMonthlyChart } from "./_components/charts";
 import { AlertTriangle, Hourglass, TrendingUp, TrendingDown, Briefcase } from "lucide-react";
 
 export const metadata = { title: "Reportes · LDP Legal Suite" };
@@ -425,19 +425,14 @@ export default async function ReportesPage() {
           </Card>
         </TabsContent>
 
+        {/* Handoff 3p: tablas, no gráficos decorativos. La tabla de
+            antigüedad ya existía acá, así que se retiró el gráfico en vez
+            de duplicar los mismos datos en dos formatos. */}
         <TabsContent value="cobros" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>Pendiente por antigüedad</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgingChart data={agingFull} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalle por bucket</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -532,7 +527,7 @@ export default async function ReportesPage() {
             <CardHeader>
               <CardTitle>Horas por mes (últimos 6)</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <HoursMonthlyChart data={hoursByMonth.map((r) => ({
                 month: r.month,
                 total: r.total_seconds / 3600,

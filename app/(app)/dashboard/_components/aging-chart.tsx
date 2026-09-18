@@ -22,12 +22,14 @@ type AgingBucket = {
   count: number;
 };
 
+// Un solo acento por pantalla: azul de acción para los rangos corrientes
+// y el rojo de alerta reservado a la mora real (+90 días). Sin arcoíris.
 const COLORS: Record<string, { fill: string; stroke: string }> = {
-  current: { fill: "#10B981", stroke: "#059669" },
-  d1_30: { fill: "#3B82F6", stroke: "#2563EB" },
-  d31_60: { fill: "#F59E0B", stroke: "#D97706" },
-  d61_90: { fill: "#F97316", stroke: "#EA580C" },
-  d90_plus: { fill: "#DC2626", stroke: "#B91C1C" },
+  current: { fill: "#C6D2DE", stroke: "#9DB4CC" },
+  d1_30: { fill: "#9DB4CC", stroke: "#6F8FAE" },
+  d31_60: { fill: "#4E7FA8", stroke: "#3A6A92" },
+  d61_90: { fill: "#0F4C81", stroke: "#0A3A63" },
+  d90_plus: { fill: "#B4462E", stroke: "#9A3A25" },
 };
 
 export function AgingChart({ data }: { data: AgingBucket[] }) {
@@ -57,8 +59,9 @@ export function AgingChart({ data }: { data: AgingBucket[] }) {
                 x2="0"
                 y2="1"
               >
-                <stop offset="0%" stopColor={c.fill} stopOpacity={0.95} />
-                <stop offset="100%" stopColor={c.fill} stopOpacity={0.55} />
+                {/* Relleno plano — el handoff no admite gradientes. */}
+                <stop offset="0%" stopColor={c.fill} stopOpacity={1} />
+                <stop offset="100%" stopColor={c.fill} stopOpacity={1} />
               </linearGradient>
             ))}
           </defs>
