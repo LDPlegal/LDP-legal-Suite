@@ -4,7 +4,6 @@
 // colores escalonados (vigente verde → 90+ rojo) y tooltip al hover.
 // Reemplaza la tabla aburrida del dashboard.
 
-import { motion } from "framer-motion";
 import {
   Bar,
   BarChart,
@@ -42,12 +41,7 @@ export function AgingChart({ data }: { data: AgingBucket[] }) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="h-[220px] w-full"
-    >
+    <div className="h-[220px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -112,6 +106,6 @@ export function AgingChart({ data }: { data: AgingBucket[] }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-    </motion.div>
+    </div>
   );
 }

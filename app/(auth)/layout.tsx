@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="grid min-h-screen w-full md:grid-cols-2">
       <div className="hidden flex-col justify-between bg-[var(--color-brand-600)] p-10 text-white md:flex">
         <div className="flex items-center gap-2 text-base font-semibold">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15 backdrop-blur-sm">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15">
             <Scale className="h-4.5 w-4.5" />
           </span>
           LDP Legal Suite

@@ -304,7 +304,7 @@ function TemplateTabs({
   ];
 
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-card backdrop-blur-xl p-3">
+    <div className="space-y-2 rounded-[3px] border border-border bg-card p-3">
       {groups.map((g) => {
         const items = templates.filter((t) => t.kind === g.kind);
         if (items.length === 0) return null;
@@ -364,7 +364,7 @@ function PresetsBar({
 }) {
   const currentPreset = presets.find((p) => p.id === currentPresetId);
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card backdrop-blur-xl p-2.5">
+    <div className="flex flex-wrap items-center gap-2 rounded-[3px] border border-border bg-card p-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         Mis presets
       </p>
@@ -536,7 +536,7 @@ function PreviewFrame({
     <div className="space-y-3">
       <div
         ref={frameRef}
-        className="rounded-2xl border border-border bg-card/40 backdrop-blur-sm p-6"
+        className="rounded-[4px] border border-border bg-card/40 p-6"
       >
         <div
           className="mx-auto overflow-hidden rounded-lg shadow-[0_8px_30px_-8px_rgba(11,25,41,0.30)] ring-1 ring-black/5"
@@ -618,7 +618,7 @@ function TweaksPanel({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-card backdrop-blur-xl p-5">
+    <div className="space-y-4 rounded-[4px] border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

@@ -145,7 +145,7 @@ export function OnboardingChecklist({
       </div>
 
       <div className="mb-4 flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-primary/10">
           <Sparkles className="h-5 w-5 text-primary" />
         </span>
         <div className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export function OnboardingChecklist({
               <Link
                 href={step.href}
                 className={[
-                  "group flex items-center gap-3 rounded-xl border p-3 transition-all",
+                  "group flex items-center gap-3 rounded-[3px] border p-3 transition-all",
                   step.done
                     ? "border-transparent bg-emerald-500/[0.06]"
                     : isNext

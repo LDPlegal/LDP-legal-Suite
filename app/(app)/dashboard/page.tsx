@@ -290,9 +290,9 @@ export default async function DashboardPage() {
                   >
                     <Link
                       href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
-                      className="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
-                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-500/10 to-blue-500/0 dark:border-blue-800/40">
+                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[3px] border border-blue-200/50 bg-gradient-to-br from-blue-500/10 to-blue-500/0 dark:border-blue-800/40">
                         <span className="text-[10px] uppercase font-semibold tracking-wider text-blue-600 dark:text-blue-400">
                           {startAt.toLocaleDateString("es-DO", { month: "short" }).replace(".", "")}
                         </span>
@@ -384,7 +384,7 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={t.id}
-                    className="fade-in-up group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    className="fade-in-up group flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <span
@@ -527,7 +527,7 @@ export default async function DashboardPage() {
                 >
                   <Link
                     href={`/casos/${c.id}`}
-                    className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{c.title}</p>
@@ -584,7 +584,7 @@ export default async function DashboardPage() {
                   <li key={e.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <Link
                       href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
-                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
                       <span className="shrink-0 rounded-lg border border-blue-200/50 bg-blue-500/10 px-2 py-1 font-mono text-xs font-semibold text-blue-600 dark:border-blue-800/40 dark:text-blue-400">
                         {startAt.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}
@@ -644,7 +644,7 @@ export default async function DashboardPage() {
                   <li key={f.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <Link
                       href={`/facturacion/${f.id}`}
-                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
@@ -694,7 +694,7 @@ export default async function DashboardPage() {
               {tareasEquipo.map((t, idx) => (
                 <li
                   key={t.id}
-                  className="fade-in-up flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                  className="fade-in-up flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="min-w-0 flex-1">

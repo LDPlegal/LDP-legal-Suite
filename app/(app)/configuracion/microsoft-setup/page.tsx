@@ -51,7 +51,7 @@ export default async function MicrosoftSetupPage() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-base font-semibold">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-base font-semibold">
               1
             </span>
             <div className="flex-1 space-y-1">
@@ -115,7 +115,7 @@ export default async function MicrosoftSetupPage() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/15 text-blue-700 dark:text-blue-400 text-base font-semibold">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-blue-500/15 text-blue-700 dark:text-blue-400 text-base font-semibold">
               2
             </span>
             <div className="flex-1 space-y-1">

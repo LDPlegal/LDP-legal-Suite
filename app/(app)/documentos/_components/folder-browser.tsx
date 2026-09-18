@@ -562,7 +562,7 @@ function FolderTile({
     <div
       ref={drop.setNodeRef}
       className={[
-        "group relative flex flex-col rounded-2xl border p-3 transition-colors",
+        "group relative flex flex-col rounded-[4px] border p-3 transition-colors",
         selected
           ? "border-primary bg-primary/5"
           : drop.isOver
@@ -639,7 +639,7 @@ function FolderCard({
       ref={combinedRef}
       style={style}
       className={[
-        "group relative flex items-center gap-2 rounded-xl transition-colors",
+        "group relative flex items-center gap-2 rounded-[3px] transition-colors",
         dense ? "p-2" : "p-3",
         selected
           ? "border-primary bg-primary/5"
@@ -701,7 +701,7 @@ function DocumentTile({
   return (
     <div
       className={[
-        "group relative flex flex-col rounded-2xl border p-3 transition-colors",
+        "group relative flex flex-col rounded-[4px] border p-3 transition-colors",
         selected ? "border-primary bg-primary/5" : "hover:bg-accent",
       ].join(" ")}
     >

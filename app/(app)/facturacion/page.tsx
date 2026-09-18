@@ -52,7 +52,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
 
       {/* Stats cards: facturado / por cobrar */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card backdrop-blur-xl p-4">
+        <div className="rounded-[3px] border border-border bg-card p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Facturado
           </p>
@@ -63,7 +63,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
             {total === 1 ? "1 factura" : `${total} facturas`} en el listado
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-card backdrop-blur-xl p-4">
+        <div className="rounded-[3px] border border-border bg-card p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Por cobrar
           </p>

@@ -78,7 +78,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
         />
       </PageHeader>
 
-      <form className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card backdrop-blur-xl p-2.5">
+      <form className="flex flex-wrap items-center gap-2 rounded-[3px] border border-border bg-card p-2.5">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -91,7 +91,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
         <select
           name="status"
           defaultValue={statusFilter}
-          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] px-3 text-sm"
         >
           <option value="">Todos los estados</option>
           <option value="active">Activos</option>
@@ -101,7 +101,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
         <select
           name="type"
           defaultValue={typeFilter}
-          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] px-3 text-sm"
         >
           <option value="">Todos los tipos</option>
           <option value="individual">Persona física</option>
