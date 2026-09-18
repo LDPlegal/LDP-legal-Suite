@@ -1,91 +1,74 @@
 "use client";
 
-// Sidebar sobrio — tipografía protagonista, grupos jerárquicos, color
-// usado solo para indicar estado (no decoración). Sin gradientes
-// vibrantes, sin specular highlights ni patterns flashy. Mismo nivel
-// de refinamiento de un buen dashboard financiero o legal serio.
+// Sidebar del rediseño visual — blanca, 238px, borde derecho #DFE0DC.
+// Ítem activo en marino sólido; inactivo con icono azul de acción.
+// Sin gradientes, sin sombras, sin movimiento: solo transiciones de color.
+// Referencia: design_handoff_rediseno_visual/Nav Lateral.dc.html
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  BarChart3,
-  Briefcase,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  FileText,
-  LayoutDashboard,
-  Library,
-  LogOut,
-  Megaphone,
-  Receipt,
-  Scale,
-  Settings,
-  ShieldAlert,
-  ListChecks,
-  Sparkles,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/_actions/auth/logout";
+import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { useModKey } from "@/lib/hooks/use-platform";
 import { useSidebarState } from "./sidebar-state-context";
-import { useEffect } from "react";
 
 type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  /** Nombre del símbolo en Material Symbols Sharp. */
+  icon: string;
 };
 
 type NavGroup = {
-  label: string;
+  /** null = sin encabezado de grupo (Dashboard va suelto arriba). */
+  label: string | null;
   items: NavItem[];
 };
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Resumen",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    label: null,
+    items: [{ href: "/dashboard", label: "Dashboard", icon: "space_dashboard" }],
   },
   {
     label: "Operaciones",
     items: [
-      { href: "/casos", label: "Casos", icon: Briefcase },
-      { href: "/tareas", label: "Tareas", icon: ListChecks },
-      { href: "/calendario", label: "Calendario", icon: Calendar },
-      { href: "/documentos", label: "Documentos", icon: FileText },
-      { href: "/biblioteca", label: "Biblioteca", icon: Library },
-      { href: "/publicaciones", label: "Publicaciones", icon: Megaphone },
+      { href: "/casos", label: "Casos", icon: "work" },
+      { href: "/tareas", label: "Tareas", icon: "checklist" },
+      { href: "/calendario", label: "Calendario", icon: "calendar_month" },
+      { href: "/documentos", label: "Documentos", icon: "description" },
+      { href: "/biblioteca", label: "Biblioteca", icon: "menu_book" },
+      { href: "/publicaciones", label: "Publicaciones", icon: "campaign" },
     ],
   },
   {
     label: "Gente",
     items: [
-      { href: "/clientes", label: "Clientes", icon: Users },
-      { href: "/conflictos", label: "Conflictos", icon: ShieldAlert },
+      { href: "/clientes", label: "Clientes", icon: "groups" },
+      { href: "/conflictos", label: "Conflictos", icon: "gpp_maybe" },
     ],
   },
   {
     label: "Tiempo y dinero",
     items: [
-      { href: "/tiempos", label: "Tiempos", icon: Clock },
-      { href: "/facturacion", label: "Facturación", icon: Receipt },
-      { href: "/reportes", label: "Reportes", icon: BarChart3 },
+      { href: "/tiempos", label: "Tiempos", icon: "schedule" },
+      { href: "/facturacion", label: "Facturación", icon: "receipt_long" },
+      { href: "/reportes", label: "Reportes", icon: "bar_chart" },
     ],
-  },
-  {
-    label: "Sistema",
-    items: [{ href: "/configuracion", label: "Configuración", icon: Settings }],
   },
 ];
 
+// Al pie, separado del resto de la navegación.
+const FOOTER_ITEM: NavItem = {
+  href: "/configuracion",
+  label: "Ajustes",
+  icon: "settings",
+};
+
 const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
+  admin: "Administrador",
   partner: "Socio",
   lawyer: "Abogado/a",
   paralegal: "Paralegal",
@@ -102,6 +85,38 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
+function NavLink({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      title={collapsed ? item.label : undefined}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-[11px] px-[10px] py-[9px] text-[14px] transition-colors duration-150 ease-out",
+        collapsed && "justify-center",
+        active
+          ? "bg-[#0B2239] font-medium text-white"
+          : "text-[#3D4038] hover:bg-[#EFF0EC]",
+      )}
+    >
+      <Icon
+        name={item.icon}
+        size={19}
+        className={active ? "text-white" : "text-[#0F4C81]"}
+      />
+      {!collapsed ? <span className="truncate">{item.label}</span> : null}
+    </Link>
+  );
+}
+
 export function Sidebar({
   firmName,
   user,
@@ -111,15 +126,13 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const mod = useModKey();
   const { mobileOpen, setMobileOpen } = useSidebarState();
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  // Cerrar el drawer móvil cuando cambia la ruta — si el usuario clickea
-  // un ítem, la nav se cierra sola.
+  // Cerrar el drawer móvil cuando cambia la ruta.
   useEffect(() => {
     setMobileOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,231 +140,157 @@ export function Sidebar({
 
   return (
     <>
-      {/* Overlay para móvil cuando el drawer está abierto */}
       {mobileOpen ? (
         <button
           type="button"
           aria-label="Cerrar menú"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-[#0B1929]/45 md:hidden"
         />
       ) : null}
 
       <aside
         className={cn(
-          "z-50 flex h-screen shrink-0 flex-col text-sidebar-foreground",
-          // Sidebar SIEMPRE navy profundo
-          "bg-[#051D33] text-[#E6EEF8]",
-          "border-r border-white/[0.06]",
-          "transition-[width,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          // Posicionamiento — IMPORTANTE: las dos clases de position van
-          // en la misma línea para que el variant md: gane sobre el base.
-          // Mobile: fixed slide-in (overlay). Desktop md+: sticky top-0
-          // para que se quede pegado al scrollear el contenido.
-          // No usar md:relative + md:sticky en líneas separadas — Tailwind
-          // emite ambas reglas con la misma especificidad y `relative`
-          // gana alfabéticamente → el sidebar termina scrolleando con la
-          // página. Solo md:sticky es suficiente: sticky se comporta como
-          // relative en flujo normal y ADEMÁS se ancla al top al scrollear.
+          "z-50 flex h-screen shrink-0 flex-col border-r border-[#DFE0DC] bg-white",
+          "transition-[width,transform] duration-200 ease-out",
+          // Mobile: drawer fixed. Desktop: sticky al top.
           "fixed inset-y-0 left-0 md:sticky md:top-0 md:inset-y-auto",
-          // Width: drawer ancho fijo en móvil, colapsable en desktop.
-          mobileOpen ? "w-[260px]" : collapsed ? "w-[72px]" : "w-[244px]",
-          // Visibility en móvil
+          mobileOpen ? "w-[260px]" : collapsed ? "w-[68px]" : "w-[238px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
-      {/* Brand */}
-      <div className="relative flex h-16 items-center justify-between border-b border-white/[0.06] px-3">
-        <Link
-          href="/dashboard"
-          className="flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-white/[0.05]"
-        >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-[#051D33]">
-            <Scale className="h-4 w-4" />
-          </span>
-          {!collapsed ? (
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
-              className="min-w-0 leading-tight"
-            >
-              <p className="truncate text-[13px] font-semibold tracking-tight text-white">
-                {firmName}
-              </p>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-white/45">
-                Legal Suite
-              </p>
-            </motion.div>
-          ) : null}
-        </Link>
-        <button
-          type="button"
-          onClick={() => setCollapsed((v) => !v)}
-          className="grid h-7 w-7 place-items-center rounded-md text-white/55 press transition-colors hover:bg-white/[0.06] hover:text-white"
-          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
-      </div>
-
-      {/* Asistente IA — discreto */}
-      <div className="px-3 pt-3">
-        <Link
-          href="/casos"
-          className={cn(
-            "group flex items-center gap-2.5 rounded-md border border-white/[0.10] bg-white/[0.04] px-2.5 py-2 press",
-            "transition-colors hover:bg-white/[0.08] hover:border-white/[0.18]",
-            collapsed ? "justify-center" : "",
-          )}
-          title={collapsed ? "Asistente IA" : undefined}
-        >
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#4D93C7]" />
-          {!collapsed ? (
-            <div className="min-w-0 leading-tight">
-              <p className="text-[12px] font-medium tracking-tight text-white">
-                Asistente IA
-              </p>
-              <p className="text-[10px] text-white/50">{mod} · J en un caso</p>
-            </div>
-          ) : null}
-        </Link>
-      </div>
-
-      {/* Nav grupos */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-5">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label}>
-            {!collapsed ? (
-              <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                {group.label}
-              </p>
-            ) : null}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                const active = isActive(item.href);
-                const Icon = item.icon;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm",
-                        "transition-[color] duration-150",
-                        active
-                          ? "text-white font-medium"
-                          : "text-white/65 hover:text-white",
-                      )}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      {/* Indicador activo — pill se desliza con layoutId */}
-                      {active ? (
-                        <motion.span
-                          layoutId="sidebar-active-pill"
-                          aria-hidden
-                          className="absolute inset-0 rounded-md bg-white/[0.08]"
-                          transition={{
-                            type: "spring",
-                            stiffness: 380,
-                            damping: 30,
-                          }}
-                        />
-                      ) : null}
-                      {/* Barra activa a la izquierda */}
-                      {active ? (
-                        <motion.span
-                          layoutId="sidebar-active-bar"
-                          aria-hidden
-                          className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-[#4D93C7]"
-                          transition={{
-                            type: "spring",
-                            stiffness: 380,
-                            damping: 30,
-                          }}
-                        />
-                      ) : null}
-                      <Icon
-                        className={cn(
-                          "relative h-4 w-4 shrink-0",
-                          active ? "text-[#4D93C7]" : "",
-                        )}
-                      />
-                      {!collapsed ? (
-                        <span className="relative flex-1 truncate">
-                          {item.label}
-                        </span>
-                      ) : null}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      {/* User card — click sobre el avatar lleva a /configuracion;
-          hover muestra el botón de logout chiquito a la derecha. */}
-      <div className="border-t border-white/[0.06] p-3">
+        {/* Monograma + microetiqueta */}
         <div
           className={cn(
-            "group/user relative flex items-center gap-2.5 rounded-md",
-            !collapsed && "transition-colors",
+            "flex items-start justify-between pt-5",
+            collapsed ? "px-3 pb-4" : "px-[18px] pb-[18px]",
+          )}
+        >
+          <Link
+            href="/dashboard"
+            className="flex min-w-0 flex-col items-start gap-[9px]"
+            title={firmName}
+          >
+            {collapsed ? (
+              <Image
+                src="/marketing-photos/monogram-navy.png"
+                alt={firmName}
+                width={40}
+                height={23}
+                priority
+                className="h-auto w-[40px]"
+              />
+            ) : (
+              <>
+                <Image
+                  src="/marketing-photos/monogram-navy.png"
+                  alt={firmName}
+                  width={164}
+                  height={94}
+                  priority
+                  className="h-auto w-[164px]"
+                />
+                <span className="microlabel">Legal Suite</span>
+              </>
+            )}
+          </Link>
+          {!collapsed ? (
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Colapsar menú"
+              className="hidden h-7 w-7 place-items-center text-[#9C9D96] transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] md:grid"
+            >
+              <Icon name="left_panel_close" size={18} />
+            </button>
+          ) : null}
+        </div>
+
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            aria-label="Expandir menú"
+            className="mx-auto mb-2 hidden h-7 w-7 place-items-center text-[#9C9D96] transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] md:grid"
+          >
+            <Icon name="left_panel_open" size={18} />
+          </button>
+        ) : null}
+
+        {/* Navegación */}
+        <nav className="flex-1 overflow-y-auto px-[10px]">
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.label ?? `root-${gi}`} className="flex flex-col gap-px">
+              {group.label && !collapsed ? (
+                <div className="px-[10px] pb-[5px] pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9C9D96]">
+                  {group.label}
+                </div>
+              ) : null}
+              {group.label && collapsed ? (
+                <div className="mx-[10px] my-2 border-t border-[#E7E8E4]" />
+              ) : null}
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                  collapsed={collapsed}
+                />
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        {/* Ajustes al pie */}
+        <div className="px-[10px] pb-3 pt-2">
+          <NavLink
+            item={FOOTER_ITEM}
+            active={isActive(FOOTER_ITEM.href)}
+            collapsed={collapsed}
+          />
+        </div>
+
+        {/* Bloque de usuario */}
+        <div
+          className={cn(
+            "group/user flex items-center gap-[10px] border-t border-[#E7E8E4] pb-4 pt-[14px]",
+            collapsed ? "justify-center px-2" : "px-[18px]",
           )}
         >
           <Link
             href="/configuracion"
-            title="Mi cuenta · Configuración"
-            className={cn(
-              "press flex min-w-0 flex-1 items-center gap-2.5 rounded-md",
-              !collapsed
-                ? "px-1.5 py-1 hover:bg-white/[0.05]"
-                : "justify-center",
-            )}
+            title="Mi cuenta · Ajustes"
+            className="flex min-w-0 flex-1 items-center gap-[10px]"
           >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.10] text-[11px] font-semibold text-white ring-1 ring-white/[0.10] transition-colors group-hover/user:ring-white/[0.25]">
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#E4EBF2] text-[11.5px] font-semibold text-[#0F4C81]">
               {initialsOf(user.name)}
             </span>
-            <AnimatePresence>
-              {!collapsed ? (
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.18 }}
-                  className="min-w-0 leading-tight"
-                >
-                  <p className="truncate text-[12px] font-medium tracking-tight text-white">
-                    {user.name}
-                  </p>
-                  <p className="text-[10px] text-white/45">
-                    {ROLE_LABEL[user.role] ?? user.role}
-                  </p>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+            {!collapsed ? (
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="truncate text-[13px] font-medium text-[#0B1929]">
+                  {user.name}
+                </span>
+                <span className="text-[11.5px] text-[#8E8F89]">
+                  {ROLE_LABEL[user.role] ?? user.role}
+                </span>
+              </span>
+            ) : null}
           </Link>
 
-          {/* Botón logout — aparece en hover, no colapsado */}
           {!collapsed ? (
             <form action={logoutAction} className="shrink-0">
               <button
                 type="submit"
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
-                className="grid h-7 w-7 place-items-center rounded-md text-white/45 opacity-0 transition-all group-hover/user:opacity-100 hover:bg-white/[0.06] hover:text-white press"
+                className="grid h-7 w-7 place-items-center text-[#9C9D96] opacity-0 transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] focus-visible:opacity-100 group-hover/user:opacity-100"
               >
-                <LogOut className="h-3.5 w-3.5" />
+                <Icon name="logout" size={17} />
               </button>
             </form>
           ) : null}
         </div>
-      </div>
-    </aside>
+      </aside>
     </>
   );
 }

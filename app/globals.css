@@ -19,8 +19,9 @@
    ============================================================================= */
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+  --font-sans: var(--font-sans-ui), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-serif-display), Charter, Georgia, ui-serif, serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -65,172 +66,187 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Brand spectrum (LDP navy + accent teal) */
-  --color-brand-50: #EEF5FB;
-  --color-brand-100: #DCEBF7;
-  --color-brand-200: #B5D5EE;
-  --color-brand-300: #88B8DD;
-  --color-brand-400: #4D93C7;
-  --color-brand-500: #1E6FBA;
-  --color-brand-600: #0F4C81;
-  --color-brand-700: #0A3A63;
-  --color-brand-800: #072A48;
-  --color-brand-900: #051D33;
+  /* Brand spectrum — marino LDP. El acento teal se retiró: un solo acento
+     por pantalla (azul de acción), oro reservado al asistente IA. */
+  --color-brand-50: #EEF2F6;
+  --color-brand-100: #E4EBF2;
+  --color-brand-200: #C6D2DE;
+  --color-brand-300: #9DB4CC;
+  --color-brand-400: #2F6FA3;
+  --color-brand-500: #0F4C81;
+  --color-brand-600: #0A3A63;
+  --color-brand-700: #0B2239;
+  --color-brand-800: #0A1B2C;
+  --color-brand-900: #0B1929;
 
-  --color-accent-500: #14B8A6;
-  --color-accent-600: #0D9488;
+  /* Escala de grises del handoff — verdosa/cálida, no azulada */
+  --color-canvas: #F4F5F3;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #FAFAF8;
+  --color-surface-alt2: #FCFCFA;
+  --color-line: #DFE0DC;
+  --color-line-soft: #F0F1ED;
+  --color-line-soft2: #E7E8E4;
+  --color-line-input: #C9CCC5;
+  --color-ink: #0B1929;
+  --color-text: #161C24;
+  --color-text-2: #3D4038;
+  --color-text-3: #5C5E56;
+  --color-text-4: #8E8F89;
+  --color-text-5: #9C9D96;
 
-  /* Radius scale (slightly more generous para soft Apple feel) */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  /* Alerta (vencido / audiencia) y oro (asistente IA) */
+  --color-alert: #B4462E;
+  --color-alert-border: #E3C3BA;
+  --color-alert-bg: #FBF1EE;
+  --color-gold-ink: #B89254;
+  --color-gold-border: #E7D3AE;
+  --color-gold-bg: #FBF3E6;
+
+  /* Radios — 3-4px en tarjetas/inputs, nunca más. */
+  --radius-sm: 0px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
 }
 
 :root {
-  /* Radius base ligeramente más generoso (Apple Glass tiende a ~14-16px) */
-  --radius: 0.875rem;
+  /* Radios: 3-4px en tarjetas/inputs, 0 en botones CTA. Nada tipo pill. */
+  --radius: 4px;
 
-  /* Light mode — fondo tipo papel premium cálido (no blanco frío).
-     Inspirado en el letterhead de bufetes serios: off-white con leve
-     calidez para que se sienta como pergamino sin caer en sepia. */
-  --background: #F6F4EF;
-  --foreground: #0B1929;
+  /* Light mode — lienzo #F4F5F3, superficies blancas planas.
+     Sin translucidez, sin blur, sin sombras de color. */
+  --background: #F4F5F3;
+  --foreground: #161C24;
 
-  --card: rgba(255, 254, 252, 0.85);
-  --card-foreground: #0B1929;
+  --card: #FFFFFF;
+  --card-foreground: #161C24;
 
-  --popover: rgba(255, 254, 252, 0.96);
-  --popover-foreground: #0B1929;
+  --popover: #FFFFFF;
+  --popover-foreground: #161C24;
 
-  --primary: #0F4C81;
+  --primary: #0B2239;
   --primary-foreground: #FFFFFF;
 
-  --secondary: rgba(237, 232, 222, 0.6);
-  --secondary-foreground: #0B1929;
+  --secondary: #FAFAF8;
+  --secondary-foreground: #161C24;
 
-  --muted: rgba(237, 232, 222, 0.5);
-  --muted-foreground: #5C6573;
+  --muted: #F0F1ED;
+  --muted-foreground: #5C5E56;
 
-  --accent: rgba(232, 241, 250, 0.85);
+  --accent: #EEF2F6;
   --accent-foreground: #0F4C81;
 
-  --destructive: #DC2626;
+  --destructive: #B4462E;
   --destructive-foreground: #FFFFFF;
 
-  --warning: #D97706;
+  --warning: #B89254;
   --warning-foreground: #FFFFFF;
 
-  --success: #0D9488;
+  --success: #0F4C81;
   --success-foreground: #FFFFFF;
 
-  --border: rgba(15, 76, 129, 0.12);
-  --input: rgba(15, 76, 129, 0.16);
-  --ring: #1E6FBA;
+  --border: #DFE0DC;
+  --input: #C9CCC5;
+  --ring: #0F4C81;
 
-  --sidebar: #051D33;
-  --sidebar-foreground: #E6EEF8;
-  --sidebar-primary: #4D93C7;
-  --sidebar-primary-foreground: #051D33;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
-  --sidebar-accent-foreground: #E6EEF8;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #4D93C7;
+  /* Sidebar: blanca con borde derecho, ítem activo marino sólido. */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #3D4038;
+  --sidebar-primary: #0B2239;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EFF0EC;
+  --sidebar-accent-foreground: #161C24;
+  --sidebar-border: #DFE0DC;
+  --sidebar-ring: #0F4C81;
 
-  /* Glass system tokens — papel cálido en vez de blanco frío */
-  --glass-bg: rgba(255, 254, 252, 0.85);
-  --glass-bg-strong: rgba(255, 254, 252, 0.96);
-  --glass-bg-subtle: rgba(255, 254, 252, 0.65);
-  --glass-border: rgba(255, 254, 252, 0.7);
-  --glass-border-inner: rgba(15, 76, 129, 0.10);
-  --glass-shadow:
-    0 1px 2px rgba(11, 25, 41, 0.05),
-    0 4px 16px -4px rgba(11, 25, 41, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --glass-shadow-lg:
-    0 1px 2px rgba(11, 25, 41, 0.06),
-    0 8px 24px -8px rgba(11, 25, 41, 0.12),
-    0 24px 48px -16px rgba(11, 25, 41, 0.10),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  --glass-blur: saturate(140%) blur(12px);
-  --glass-blur-strong: saturate(160%) blur(20px);
+  /* "Glass" → superficies planas. Se conservan los nombres para que las
+     ~100 usages existentes migren solas al lenguaje nuevo. */
+  --glass-bg: #FFFFFF;
+  --glass-bg-strong: #FFFFFF;
+  --glass-bg-subtle: #FAFAF8;
+  --glass-border: #DFE0DC;
+  --glass-border-inner: #DFE0DC;
+  --glass-shadow: none;
+  --glass-shadow-lg: none;
+  --glass-blur: none;
+  --glass-blur-strong: none;
 
-  /* Ambient — apagado en light mode para evitar el efecto pastel-startup.
-     El fondo es neutro y profesional; el color brand aparece solo en
-     elementos puntuales (acciones, sidebar activo, etc.). */
   --ambient-gradient: none;
 
-  /* Acento dorado clásico legal */
+  /* Azul de acción (links, iconos, CTA) — distinto del marino de branding */
+  --action: #0F4C81;
+  --action-hover: #0A3A63;
+  --action-soft: #EEF2F6;
+  --action-soft2: #F2F5F8;
+
+  /* Acento dorado — exclusivo del asistente IA */
   --color-gold: #B89254;
   --color-gold-light: #D4B173;
 }
 
 .dark {
-  /* Dark mode — navy profundo con highlights translúcidos */
-  --background: #050D1A;
-  --foreground: #E6EEF8;
+  /* Dark mode — el handoff es light-only; acá se traduce el mismo lenguaje
+     plano a superficies oscuras: sin translucidez, sin blur, sin sombras. */
+  --background: #0A1B2C;
+  --foreground: #E8EAE5;
 
-  --card: rgba(15, 23, 42, 0.55);
-  --card-foreground: #E6EEF8;
+  --card: #0F2438;
+  --card-foreground: #E8EAE5;
 
-  --popover: rgba(15, 23, 42, 0.92);
-  --popover-foreground: #E6EEF8;
+  --popover: #0F2438;
+  --popover-foreground: #E8EAE5;
 
-  --primary: #4D93C7;
-  --primary-foreground: #050D1A;
+  --primary: #E8EAE5;
+  --primary-foreground: #0B2239;
 
-  --secondary: rgba(31, 41, 55, 0.6);
-  --secondary-foreground: #E6EEF8;
+  --secondary: #13293E;
+  --secondary-foreground: #E8EAE5;
 
-  --muted: rgba(31, 41, 55, 0.5);
-  --muted-foreground: #94A3B8;
+  --muted: #13293E;
+  --muted-foreground: #9DB4CC;
 
-  --accent: rgba(30, 58, 95, 0.65);
-  --accent-foreground: #BFDBFE;
+  --accent: #16314A;
+  --accent-foreground: #C6D2DE;
 
-  --destructive: #F87171;
-  --destructive-foreground: #050D1A;
+  --destructive: #D9705A;
+  --destructive-foreground: #0A1B2C;
 
-  --warning: #FBBF24;
-  --warning-foreground: #050D1A;
+  --warning: #D4B173;
+  --warning-foreground: #0A1B2C;
 
-  --success: #2DD4BF;
-  --success-foreground: #050D1A;
+  --success: #6FA3CE;
+  --success-foreground: #0A1B2C;
 
-  --border: rgba(148, 163, 184, 0.12);
-  --input: rgba(148, 163, 184, 0.16);
-  --ring: #4D93C7;
+  --border: #1C3348;
+  --input: #274058;
+  --ring: #6FA3CE;
 
-  --sidebar: rgba(7, 15, 28, 0.6);
-  --sidebar-foreground: #E6EEF8;
-  --sidebar-primary: #4D93C7;
-  --sidebar-primary-foreground: #050D1A;
-  --sidebar-accent: rgba(30, 58, 95, 0.5);
-  --sidebar-accent-foreground: #BFDBFE;
-  --sidebar-border: rgba(148, 163, 184, 0.10);
-  --sidebar-ring: #4D93C7;
+  --sidebar: #0B2239;
+  --sidebar-foreground: #C6D2DE;
+  --sidebar-primary: #E8EAE5;
+  --sidebar-primary-foreground: #0B2239;
+  --sidebar-accent: #16314A;
+  --sidebar-accent-foreground: #E8EAE5;
+  --sidebar-border: #1C3348;
+  --sidebar-ring: #6FA3CE;
 
-  /* Glass system — dark variant */
-  --glass-bg: rgba(15, 23, 42, 0.55);
-  --glass-bg-strong: rgba(15, 23, 42, 0.82);
-  --glass-bg-subtle: rgba(15, 23, 42, 0.40);
-  --glass-border: rgba(148, 163, 184, 0.18);
-  --glass-border-inner: rgba(255, 255, 255, 0.04);
-  --glass-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.30),
-    0 4px 16px -4px rgba(0, 0, 0, 0.40),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --glass-shadow-lg:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 8px 24px -8px rgba(0, 0, 0, 0.5),
-    0 24px 48px -16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  /* "Glass" → superficies planas oscuras */
+  --glass-bg: #0F2438;
+  --glass-bg-strong: #0F2438;
+  --glass-bg-subtle: #0C1E30;
+  --glass-border: #1C3348;
+  --glass-border-inner: #1C3348;
+  --glass-shadow: none;
+  --glass-shadow-lg: none;
 
-  /* En dark mode el ambient es muy sutil — solo un wash navy en el top
-     para dar profundidad sin colorimetría caricaturesca. */
-  --ambient-gradient:
-    radial-gradient(ellipse 100% 40% at 50% 0%, rgba(15, 76, 129, 0.08), transparent 70%);
+  --ambient-gradient: none;
+
+  --action: #6FA3CE;
+  --action-hover: #9DB4CC;
+  --action-soft: #16314A;
+  --action-soft2: #13293E;
 }
 
 @layer base {
@@ -243,42 +259,45 @@
   }
 
   body {
+    /* Lienzo plano. Sin textura, sin gradiente ambiental. */
     background-color: var(--background);
-    /* Pattern tipo papel premium: noise muy sutil + lines horizontales casi
-       imperceptibles. Le da textura al fondo sin parecer "fake AI". */
-    background-image:
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' /%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.10 0 0 0 0 0.20 0 0 0 0.045 0' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E"),
-      var(--ambient-gradient);
-    background-attachment: fixed;
-    background-size: 240px 240px, auto;
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter ligature features */
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
-  /* Typography hierarchy refinada */
+  /* Titulares en Charter/Charis SIL. Escala: 21/24/28/29px (h1 = 28px). */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-ink);
+  }
   h1 {
-    letter-spacing: -0.025em;
-    font-weight: 600;
+    letter-spacing: -0.022em;
   }
   h2 {
-    letter-spacing: -0.02em;
-    font-weight: 600;
+    letter-spacing: -0.018em;
   }
   h3 {
     letter-spacing: -0.015em;
-    font-weight: 600;
+  }
+
+  /* Todas las cifras con numerales tabulares — columnas de montos, horas
+     y fechas quedan alineadas. */
+  table,
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
   }
 
   code,
   pre,
   .font-mono {
     font-family: var(--font-mono);
-    font-feature-settings: "ss01", "ss02";
   }
 
   /* Smooth scrolling sin overshoot */
@@ -290,191 +309,186 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 999px;
+    background: var(--color-line);
+    border-radius: 0;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+    background: var(--color-text-4);
     background-clip: padding-box;
     border: 2px solid transparent;
   }
 
-  /* Focus rings refinados — sutiles pero presentes */
+  /* Focus rings — sin radio, acordes al lenguaje de esquinas rectas */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-    border-radius: var(--radius-md);
+    border-radius: 0;
   }
 }
 
 @layer utilities {
-  /* Glass surface — el bloque base de toda la UI */
+  /* ---------------------------------------------------------------------
+     Iconografía — Material Symbols Sharp, FILL 1 (sólidos, esquinas rectas)
+     --------------------------------------------------------------------- */
+  .ms {
+    font-family: "Material Symbols Sharp";
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+    user-select: none;
+  }
+
+  /* ---------------------------------------------------------------------
+     Superficies — planas. Los nombres `glass*` se conservan para que las
+     usages existentes migren solas; ya no hay translucidez ni blur.
+     --------------------------------------------------------------------- */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border-inner);
-    box-shadow: var(--glass-shadow);
+    box-shadow: none;
   }
   .glass-strong {
     background: var(--glass-bg-strong);
-    backdrop-filter: var(--glass-blur-strong);
-    -webkit-backdrop-filter: var(--glass-blur-strong);
     border: 1px solid var(--glass-border-inner);
-    box-shadow: var(--glass-shadow-lg);
+    box-shadow: none;
   }
   .glass-subtle {
     background: var(--glass-bg-subtle);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border-inner);
   }
-
-  /* Highlight border — gradient sutil tipo "luz pegando" */
+  /* No-op: el lenguaje nuevo no tiene bordes con luz. */
   .glass-highlight {
     position: relative;
   }
-  .glass-highlight::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: 1px;
-    border-radius: inherit;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.7),
-      rgba(255, 255, 255, 0.15) 30%,
-      transparent 60%,
-      rgba(15, 76, 129, 0.10) 100%
-    );
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
-  .dark .glass-highlight::before {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.15),
-      rgba(255, 255, 255, 0.04) 30%,
-      transparent 60%,
-      rgba(77, 147, 199, 0.15) 100%
-    );
+
+  /* ---------------------------------------------------------------------
+     Tipografía de apoyo
+     --------------------------------------------------------------------- */
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.018em;
   }
 
-  /* Press-down animation suave */
-  .press {
-    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms;
-  }
-  .press:active {
-    transform: scale(0.97);
-  }
-
-  /* Hover lift sutil */
-  .lift {
-    transition:
-      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--glass-shadow-lg);
+  /* Microetiqueta: 11-11.5px, 600, tracking .06-.07em, mayúsculas */
+  .microlabel {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+    color: var(--color-text-4);
   }
 
-  /* Glow ring para elementos activos */
-  .glow-ring {
-    box-shadow:
-      0 0 0 1px var(--ring),
-      0 0 0 4px color-mix(in srgb, var(--ring) 18%, transparent);
-  }
-
-  /* Brand gradient text (selectivo — para títulos hero) */
-  .text-gradient-brand {
-    background: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-500) 50%, var(--color-accent-500));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Number/stat display — para KPIs */
   .stat-number {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.01em;
     font-weight: 600;
   }
 
-  /* Fade-in-up animation — usada en listas que aparecen escalonadamente
-     vía animation-delay inline. Pura CSS, no cruza la frontera RSC. */
-  @keyframes ldp-fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  /* ---------------------------------------------------------------------
+     Franja del asistente IA — siempre al pie del contenido, nunca panel
+     protagonista. Variante `-warn` cuando advierte.
+     --------------------------------------------------------------------- */
+  .assistant-strip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 14px;
+    border: 1px solid #e1e2de;
+    background: var(--color-surface);
+    font-size: 13px;
+    color: var(--color-text-2);
   }
-  .fade-in-up {
-    opacity: 0;
-    animation: ldp-fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  .assistant-strip--warn {
+    border-color: var(--color-gold-border);
+    background: var(--color-gold-bg);
   }
 
-  /* Shimmer animation para skeletons / loading states */
-  @keyframes ldp-shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+  /* ---------------------------------------------------------------------
+     Badges — 11px, 600, sin radio.
+     --------------------------------------------------------------------- */
+  .badge-flat {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    border: 1px solid #dcddd7;
+    color: var(--color-text-3);
+    background: transparent;
+  }
+  .badge-flat--alert {
+    border-color: var(--color-alert-border);
+    color: var(--color-alert);
+    background: var(--color-alert-bg);
+  }
+  .badge-flat--navy {
+    border-color: var(--color-brand-700);
+    background: var(--color-brand-700);
+    color: #fff;
+  }
+
+  /* ---------------------------------------------------------------------
+     Estados de interacción — solo color, 120-150ms ease-out.
+     Las utilidades de movimiento quedan neutralizadas a propósito.
+     --------------------------------------------------------------------- */
+  .press,
+  .lift,
+  .tilt-hover,
+  .float {
+    transition: background-color 140ms ease-out, color 140ms ease-out,
+      border-color 140ms ease-out;
+  }
+  .lift:hover {
+    background-color: var(--color-surface-alt);
+  }
+
+  .glow-ring {
+    box-shadow: 0 0 0 1px var(--ring);
+  }
+
+  /* Texto de marca: color sólido, sin gradiente. */
+  .text-gradient-brand {
+    color: var(--color-brand-700);
+  }
+
+  /* Entrada sin animación — el handoff no permite movimiento decorativo. */
+  .fade-in-up {
+    opacity: 1;
+  }
+
+  /* Skeletons: #F0F1ED sobre superficie blanca, pulso de opacidad. */
+  @keyframes ldp-skeleton {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
   }
   .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.18) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    background-size: 200% 100%;
-    animation: ldp-shimmer 2s linear infinite;
+    background: var(--color-line-soft);
+    animation: ldp-skeleton 1.4s ease-in-out infinite;
   }
 
-  /* Floating animation — para elementos decorativos que respiran */
-  @keyframes ldp-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
-  .float {
-    animation: ldp-float 4s ease-in-out infinite;
-  }
-
-  /* Acento dorado para elementos críticos legales (sellos, firmas, etc.) */
+  /* Oro — exclusivo del asistente IA */
   .text-gold {
     color: var(--color-gold);
   }
   .border-gold {
-    border-color: var(--color-gold-light);
+    border-color: var(--color-gold-border);
   }
   .bg-gold-soft {
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-gold) 15%, transparent),
-      color-mix(in srgb, var(--color-gold) 5%, transparent)
-    );
-  }
-
-  /* Subtle 3D tilt en hover — útil para cards interactivas */
-  .tilt-hover {
-    transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1);
-    transform: perspective(800px) rotateX(0) rotateY(0);
-  }
-  .tilt-hover:hover {
-    transform: perspective(800px) translateZ(8px) rotateX(2deg);
+    background: var(--color-gold-bg);
   }
 }
 

@@ -10,15 +10,9 @@ export function Header({
 }: {
   user: { name: string; email: string; role: string };
 }) {
+  // Topbar de 56px — superficie blanca plana, borde inferior #DFE0DC.
   return (
-    <header
-      className="sticky top-0 z-20 flex h-16 items-center gap-2 px-3 md:gap-3 md:px-5 border-b border-border bg-[var(--glass-bg)] backdrop-blur-2xl"
-      style={{
-        // Inner highlight para que se vea el "vidrio" claro arriba.
-        boxShadow:
-          "inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 0 rgba(15,76,129,0.04)",
-      }}
-    >
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-[#DFE0DC] bg-white px-3 md:gap-3 md:px-5">
       <MobileMenuButton />
       <CommandPalette />
       <div className="flex-1" />
