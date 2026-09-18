@@ -39,11 +39,16 @@ export function LoginForm() {
       return;
     }
 
+    // "Mantener la sesión abierta" (handoff 3b) — better-auth lo traduce a
+    // una sesión persistente en vez de una de navegador.
+    const rememberMe = fd.get("rememberMe") !== null;
+
     try {
       const res = await signIn.email({
         email: parsed.data.email,
         password: parsed.data.password,
         callbackURL: redirectTo,
+        rememberMe,
       });
       if (res.error) {
         toast.error(res.error.message ?? "Credenciales inválidas");
@@ -63,24 +68,47 @@ export function LoginForm() {
   }
 
   return (
+    // Campos con microetiqueta arriba y copy final del handoff 3b
+    // (CORREO / CONTRASEÑA, botón "Entrar").
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="microlabel">
+          Correo
+        </Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          className="h-auto py-[11px]"
+        />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="password" className="microlabel">
+          Contraseña
+        </Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
+          className="h-auto py-[11px]"
         />
       </div>
+      <label className="flex items-center gap-2 text-[13px] text-[#3D4038]">
+        <input
+          type="checkbox"
+          name="rememberMe"
+          defaultChecked
+          className="h-[15px] w-[15px] rounded-none border-[#C9CCC5] accent-[#0B2239]"
+        />
+        Mantener la sesión abierta
+      </label>
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : null}
-        Iniciar sesión
+        Entrar
       </Button>
     </form>
   );

@@ -1,32 +1,60 @@
 import type { ReactNode } from "react";
-import { Scale } from "lucide-react";
+import Image from "next/image";
+
+// Layout de autenticación — handoff 3b.
+//
+// Grid 600px / 1fr: izquierda marino #0B2239 con el monograma sobre oscuro
+// arriba y la foto de los socios abajo, fundida hacia arriba con máscara
+// (no con una capa encima). Derecha: el formulario centrado.
+//
+// PENDIENTE: la foto final de los socios. El handoff indica pedir los
+// archivos definitivos y servirlos desde public/marketing-photos/. Mientras
+// tanto se usa firma-atlas.jpg, que ya está en el repo.
+const PARTNERS_PHOTO = "/marketing-photos/firma-atlas.jpg";
+
+const PHOTO_MASK =
+  "linear-gradient(to top, rgba(0,0,0,1) 62%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0) 100%)";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-2">
-      <div className="hidden flex-col justify-between bg-[var(--color-brand-600)] p-10 text-white md:flex">
-        <div className="flex items-center gap-2 text-base font-semibold">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15">
-            <Scale className="h-4.5 w-4.5" />
-          </span>
-          LDP Legal Suite
+    <div className="grid min-h-screen w-full md:grid-cols-[600px_1fr]">
+      <div className="relative hidden flex-col overflow-hidden bg-[#0B2239] md:flex">
+        <div className="relative z-10 p-10">
+          <Image
+            src="/marketing-photos/monogram-onDark.png"
+            alt="LDP Legal Advisors"
+            width={196}
+            height={112}
+            priority
+            className="h-auto w-[196px]"
+          />
         </div>
-        <div className="space-y-3">
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight">
-            Tu firma, en orden.
-          </h1>
-          <p className="max-w-md text-sm text-white/80 leading-relaxed">
-            Casos, clientes, tiempos y facturación con un asistente de IA que
-            conoce cada expediente. Hecho para firmas boutique en República
-            Dominicana.
-          </p>
+
+        {/* Foto de los socios, fundida hacia arriba con máscara. Es
+            decorativa: ningún texto se apoya sobre la zona visible. */}
+        <div className="relative mt-auto h-[58%] w-full">
+          <div
+            className="absolute inset-0"
+            style={{
+              maskImage: PHOTO_MASK,
+              WebkitMaskImage: PHOTO_MASK,
+            }}
+          >
+            <Image
+              src={PARTNERS_PHOTO}
+              alt=""
+              aria-hidden
+              fill
+              priority
+              sizes="600px"
+              className="object-cover object-top"
+            />
+          </div>
         </div>
-        <p className="text-xs text-white/60">
-          © {new Date().getFullYear()} LDP Legal Suite
-        </p>
       </div>
-      <main className="flex items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm">{children}</div>
+
+      <main className="flex items-center justify-center bg-[#F4F5F3] p-6">
+        <div className="w-full max-w-[392px]">{children}</div>
       </main>
     </div>
   );
