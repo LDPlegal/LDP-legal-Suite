@@ -146,6 +146,40 @@ function Row({
   );
 }
 
+// — Móvil: la tabla se convierte en lista de tarjetas (handoff, sección
+//   Móvil). Dato principal 14.5px, meta en una línea de 11.5px, y los
+//   vinculados anidados dentro de la tarjeta del padre con fondo #FCFCFA
+//   e indentación de 26px. —
+function MobileCard({ row, nested = false }: { row: CasoRow; nested?: boolean }) {
+  return (
+    <Link
+      href={`/casos/${row.id}`}
+      className={cn(
+        "block border-b border-[#F0F1ED] px-4 py-3 transition-colors last:border-b-0 active:bg-[#FAFAF8]",
+        nested && "border-l-0 bg-[#FCFCFA] pl-[26px]",
+      )}
+    >
+      <span className="flex items-start justify-between gap-3">
+        <span className="min-w-0">
+          <span className="block truncate text-[14.5px] font-medium text-[#161C24]">
+            {row.title}
+          </span>
+          <span className="mt-0.5 block truncate text-[11.5px] text-[#9C9D96]">
+            <span className="tabular">{row.code}</span>
+            {" · "}
+            {nested ? "vinculado" : (row.clientDisplayName ?? "—")}
+            {" · "}
+            {row.matterLabel}
+          </span>
+        </span>
+        <Badge variant={row.statusVariant} className="flex-none">
+          {row.statusLabel}
+        </Badge>
+      </span>
+    </Link>
+  );
+}
+
 export function CasosTable({ nodes }: { nodes: CasoNode[] }) {
   // Por defecto todo expandido: en el diseño los vinculados se ven.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -160,7 +194,20 @@ export function CasosTable({ nodes }: { nodes: CasoNode[] }) {
   }
 
   return (
-    <Table>
+    <>
+      <div className="md:hidden">
+        {nodes.map((node) => (
+          <Fragment key={node.id}>
+            <MobileCard row={node} />
+            {node.children.map((child) => (
+              <MobileCard key={child.id} row={child} nested />
+            ))}
+          </Fragment>
+        ))}
+      </div>
+
+      <div className="hidden md:block">
+        <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="w-[136px]">Código</TableHead>
@@ -192,7 +239,9 @@ export function CasosTable({ nodes }: { nodes: CasoNode[] }) {
             </Fragment>
           );
         })}
-      </TableBody>
-    </Table>
+        </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }
