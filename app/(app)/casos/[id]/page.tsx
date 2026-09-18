@@ -197,8 +197,9 @@ export default async function CasoDetailPage({
                 canEdit={user.role === "admin" || user.role === "partner"}
               />
             </div>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">{c.title}</h1>
-            <p className="text-sm text-muted-foreground">
+            {/* Titular del expediente — Charter 29px (handoff 3d). */}
+            <h1 className="mt-1 text-[24px] leading-tight sm:text-[29px]">{c.title}</h1>
+            <p className="text-[13px] text-[#5C5E56]">
               {client?.displayName ?? "—"} · {MATTER_LABEL[c.matterType]}
             </p>
             {parent ? (
@@ -218,6 +219,30 @@ export default async function CasoDetailPage({
               </p>
             ) : null}
           </div>
+          {/* Tres cifras del expediente (handoff 3d). El diseño pide
+              DOCUMENTOS / HORAS / PLAZOS; "plazos" no existe como entidad
+              propia en el modelo, así que se muestra TAREAS, que es el dato
+              real equivalente. */}
+          <dl className="flex items-start gap-7 border-l border-[#E7E8E4] pl-7">
+            <div>
+              <dt className="microlabel">Documentos</dt>
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+                {documentos.length}
+              </dd>
+            </div>
+            <div>
+              <dt className="microlabel">Horas</dt>
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+                {fmtDuration(totalTimeSec)}
+              </dd>
+            </div>
+            <div>
+              <dt className="microlabel">Tareas</dt>
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+                {tareas.length}
+              </dd>
+            </div>
+          </dl>
           <div className="flex items-center gap-2">
             <StartTimerButton caseId={c.id} caseTitle={c.title} />
             <MatterChatPanel
