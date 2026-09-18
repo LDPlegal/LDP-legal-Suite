@@ -1,19 +1,12 @@
 import Link from "next/link";
-import { Briefcase, CornerDownRight, Plus, Search, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import { AssistantStrip } from "@/components/ui/assistant-strip";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { CasosTable, type CasoNode, type CasoRow } from "./_components/casos-table";
 import { listCases } from "@/lib/db/queries/cases";
 import { listClients } from "@/lib/db/queries/clients";
 import { listFirmUsers } from "@/lib/db/queries/users";
@@ -29,11 +22,12 @@ import { formatInFirmTz } from "@/lib/datetime/format";
 
 export const metadata = { title: "Casos · LDP Legal Suite" };
 
+// Marino sólido para el estado de sistema "abierto"; neutro para cerrado.
 const STATUS_VARIANT: Record<
   "open" | "on_hold" | "closed",
-  "success" | "warning" | "secondary"
+  "default" | "warning" | "secondary"
 > = {
-  open: "success",
+  open: "default",
   on_hold: "warning",
   closed: "secondary",
 };
@@ -59,6 +53,42 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
     listMatterTemplates(user.firmId, user.userId),
   ]);
 
+  // Aplanamos al shape que consume la tabla y armamos el árbol padre/hijo.
+  const toRow = (c: (typeof casesRes.rows)[number]): CasoRow => ({
+    id: c.id,
+    code: c.code,
+    title: c.title,
+    clientDisplayName: c.clientDisplayName,
+    leadLawyerName: c.leadLawyerName,
+    statusLabel: CASE_STATUS_LABEL[c.status],
+    statusVariant: STATUS_VARIANT[c.status],
+    matterLabel: MATTER_LABEL[c.matterType],
+    openedAtLabel: formatInFirmTz(c.openedAt, undefined, "dd/MM/yyyy"),
+    restricted: c.visibility === "restricted",
+    parentCaseId: c.parentCaseId,
+  });
+
+  const byId = new Map(casesRes.rows.map((c) => [c.id, c]));
+  const childrenOf = new Map<string, CasoRow[]>();
+  const roots: CasoNode[] = [];
+
+  for (const c of casesRes.rows) {
+    // Un subexpediente cuyo padre no está en el resultado (filtrado o no
+    // visible por RLS) sube a primer nivel para no desaparecer.
+    if (c.parentCaseId && byId.has(c.parentCaseId)) {
+      const list = childrenOf.get(c.parentCaseId) ?? [];
+      list.push(toRow(c));
+      childrenOf.set(c.parentCaseId, list);
+    }
+  }
+
+  for (const c of casesRes.rows) {
+    if (c.parentCaseId && byId.has(c.parentCaseId)) continue;
+    roots.push({ ...toRow(c), children: childrenOf.get(c.id) ?? [] });
+  }
+
+  const vinculados = casesRes.rows.filter((c) => c.parentCaseId).length;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -82,8 +112,8 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
             defaultEvents: t.defaultEvents ?? [],
           }))}
           trigger={
-            <Button>
-              <Plus className="h-4 w-4" />
+            <Button variant="action">
+              <Icon name="add" size={17} />
               Nuevo caso
             </Button>
           }
@@ -91,9 +121,13 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
       </PageHeader>
 
       {/* Filtros */}
-      <form className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card backdrop-blur-xl p-2.5">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <form className="flex flex-wrap items-center gap-2 rounded-[4px] border border-[#DFE0DC] bg-white p-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon
+            name="search"
+            size={18}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8F89]"
+          />
           <Input
             name="q"
             defaultValue={q}
@@ -104,7 +138,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
         <select
           name="status"
           defaultValue={status}
-          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+          className="h-9 rounded-[3px] border border-[#C9CCC5] bg-white px-3 text-[13.5px] text-[#161C24]"
         >
           <option value="">Todos los estados</option>
           <option value="open">Abiertos</option>
@@ -114,7 +148,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
         <select
           name="matter"
           defaultValue={matter}
-          className="h-9 rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+          className="h-9 rounded-[3px] border border-[#C9CCC5] bg-white px-3 text-[13.5px] text-[#161C24]"
         >
           <option value="">Todas las materias</option>
           {Object.entries(MATTER_LABEL).map(([k, v]) => (
@@ -131,7 +165,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
       {/* Tabla o empty state */}
       {casesRes.rows.length === 0 ? (
         <EmptyState
-          icon={<Briefcase className="h-5 w-5" />}
+          icon={<Icon name="work" size={20} />}
           title="No hay casos que coincidan"
           description={
             q || status || matter
@@ -140,83 +174,18 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
           }
         />
       ) : (
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-32">Código</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Materia</TableHead>
-                <TableHead>Líder</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="hidden md:table-cell">Apertura</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {casesRes.rows.map((c) => (
-                <TableRow key={c.id} className="group">
-                  <TableCell className="font-mono text-xs">
-                    <Link
-                      href={`/casos/${c.id}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      {c.code}
-                    </Link>
-                    {c.visibility === "restricted" ? (
-                      <ShieldCheck
-                        className="ml-1 inline h-3 w-3 text-warning"
-                        aria-label="Caso restringido"
-                      />
-                    ) : null}
-                    {c.parentCaseId ? (
-                      <span
-                        className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground"
-                        title={`Expediente vinculado de ${c.parentCaseCode ?? "otro caso"}`}
-                      >
-                        <CornerDownRight className="h-3 w-3" />
-                        {c.parentCaseCode ?? "expediente vinculado"}
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/casos/${c.id}`}
-                        className="font-medium text-foreground hover:text-primary transition-colors"
-                      >
-                        {c.title}
-                      </Link>
-                      {c.parentCaseId ? (
-                        <Badge variant="secondary" className="gap-1 text-[10px]">
-                          <CornerDownRight className="h-2.5 w-2.5" />
-                          Expediente vinculado
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.clientDisplayName ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {MATTER_LABEL[c.matterType]}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.leadLawyerName ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[c.status]}>
-                      {CASE_STATUS_LABEL[c.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
-                    {formatInFirmTz(c.openedAt, undefined, "dd/MM/yyyy")}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+        <div className="space-y-3">
+          <Card className="overflow-hidden">
+            <CasosTable nodes={roots} />
+          </Card>
+          {vinculados > 0 ? (
+            <AssistantStrip>
+              {vinculados === 1
+                ? "1 expediente vinculado se muestra anidado bajo su expediente padre."
+                : `${vinculados} expedientes vinculados se muestran anidados bajo su expediente padre.`}
+            </AssistantStrip>
+          ) : null}
+        </div>
       )}
     </div>
   );
