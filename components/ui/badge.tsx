@@ -2,26 +2,20 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Badges con tinte translúcido (no fills sólidos opacos). El borde toma
-// color del propio variant a baja opacidad, y el fondo es soft tint —
-// más alineado al lenguaje glass del resto del sistema.
+// Badges planos — 11px, peso 600, tracking .055em, mayúsculas, sin radio.
+// Neutro por defecto; rojo solo para alerta real (vencida, audiencia);
+// marino sólido para estados de sistema (ABIERTO).
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 [&_svg]:size-3 [&_svg]:shrink-0",
+  "inline-flex items-center gap-1 rounded-none border px-2 py-[3px] text-[11px] font-semibold uppercase tracking-[0.055em] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 [&_svg]:size-3 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "border-primary/20 bg-primary/12 text-primary dark:bg-primary/18 dark:text-primary",
-        secondary:
-          "border-border bg-secondary text-secondary-foreground",
-        destructive:
-          "border-destructive/25 bg-destructive/12 text-destructive dark:bg-destructive/18 dark:text-destructive",
-        success:
-          "border-success/25 bg-success/12 text-success dark:bg-success/18 dark:text-success",
-        warning:
-          "border-warning/25 bg-warning/14 text-warning dark:bg-warning/20 dark:text-warning",
-        outline:
-          "border-border bg-transparent text-foreground",
+        default: "border-[#0B2239] bg-[#0B2239] text-white",
+        secondary: "border-[#DCDDD7] bg-transparent text-[#5C5E56]",
+        destructive: "border-[#E3C3BA] bg-[#FBF1EE] text-[#B4462E]",
+        success: "border-[#C6D2DE] bg-[#F2F5F8] text-[#0F4C81]",
+        warning: "border-[#E7D3AE] bg-[#FBF3E6] text-[#B89254]",
+        outline: "border-[#DCDDD7] bg-transparent text-[#5C5E56]",
       },
     },
     defaultVariants: { variant: "default" },

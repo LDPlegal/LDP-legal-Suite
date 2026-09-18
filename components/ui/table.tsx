@@ -16,6 +16,7 @@ const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableE
 );
 Table.displayName = "Table";
 
+// Encabezado en superficie alterna #FAFAF8, sin blur.
 const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
@@ -23,8 +24,8 @@ const TableHeader = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "sticky top-0 z-10 bg-[var(--glass-bg-strong)] backdrop-blur-xl",
-      "[&_tr]:border-b [&_tr]:border-border/60",
+      "sticky top-0 z-10 bg-[#FAFAF8]",
+      "[&_tr]:border-b [&_tr]:border-[#E7E8E4]",
       className,
     )}
     {...props}
@@ -44,11 +45,13 @@ const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
 >(({ className, ...props }, ref) => (
+  // Fila seleccionada: #EEF2F6 + borde izquierdo 2px azul de acción.
   <tr
     ref={ref}
     className={cn(
-      "border-b border-border/40 transition-colors duration-150",
-      "hover:bg-accent/40 data-[state=selected]:bg-accent/50",
+      "border-b border-[#F0F1ED] transition-colors duration-150 ease-out",
+      "hover:bg-[#FAFAF8]",
+      "data-[state=selected]:bg-[#EEF2F6] data-[state=selected]:shadow-[inset_2px_0_0_0_#0F4C81]",
       className,
     )}
     {...props}
@@ -60,10 +63,11 @@ const TableHead = React.forwardRef<
   HTMLTableCellElement,
   React.ThHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
+  // Encabezado: 11px, 600, tracking .06em, mayúsculas.
   <th
     ref={ref}
     className={cn(
-      "h-10 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/80",
+      "h-9 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8E8F89]",
       "[&:has([role=checkbox])]:pr-0",
       className,
     )}
@@ -76,9 +80,13 @@ const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
+  // Densidad: 12px de padding vertical → alto de fila ~44px.
   <td
     ref={ref}
-    className={cn("px-3 py-2.5 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    className={cn(
+      "px-3 py-3 align-middle text-[13.5px] text-[#161C24] [&:has([role=checkbox])]:pr-0",
+      className,
+    )}
     {...props}
   />
 ));

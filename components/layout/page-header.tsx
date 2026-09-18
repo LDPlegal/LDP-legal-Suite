@@ -47,25 +47,20 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0 space-y-1">
-        {eyebrow ? (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            {eyebrow}
-          </p>
-        ) : null}
+        {eyebrow ? <p className="microlabel">{eyebrow}</p> : null}
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-foreground sm:text-[24px]">
+          {/* h1 de pantalla = 28px en Charter/Charis SIL */}
+          <h1 className="text-[24px] leading-tight text-[#0B1929] sm:text-[28px]">
             {title}
           </h1>
           {countText ? (
-            <span className="rounded-md border border-border bg-muted/50 px-2 py-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
+            <span className="tabular border border-[#DCDDD7] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.055em] text-[#5C5E56]">
               {countText}
             </span>
           ) : null}
         </div>
         {description ? (
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            {description}
-          </p>
+          <p className="max-w-2xl text-[13px] text-[#5C5E56]">{description}</p>
         ) : null}
       </div>
       {children ? (

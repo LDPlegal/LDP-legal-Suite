@@ -1,14 +1,14 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Card — superficie de vidrio con backdrop-blur + borde con luz catch.
-// Usa el sistema .glass + .glass-highlight definido en globals.css.
+// Card — superficie blanca plana con borde #DFE0DC y radio 4px.
+// Sin blur, sin sombra, sin borde con luz.
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "relative rounded-xl glass glass-highlight text-card-foreground",
+        "relative rounded-[4px] border border-[#DFE0DC] bg-white text-card-foreground",
         className,
       )}
       {...props}
@@ -17,17 +17,22 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 );
 Card.displayName = "Card";
 
+// Cabecera con divisor — patrón "tarjeta con cabecera" del handoff.
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex flex-col space-y-1.5 px-6 pt-5 pb-3", className)}
+      className={cn(
+        "flex flex-col space-y-1 border-b border-[#F0F1ED] px-[18px] py-[14px]",
+        className,
+      )}
       {...props}
     />
   ),
 );
 CardHeader.displayName = "CardHeader";
 
+// Título de tarjeta en Charter/Charis SIL, 16.5px.
 const CardTitle = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLHeadingElement>
@@ -35,7 +40,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref as React.Ref<HTMLHeadingElement>}
     className={cn(
-      "text-base font-semibold leading-none tracking-tight",
+      "font-display text-[16.5px] leading-tight text-[#0B1929]",
       className,
     )}
     {...props}
@@ -49,7 +54,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-muted-foreground leading-relaxed", className)}
+    className={cn("text-[13px] leading-normal text-[#5C5E56]", className)}
     {...props}
   />
 ));
@@ -57,7 +62,7 @@ CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("px-6 pb-5", className)} {...props} />
+    <div ref={ref} className={cn("px-[18px] py-[14px]", className)} {...props} />
   ),
 );
 CardContent.displayName = "CardContent";
@@ -66,7 +71,10 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex items-center px-6 pt-3 pb-5", className)}
+      className={cn(
+        "flex items-center border-t border-[#F0F1ED] px-[18px] py-[12px]",
+        className,
+      )}
       {...props}
     />
   ),
