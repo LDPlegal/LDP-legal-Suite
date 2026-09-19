@@ -125,10 +125,10 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                   : Info;
             const iconCls =
               s.severity === "critical"
-                ? "text-red-500"
+                ? "text-destructive"
                 : s.severity === "warn"
-                  ? "text-amber-500"
-                  : "text-blue-500";
+                  ? "text-warning"
+                  : "text-action";
             return (
               <li
                 key={s.id}

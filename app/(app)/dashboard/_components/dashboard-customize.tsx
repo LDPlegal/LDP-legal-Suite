@@ -130,7 +130,7 @@ export function DashboardCustomize({ widgets }: { widgets: ResolvedWidget[] }) {
                 title={it.visible ? "Ocultar" : "Mostrar"}
                 className={`grid h-8 w-8 place-items-center rounded-md border ${
                   it.visible
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    ? "border-action/30 bg-action/10 text-action dark:text-action"
                     : "text-muted-foreground hover:bg-accent"
                 }`}
               >

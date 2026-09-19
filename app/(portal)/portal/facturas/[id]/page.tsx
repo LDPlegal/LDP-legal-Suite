@@ -219,7 +219,7 @@ function Row({
         className={[
           "font-mono tabular-nums",
           bold ? "text-base font-semibold" : "text-sm",
-          accent ? "text-amber-700 dark:text-amber-400" : "",
+          accent ? "text-warning dark:text-warning" : "",
         ].join(" ")}
       >
         {value}

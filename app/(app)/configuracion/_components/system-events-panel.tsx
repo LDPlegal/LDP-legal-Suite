@@ -50,8 +50,8 @@ export function SystemEventsPanel({
   if (events.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
-          <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-action/10">
+          <CheckCircle2 className="h-6 w-6 text-action" />
         </span>
         <p className="text-sm font-medium">Todo en orden</p>
         <p className="text-xs text-muted-foreground">
@@ -99,7 +99,7 @@ export function SystemEventsPanel({
                     e.severity === "error"
                       ? "bg-destructive/10 text-destructive"
                       : e.severity === "warning"
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        ? "bg-warning/10 text-warning dark:text-warning"
                         : "bg-muted text-muted-foreground",
                   ].join(" ")}
                 >
@@ -114,7 +114,7 @@ export function SystemEventsPanel({
                       {KIND_LABEL[e.kind] ?? e.kind}
                     </span>
                     {resolved ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-action dark:text-action">
                         <CheckCircle2 className="h-3 w-3" />
                         Resuelto
                       </span>

@@ -585,7 +585,7 @@ function FolderTile({
         <FolderActions folder={folder} scope={scope} compact />
       </div>
       <Link href={href} className="flex flex-1 flex-col items-center gap-2 pt-3 text-center">
-        <FolderIcon className="h-12 w-12 text-amber-500" />
+        <FolderIcon className="h-12 w-12 text-warning" />
         <span
           className="line-clamp-2 break-words text-xs font-medium leading-tight"
           title={folder.name}
@@ -669,7 +669,7 @@ function FolderCard({
         </button>
       </WithTooltip>
       <Link href={href} className="flex flex-1 items-center gap-2">
-        <FolderIcon className={dense ? "h-4 w-4 shrink-0 text-amber-500" : "h-5 w-5 shrink-0 text-amber-500"} />
+        <FolderIcon className={dense ? "h-4 w-4 shrink-0 text-warning" : "h-5 w-5 shrink-0 text-warning"} />
         <span className="break-words text-sm font-medium">{folder.name}</span>
       </Link>
       <FolderActions folder={folder} scope={scope} />

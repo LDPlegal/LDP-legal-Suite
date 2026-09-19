@@ -168,7 +168,7 @@ export function MoveToDialog({
                         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent disabled:opacity-50"
                         title={d.fullPath}
                       >
-                        <FolderInput className="h-4 w-4 shrink-0 text-amber-500" />
+                        <FolderInput className="h-4 w-4 shrink-0 text-warning" />
                         <span className="min-w-0 flex-1">
                           <span className="font-medium">{d.name}</span>
                           {d.fullPath !== "/" ? (

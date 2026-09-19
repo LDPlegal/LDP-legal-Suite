@@ -451,7 +451,7 @@ function EditMemberDrawer({
           ) : null}
 
           {/* ------------ Reset password ------------ */}
-          <div className="rounded-md border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <div className="rounded-md border border-warning bg-warning/40 p-3 dark:border-warning/50 dark:bg-warning/20">
             <p className="mb-1 text-xs font-medium">Resetear contraseña</p>
             <p className="mb-2 text-[11px] text-muted-foreground">
               Vas a definir una contraseña nueva manualmente. Las sesiones activas del

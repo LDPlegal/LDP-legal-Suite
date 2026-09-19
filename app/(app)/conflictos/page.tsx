@@ -35,7 +35,7 @@ export default async function ConflictosPage() {
       {pairs.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <ShieldCheck className="h-10 w-10 text-emerald-600" />
+            <ShieldCheck className="h-10 w-10 text-action" />
             <div>
               <p className="text-base font-medium">Sin conflictos detectados</p>
               <p className="text-sm text-muted-foreground">
@@ -54,7 +54,7 @@ export default async function ConflictosPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               <CardTitle className="text-base">
                 Detalle de coincidencias
               </CardTitle>

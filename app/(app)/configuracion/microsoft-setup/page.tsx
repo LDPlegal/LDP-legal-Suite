@@ -51,7 +51,7 @@ export default async function MicrosoftSetupPage() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-base font-semibold">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-action/15 text-action dark:text-action text-base font-semibold">
               1
             </span>
             <div className="flex-1 space-y-1">
@@ -102,8 +102,8 @@ export default async function MicrosoftSetupPage() {
             </Step>
           </ol>
 
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/[0.06] p-3 text-[12px] text-muted-foreground">
-            <CheckCircle2 className="mr-1 inline h-3 w-3 text-emerald-600 align-text-bottom" />
+          <div className="rounded-md border border-action/30 bg-action/[0.06] p-3 text-[12px] text-muted-foreground">
+            <CheckCircle2 className="mr-1 inline h-3 w-3 text-action align-text-bottom" />
             Esta es la forma más limpia. Cada socio decide individualmente
             cuándo conectar, y el admin no tiene que aprobar pedidos uno
             por uno.
@@ -115,7 +115,7 @@ export default async function MicrosoftSetupPage() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-blue-500/15 text-blue-700 dark:text-blue-400 text-base font-semibold">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[3px] bg-action/15 text-action dark:text-action text-base font-semibold">
               2
             </span>
             <div className="flex-1 space-y-1">
@@ -193,8 +193,8 @@ export default async function MicrosoftSetupPage() {
             </div>
           </div>
 
-          <div className="rounded-md border border-blue-500/30 bg-blue-500/[0.06] p-3 text-[12px] text-muted-foreground">
-            <Info className="mr-1 inline h-3 w-3 text-blue-600 align-text-bottom" />
+          <div className="rounded-md border border-action/30 bg-action/[0.06] p-3 text-[12px] text-muted-foreground">
+            <Info className="mr-1 inline h-3 w-3 text-action align-text-bottom" />
             Después de aceptar, el banner verde aparece dentro de la app y
             cualquier miembro puede conectar.
           </div>

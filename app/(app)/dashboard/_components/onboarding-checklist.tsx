@@ -133,7 +133,7 @@ export function OnboardingChecklist({
   const nextStep = steps.find((s) => !s.done);
 
   return (
-    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent p-5">
+    <Card className="relative overflow-hidden border-border p-5">
       <div className="absolute right-3 top-3">
         <IconButton
           label="Ocultar guía de primeros pasos"
@@ -183,7 +183,7 @@ export function OnboardingChecklist({
                 className={[
                   "group flex items-center gap-3 rounded-[3px] border p-3 transition-all",
                   step.done
-                    ? "border-transparent bg-emerald-500/[0.06]"
+                    ? "border-transparent bg-action/[0.06]"
                     : isNext
                       ? "border-primary/30 bg-primary/[0.04] hover:border-primary/50"
                       : "border-transparent hover:border-border hover:bg-accent/40",
@@ -193,7 +193,7 @@ export function OnboardingChecklist({
                   className={[
                     "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
                     step.done
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-action/15 text-action dark:text-action"
                       : "bg-muted text-muted-foreground",
                   ].join(" ")}
                 >

@@ -77,7 +77,7 @@ export function ConflictAlert({
       className={[
         "rounded-md border p-3 text-sm",
         isStrong
-          ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100"
+          ? "border-warning/30 bg-warning/10 text-warning"
           : "border-border bg-muted/40 text-foreground",
       ].join(" ")}
       role={isStrong ? "alert" : "status"}

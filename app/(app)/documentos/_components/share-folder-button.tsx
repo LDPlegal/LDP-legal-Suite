@@ -57,7 +57,7 @@ export function ShareFolderButton({
           className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
           label="Compartir o quitar de portal cliente (cascada en toda la carpeta)"
         >
-          <Eye className="h-3.5 w-3.5 text-emerald-600" />
+          <Eye className="h-3.5 w-3.5 text-action" />
         </IconButton>
       </DialogTrigger>
       <DialogContent>
