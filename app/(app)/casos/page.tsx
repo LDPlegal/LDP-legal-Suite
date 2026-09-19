@@ -121,12 +121,12 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
       </PageHeader>
 
       {/* Filtros */}
-      <form className="flex flex-wrap items-center gap-2 rounded-[4px] border border-[#DFE0DC] bg-white p-2.5">
+      <form className="flex flex-wrap items-center gap-2 rounded-[4px] border border-border bg-card p-2.5">
         <div className="relative min-w-[220px] flex-1">
           <Icon
             name="search"
             size={18}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8E8F89]"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle"
           />
           <Input
             name="q"
@@ -138,7 +138,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
         <select
           name="status"
           defaultValue={status}
-          className="h-9 rounded-[3px] border border-[#C9CCC5] bg-white px-3 text-[13.5px] text-[#161C24]"
+          className="h-9 rounded-[3px] border border-input bg-card px-3 text-[13.5px] text-foreground"
         >
           <option value="">Todos los estados</option>
           <option value="open">Abiertos</option>
@@ -148,7 +148,7 @@ export default async function CasosPage({ searchParams }: { searchParams: SP }) 
         <select
           name="matter"
           defaultValue={matter}
-          className="h-9 rounded-[3px] border border-[#C9CCC5] bg-white px-3 text-[13.5px] text-[#161C24]"
+          className="h-9 rounded-[3px] border border-input bg-card px-3 text-[13.5px] text-foreground"
         >
           <option value="">Todas las materias</option>
           {Object.entries(MATTER_LABEL).map(([k, v]) => (

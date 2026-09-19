@@ -14,7 +14,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       // Tabs subrayadas sobre línea inferior — no segmented control.
-      "inline-flex items-center justify-start gap-5 border-b border-[#DFE0DC]",
+      "inline-flex items-center justify-start gap-5 border-b border-border",
       // Mobile-safe: si hay muchos tabs (ej. Configuración tiene 7), en vez
       // de desbordar la página el bar scrollea horizontalmente. max-w-full lo
       // confina al ancho del contenedor; el scrollbar se oculta por estética.
@@ -34,11 +34,11 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // Activa: subrayado 2px azul de acción, texto #0B1929 peso 600.
-      "relative -mb-px inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-1 pb-2.5 pt-1 text-[13.5px] font-medium text-[#5C5E56]",
+      "relative -mb-px inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-1 pb-2.5 pt-1 text-[13.5px] font-medium text-muted-foreground",
       "transition-colors duration-150 ease-out",
-      "hover:text-[#161C24] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       "disabled:pointer-events-none disabled:opacity-50",
-      "data-[state=active]:border-[#0F4C81] data-[state=active]:font-semibold data-[state=active]:text-[#0B1929]",
+      "data-[state=active]:border-[#0F4C81] data-[state=active]:font-semibold data-[state=active]:text-foreground",
       className,
     )}
     {...props}

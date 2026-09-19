@@ -46,13 +46,13 @@ export function HoursMonthlyChart({
               <TableCell className="tabular text-right">
                 {r.billable.toFixed(1)}h
               </TableCell>
-              <TableCell className="tabular text-right text-[#8E8F89]">
+              <TableCell className="tabular text-right text-subtle">
                 {pct.toFixed(0)}%
               </TableCell>
             </TableRow>
           );
         })}
-        <TableRow className="bg-[#FAFAF8] hover:bg-[#FAFAF8]">
+        <TableRow className="bg-secondary hover:bg-secondary">
           <TableCell className="font-semibold">Total</TableCell>
           <TableCell className="tabular text-right font-semibold">
             {totalHoras.toFixed(1)}h
@@ -60,7 +60,7 @@ export function HoursMonthlyChart({
           <TableCell className="tabular text-right font-semibold">
             {totalFacturables.toFixed(1)}h
           </TableCell>
-          <TableCell className="tabular text-right text-[#8E8F89]">
+          <TableCell className="tabular text-right text-subtle">
             {totalHoras > 0
               ? `${((totalFacturables / totalHoras) * 100).toFixed(0)}%`
               : "—"}

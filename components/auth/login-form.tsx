@@ -96,7 +96,7 @@ export function LoginForm() {
           </Label>
           <Link
             href="/forgot-password"
-            className="text-[12.5px] text-[#0F4C81] underline-offset-4 transition-colors hover:text-[#0A3A63] hover:underline"
+            className="text-[12.5px] text-action underline-offset-4 transition-colors hover:text-action-hover hover:underline"
           >
             ¿Olvidó su contraseña?
           </Link>
@@ -114,13 +114,13 @@ export function LoginForm() {
             type="button"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center text-[#8E8F89] transition-colors hover:text-[#3D4038]"
+            className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center text-subtle transition-colors hover:text-foreground"
           >
             <Icon name={showPassword ? "visibility_off" : "visibility"} size={19} />
           </button>
         </div>
       </div>
-      <label className="flex items-center gap-[9px] text-[13px] text-[#3D4038]">
+      <label className="flex items-center gap-[9px] text-[13px] text-foreground">
         <input
           type="checkbox"
           name="rememberMe"

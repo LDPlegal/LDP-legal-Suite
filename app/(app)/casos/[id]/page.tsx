@@ -199,7 +199,7 @@ export default async function CasoDetailPage({
             </div>
             {/* Titular del expediente — Charter 29px (handoff 3d). */}
             <h1 className="mt-1 text-[24px] leading-tight sm:text-[29px]">{c.title}</h1>
-            <p className="text-[13px] text-[#5C5E56]">
+            <p className="text-[13px] text-muted-foreground">
               {client?.displayName ?? "—"} · {MATTER_LABEL[c.matterType]}
             </p>
             {parent ? (
@@ -223,22 +223,22 @@ export default async function CasoDetailPage({
               DOCUMENTOS / HORAS / PLAZOS; "plazos" no existe como entidad
               propia en el modelo, así que se muestra TAREAS, que es el dato
               real equivalente. */}
-          <dl className="flex items-start gap-7 border-l border-[#E7E8E4] pl-7">
+          <dl className="flex items-start gap-7 border-l border-border pl-7">
             <div>
               <dt className="microlabel">Documentos</dt>
-              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-foreground">
                 {documentos.length}
               </dd>
             </div>
             <div>
               <dt className="microlabel">Horas</dt>
-              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-foreground">
                 {fmtDuration(totalTimeSec)}
               </dd>
             </div>
             <div>
               <dt className="microlabel">Tareas</dt>
-              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-[#0B1929]">
+              <dd className="stat-number tabular mt-1 text-[21px] leading-none text-foreground">
                 {tareas.length}
               </dd>
             </div>

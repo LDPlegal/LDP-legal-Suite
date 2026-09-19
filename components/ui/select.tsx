@@ -16,10 +16,10 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-[3px] border border-[#C9CCC5]",
-      "bg-white px-3 py-2 text-[13.5px] text-[#161C24]",
-      "placeholder:text-[#9C9D96] transition-colors duration-150 ease-out",
-      "focus:border-[#0F4C81] focus:outline-none",
+      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-[3px] border border-input",
+      "bg-card px-3 py-2 text-[13.5px] text-foreground",
+      "placeholder:text-faint transition-colors duration-150 ease-out",
+      "focus:border-ring focus:outline-none",
       "disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className,
     )}
@@ -70,11 +70,8 @@ const SelectContent = React.forwardRef<
       ref={ref}
       className={cn(
         "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-[3px]",
-        "bg-white text-popover-foreground",
-        "border border-[#DFE0DC]",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-        "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+        "bg-card text-popover-foreground",
+        "border border-border",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
         className,

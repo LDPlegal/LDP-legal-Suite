@@ -36,7 +36,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-30 flex h-[74px] items-stretch border-t border-[#DFE0DC] bg-white md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 flex h-[74px] items-stretch border-t border-border bg-card md:hidden"
     >
       {DESTINOS.map((d) => {
         const active = isActive(d.href);
@@ -48,7 +48,7 @@ export function MobileTabBar() {
             className={cn(
               // Área táctil mínima de 44px — acá es toda la altura.
               "flex flex-1 flex-col items-center justify-center gap-1 pt-1 transition-colors",
-              active ? "text-[#0B2239]" : "text-[#9C9D96]",
+              active ? "text-[#0B2239]" : "text-faint",
             )}
           >
             <Icon name={d.icon} size={23} />
@@ -70,7 +70,7 @@ export function MobileTabBar() {
         aria-label="Abrir menú completo"
         className={cn(
           "flex flex-1 flex-col items-center justify-center gap-1 pt-1 transition-colors",
-          enOtraSeccion ? "text-[#0B2239]" : "text-[#9C9D96]",
+          enOtraSeccion ? "text-[#0B2239]" : "text-faint",
         )}
       >
         <Icon name="menu" size={23} />

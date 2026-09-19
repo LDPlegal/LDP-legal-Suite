@@ -32,7 +32,7 @@ export function AiHero({
       {hasPending ? (
         <>
           Tenés{" "}
-          <strong className="font-semibold text-[#161C24]">
+          <strong className="font-semibold text-foreground">
             {pendingPromptsCount}{" "}
             {pendingPromptsCount === 1 ? "sugerencia" : "sugerencias"}
           </strong>{" "}
@@ -41,11 +41,11 @@ export function AiHero({
       ) : (
         <>
           El asistente está disponible dentro de cada expediente — abrilo con{" "}
-          <kbd className="tabular border border-[#DCDDD7] px-1 py-px text-[11px] font-medium text-[#5C5E56]">
+          <kbd className="tabular border border-border px-1 py-px text-[11px] font-medium text-muted-foreground">
             {mod}
           </kbd>{" "}
-          <span className="text-[#9C9D96]">+</span>{" "}
-          <kbd className="tabular border border-[#DCDDD7] px-1 py-px text-[11px] font-medium text-[#5C5E56]">
+          <span className="text-faint">+</span>{" "}
+          <kbd className="tabular border border-border px-1 py-px text-[11px] font-medium text-muted-foreground">
             J
           </kbd>
           .

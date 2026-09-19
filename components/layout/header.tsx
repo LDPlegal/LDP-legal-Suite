@@ -12,7 +12,7 @@ export function Header({
 }) {
   // Topbar de 56px — superficie blanca plana, borde inferior #DFE0DC.
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-[#DFE0DC] bg-white px-3 md:gap-3 md:px-5">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-card px-3 md:gap-3 md:px-5">
       <MobileMenuButton />
       <CommandPalette />
       <div className="flex-1" />

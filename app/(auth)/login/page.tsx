@@ -18,14 +18,14 @@ export default function LoginPage() {
       </Suspense>
 
       <div className="space-y-2">
-        <p className="text-[12px] text-[#9C9D96]">
+        <p className="text-[12px] text-faint">
           Acceso restringido al personal de la firma.
         </p>
-        <p className="text-[12px] text-[#9C9D96]">
+        <p className="text-[12px] text-faint">
           ¿No tienes una firma registrada?{" "}
           <Link
             href="/signup"
-            className="font-medium text-[#0F4C81] underline-offset-4 transition-colors hover:text-[#0A3A63] hover:underline"
+            className="font-medium text-action underline-offset-4 transition-colors hover:text-action-hover hover:underline"
           >
             Crear cuenta
           </Link>

@@ -13,7 +13,7 @@ import Image from "next/image";
 //
 // PENDIENTE: la foto final de los socios. El zip del handoff trae los
 // <image-slot> vacíos, así que el archivo definitivo hay que pedirlo.
-const PARTNERS_PHOTO = "/marketing-photos/firma-atlas.jpg";
+const PARTNERS_PHOTO = "/marketing-photos/oficina-grabados.jpg";
 
 const PHOTO_MASK =
   "linear-gradient(to top, rgba(0,0,0,1) 62%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0) 100%)";

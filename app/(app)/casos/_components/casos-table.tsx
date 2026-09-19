@@ -67,7 +67,7 @@ function CodeCell({
             aria-label={
               expanded ? "Ocultar expedientes vinculados" : "Ver expedientes vinculados"
             }
-            className="-ml-1 grid h-5 w-5 flex-none place-items-center text-[#8E8F89] transition-colors hover:text-[#161C24]"
+            className="-ml-1 grid h-5 w-5 flex-none place-items-center text-subtle transition-colors hover:text-foreground"
           >
             <Icon name={expanded ? "expand_more" : "chevron_right"} size={18} />
           </button>
@@ -76,7 +76,7 @@ function CodeCell({
         ) : null}
         <Link
           href={`/casos/${row.id}`}
-          className="tabular whitespace-nowrap font-medium text-[#0B1929] transition-colors hover:text-[#0F4C81]"
+          className="tabular whitespace-nowrap font-medium text-foreground transition-colors hover:text-action"
         >
           {row.code}
         </Link>
@@ -118,28 +118,28 @@ function Row({
       <TableCell>
         <Link
           href={`/casos/${row.id}`}
-          className="font-medium text-[#161C24] transition-colors hover:text-[#0F4C81]"
+          className="font-medium text-foreground transition-colors hover:text-action"
         >
           {row.title}
         </Link>
-        <span className="mt-0.5 block text-[11.5px] text-[#9C9D96]">
+        <span className="mt-0.5 block text-[11.5px] text-faint">
           {row.matterLabel}
         </span>
       </TableCell>
-      <TableCell className="text-[13px] text-[#5C5E56]">
+      <TableCell className="text-[13px] text-muted-foreground">
         {depth === 1 ? (
-          <span className="text-[#9C9D96]">vinculado</span>
+          <span className="text-faint">vinculado</span>
         ) : (
           (row.clientDisplayName ?? "—")
         )}
       </TableCell>
-      <TableCell className="text-[13px] text-[#5C5E56]">
+      <TableCell className="text-[13px] text-muted-foreground">
         {row.leadLawyerName ?? "—"}
       </TableCell>
       <TableCell>
         <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
       </TableCell>
-      <TableCell className="tabular hidden text-[12.5px] text-[#8E8F89] md:table-cell">
+      <TableCell className="tabular hidden text-[12.5px] text-subtle md:table-cell">
         {row.openedAtLabel}
       </TableCell>
     </TableRow>
@@ -155,16 +155,16 @@ function MobileCard({ row, nested = false }: { row: CasoRow; nested?: boolean })
     <Link
       href={`/casos/${row.id}`}
       className={cn(
-        "block border-b border-[#F0F1ED] px-4 py-3 transition-colors last:border-b-0 active:bg-[#FAFAF8]",
+        "block border-b border-muted px-4 py-3 transition-colors last:border-b-0 active:bg-secondary",
         nested && "border-l-0 bg-[#FCFCFA] pl-[26px]",
       )}
     >
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0">
-          <span className="block truncate text-[14.5px] font-medium text-[#161C24]">
+          <span className="block truncate text-[14.5px] font-medium text-foreground">
             {row.title}
           </span>
-          <span className="mt-0.5 block truncate text-[11.5px] text-[#9C9D96]">
+          <span className="mt-0.5 block truncate text-[11.5px] text-faint">
             <span className="tabular">{row.code}</span>
             {" · "}
             {nested ? "vinculado" : (row.clientDisplayName ?? "—")}

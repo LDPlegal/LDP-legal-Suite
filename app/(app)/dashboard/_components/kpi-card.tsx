@@ -74,20 +74,20 @@ export function KpiCard({
 }: KpiCardProps) {
   return (
     <Link href={href} className="group block">
-      <div className="relative overflow-hidden rounded-[4px] border border-[#DFE0DC] bg-white transition-colors duration-150 ease-out group-hover:border-[#C9CCC5]">
+      <div className="relative overflow-hidden rounded-[4px] border border-border bg-card transition-colors duration-150 ease-out group-hover:border-input">
         <div className="p-[18px]">
           <div className="flex items-start justify-between gap-3">
             <p className="microlabel">{label}</p>
             <Icon
               name={ICON_MAP[iconName]}
               size={18}
-              className="text-[#9C9D96] transition-colors group-hover:text-[#0F4C81]"
+              className="text-faint transition-colors group-hover:text-action"
             />
           </div>
-          <p className="stat-number tabular mt-3 text-[30px] leading-none text-[#0B1929]">
+          <p className="stat-number tabular mt-3 text-[30px] leading-none text-foreground">
             {numeric ? formatNumeric(numeric) : (displayValue ?? "—")}
           </p>
-          <p className="mt-2 text-[11.5px] text-[#8E8F89]">{hint}</p>
+          <p className="mt-2 text-[11.5px] text-subtle">{hint}</p>
         </div>
       </div>
     </Link>

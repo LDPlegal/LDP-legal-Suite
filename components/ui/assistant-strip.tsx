@@ -37,7 +37,7 @@ export function AssistantStrip({
       {action ? (
         <Link
           href={action.href}
-          className="flex-none text-[13px] font-medium text-[#0F4C81] underline-offset-4 transition-colors hover:text-[#0A3A63] hover:underline"
+          className="flex-none text-[13px] font-medium text-action underline-offset-4 transition-colors hover:text-action-hover hover:underline"
         >
           {action.label}
         </Link>

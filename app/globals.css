@@ -95,8 +95,14 @@
   --color-text: #161C24;
   --color-text-2: #3D4038;
   --color-text-3: #5C5E56;
-  --color-text-4: #8E8F89;
-  --color-text-5: #9C9D96;
+  --color-text-4: var(--text-subtle);
+  --color-text-5: var(--text-faint);
+
+  /* Expuestos como utilidades: text-action, bg-action, text-subtle… */
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-subtle: var(--text-subtle);
+  --color-faint: var(--text-faint);
 
   /* Alerta (vencido / audiencia) y oro (asistente IA) */
   --color-alert: #B4462E;
@@ -105,6 +111,20 @@
   --color-gold-ink: #B89254;
   --color-gold-border: #E7D3AE;
   --color-gold-bg: #FBF3E6;
+
+  /* Sombras: el handoff dice que existen solo en las maquetas del
+     documento, NO en la app. Se anula la escala completa de Tailwind
+     acá en vez de perseguir shadow-sm/md/lg por 15 archivos
+     (dropdown, tooltip, switch, checkbox, command…). */
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-2xl: none;
+  --shadow-inner: none;
 
   /* Radios — 3-4px en tarjetas/inputs, nunca más. */
   --radius-sm: 0px;
@@ -178,6 +198,11 @@
 
   --ambient-gradient: none;
 
+  /* Grises de texto secundario/terciario. Viven acá (no en @theme) para
+     que .dark pueda redefinirlos. */
+  --text-subtle: #8E8F89;
+  --text-faint: #9C9D96;
+
   /* Azul de acción (links, iconos, CTA) — distinto del marino de branding */
   --action: #0F4C81;
   --action-hover: #0A3A63;
@@ -245,6 +270,9 @@
   --glass-shadow-lg: none;
 
   --ambient-gradient: none;
+
+  --text-subtle: #8FA4B8;
+  --text-faint: #7B8CA0;
 
   --action: #6FA3CE;
   --action-hover: #9DB4CC;

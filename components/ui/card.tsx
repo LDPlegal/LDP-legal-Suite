@@ -8,7 +8,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        "relative rounded-[4px] border border-[#DFE0DC] bg-white text-card-foreground",
+        "relative rounded-[4px] border border-border bg-card text-card-foreground",
         className,
       )}
       {...props}
@@ -23,7 +23,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "flex flex-col space-y-1 border-b border-[#F0F1ED] px-[18px] py-[14px]",
+        "flex flex-col space-y-1 border-b border-muted px-[18px] py-[14px]",
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref as React.Ref<HTMLHeadingElement>}
     className={cn(
-      "font-display text-[16.5px] leading-tight text-[#0B1929]",
+      "font-display text-[16.5px] leading-tight text-foreground",
       className,
     )}
     {...props}
@@ -54,7 +54,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-[13px] leading-normal text-[#5C5E56]", className)}
+    className={cn("text-[13px] leading-normal text-muted-foreground", className)}
     {...props}
   />
 ));
@@ -72,7 +72,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "flex items-center border-t border-[#F0F1ED] px-[18px] py-[12px]",
+        "flex items-center border-t border-muted px-[18px] py-[12px]",
         className,
       )}
       {...props}

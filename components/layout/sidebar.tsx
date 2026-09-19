@@ -1,6 +1,6 @@
 "use client";
 
-// Sidebar del rediseño visual — blanca, 238px, borde derecho #DFE0DC.
+// Sidebar del rediseño visual — blanca (238px) en claro, superficie oscura en dark.
 // Ítem activo en marino sólido; inactivo con icono azul de acción.
 // Sin gradientes, sin sombras, sin movimiento: solo transiciones de color.
 // Referencia: design_handoff_rediseno_visual/Nav Lateral.dc.html
@@ -103,14 +103,14 @@ function NavLink({
         "flex items-center gap-[11px] px-[10px] py-[9px] text-[14px] transition-colors duration-150 ease-out",
         collapsed && "justify-center",
         active
-          ? "bg-[#0B2239] font-medium text-white"
-          : "text-[#3D4038] hover:bg-[#EFF0EC]",
+          ? "bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+          : "text-sidebar-foreground hover:bg-sidebar-accent",
       )}
     >
       <Icon
         name={item.icon}
         size={19}
-        className={active ? "text-white" : "text-[#0F4C81]"}
+        className={active ? "text-sidebar-primary-foreground" : "text-action"}
       />
       {!collapsed ? <span className="truncate">{item.label}</span> : null}
     </Link>
@@ -145,13 +145,13 @@ export function Sidebar({
           type="button"
           aria-label="Cerrar menú"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-[#0B1929]/45 md:hidden"
+          className="fixed inset-0 z-40 bg-[rgba(11,25,41,0.45)] md:hidden"
         />
       ) : null}
 
       <aside
         className={cn(
-          "z-50 flex h-screen shrink-0 flex-col border-r border-[#DFE0DC] bg-white",
+          "z-50 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar",
           "transition-[width,transform] duration-200 ease-out",
           // Mobile: drawer fixed. Desktop: sticky al top.
           "fixed inset-y-0 left-0 md:sticky md:top-0 md:inset-y-auto",
@@ -199,7 +199,7 @@ export function Sidebar({
               type="button"
               onClick={() => setCollapsed(true)}
               aria-label="Colapsar menú"
-              className="hidden h-7 w-7 place-items-center text-[#9C9D96] transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] md:grid"
+              className="hidden h-7 w-7 place-items-center text-faint transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:grid"
             >
               <Icon name="left_panel_close" size={18} />
             </button>
@@ -211,7 +211,7 @@ export function Sidebar({
             type="button"
             onClick={() => setCollapsed(false)}
             aria-label="Expandir menú"
-            className="mx-auto mb-2 hidden h-7 w-7 place-items-center text-[#9C9D96] transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] md:grid"
+            className="mx-auto mb-2 hidden h-7 w-7 place-items-center text-faint transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:grid"
           >
             <Icon name="left_panel_open" size={18} />
           </button>
@@ -222,12 +222,12 @@ export function Sidebar({
           {NAV_GROUPS.map((group, gi) => (
             <div key={group.label ?? `root-${gi}`} className="flex flex-col gap-px">
               {group.label && !collapsed ? (
-                <div className="px-[10px] pb-[5px] pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9C9D96]">
+                <div className="px-[10px] pb-[5px] pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">
                   {group.label}
                 </div>
               ) : null}
               {group.label && collapsed ? (
-                <div className="mx-[10px] my-2 border-t border-[#E7E8E4]" />
+                <div className="mx-[10px] my-2 border-t border-sidebar-border" />
               ) : null}
               {group.items.map((item) => (
                 <NavLink
@@ -253,7 +253,7 @@ export function Sidebar({
         {/* Bloque de usuario */}
         <div
           className={cn(
-            "group/user flex items-center gap-[10px] border-t border-[#E7E8E4] pb-4 pt-[14px]",
+            "group/user flex items-center gap-[10px] border-t border-sidebar-border pb-4 pt-[14px]",
             collapsed ? "justify-center px-2" : "px-[18px]",
           )}
         >
@@ -262,15 +262,15 @@ export function Sidebar({
             title="Mi cuenta · Ajustes"
             className="flex min-w-0 flex-1 items-center gap-[10px]"
           >
-            <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[#E4EBF2] text-[11.5px] font-semibold text-[#0F4C81]">
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-accent text-[11.5px] font-semibold text-action">
               {initialsOf(user.name)}
             </span>
             {!collapsed ? (
               <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate text-[13px] font-medium text-[#0B1929]">
+                <span className="truncate text-[13px] font-medium text-foreground">
                   {user.name}
                 </span>
-                <span className="text-[11.5px] text-[#8E8F89]">
+                <span className="text-[11.5px] text-subtle">
                   {ROLE_LABEL[user.role] ?? user.role}
                 </span>
               </span>
@@ -283,7 +283,7 @@ export function Sidebar({
                 type="submit"
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
-                className="grid h-7 w-7 place-items-center text-[#9C9D96] opacity-0 transition-colors hover:bg-[#EFF0EC] hover:text-[#3D4038] focus-visible:opacity-100 group-hover/user:opacity-100"
+                className="grid h-7 w-7 place-items-center text-faint opacity-0 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:opacity-100 group-hover/user:opacity-100"
               >
                 <Icon name="logout" size={17} />
               </button>
