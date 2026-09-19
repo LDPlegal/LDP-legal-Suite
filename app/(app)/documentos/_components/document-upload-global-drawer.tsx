@@ -1,6 +1,6 @@
 "use client";
 
-// Subida global de documentos (vista /documentos) — soporta multi-archivo
+// Subida global de documentos (vista /documentos), soporta multi-archivo
 // y carpeta completa. Misma lógica que el uploader del caso pero sin caseId
 // asociado (los archivos van a la "carpeta general" del firm).
 
@@ -187,7 +187,7 @@ export function DocumentUploadGlobalDrawer({
       setTags("");
     } else if (done > 0 && errors > 0) {
       toast.warning(
-        `Subí ${done}/${queue.length}. ${errors} fallaron — revisá la lista.`,
+        `Subí ${done}/${queue.length}. ${errors} fallaron, revisá la lista.`,
       );
     }
   }
@@ -253,7 +253,7 @@ export function DocumentUploadGlobalDrawer({
             ref={folderInputRef}
             type="file"
             multiple
-            // @ts-expect-error — webkitdirectory no está en los types estándar
+            // @ts-expect-error, webkitdirectory no está en los types estándar
             webkitdirectory=""
             directory=""
             onChange={(e) => addFiles(e.target.files)}

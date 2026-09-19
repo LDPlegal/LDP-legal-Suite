@@ -1,4 +1,4 @@
-// Smart OCR provider — detecta tipo por magic bytes y rutea al pipeline
+// Smart OCR provider, detecta tipo por magic bytes y rutea al pipeline
 // más apropiado, con fallback a Claude Vision para casos difíciles.
 
 import "server-only";
@@ -134,10 +134,10 @@ export class SmartOcr implements OcrProvider {
       return r;
     }
 
-    // ── Word DOC legacy (.doc — CFB/OLE2 format) ──
+    // ── Word DOC legacy (.doc, CFB/OLE2 format) ──
     // file-type devuelve "application/msword" para .doc o "application/x-cfb"
     // para el contenedor CFB cuando no detecta el sub-tipo Word. Manejamos
-    // ambos — word-extractor sabe parsear ambos casos.
+    // ambos, word-extractor sabe parsear ambos casos.
     if (
       realMime === "application/msword" ||
       realMime === "application/x-cfb" ||
@@ -201,7 +201,7 @@ export class SmartOcr implements OcrProvider {
           reason: `Imagen > ${Math.round(OCR_MAX_BYTES_CLAUDE / 1024 / 1024)}MB; demasiado grande para Claude.`,
         };
       }
-      // Claude solo acepta jpeg/png/gif/webp — convertir bmp/tiff falla acá.
+      // Claude solo acepta jpeg/png/gif/webp, convertir bmp/tiff falla acá.
       const claudeCompatible =
         realMime === "image/jpeg" ||
         realMime === "image/png" ||

@@ -16,7 +16,7 @@ export type FormatearDocumentoState =
   | { ok: false; error: string };
 
 // Reformatea el texto extraído de un documento (OCR/DOCX) en Markdown
-// legible con títulos y negritas — sin resumir. Cachea el resultado en el
+// legible con títulos y negritas, sin resumir. Cachea el resultado en el
 // documento: la primera vez llama a la IA, las siguientes lo devuelve al
 // instante sin costo.
 export async function formatearDocumentoAction(

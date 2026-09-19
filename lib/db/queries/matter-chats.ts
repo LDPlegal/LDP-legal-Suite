@@ -1,7 +1,7 @@
 // Per-case chat persistence (F7).
 //
 // Why a dedicated module: chats accumulate fast (50+ messages per active
-// case is normal) and the read path is hot — every keystroke in the panel
+// case is normal) and the read path is hot, every keystroke in the panel
 // hits a load. Index on (firm_id, case_id, created_at) covers the typical
 // query (load oldest→newest for a case).
 
@@ -28,7 +28,7 @@ export async function listChatMessages(
   return withFirm(firmId, userId, async (tx) => {
     // Fase 13: chat individual. Cada usuario ve SOLO su conversación
     // (owner_id = él). Los mensajes viejos del chat compartido (owner_id
-    // NULL) quedan ocultos — no se borran, pero ya no se muestran.
+    // NULL) quedan ocultos, no se borran, pero ya no se muestran.
     const conds = [
       eq(matterChats.caseId, caseId),
       eq(matterChats.ownerId, userId),
@@ -74,7 +74,7 @@ export async function appendChatMessage(
         cacheReadTokens: data.cacheReadTokens ?? null,
         cacheCreationTokens: data.cacheCreationTokens ?? null,
         createdBy: data.createdBy ?? userId,
-        // Fase 13: dueño del chat individual — cada usuario tiene el suyo.
+        // Fase 13: dueño del chat individual, cada usuario tiene el suyo.
         ownerId: userId,
       })
       .returning();
@@ -86,7 +86,7 @@ export async function appendChatMessage(
 // Truncate the chat history kept in active LLM context so it doesn't grow
 // unbounded. Returns a "tail" suitable for sending to the model: last N
 // messages, with the oldest summarized into a single system note when over
-// the limit. The DB row store is untouched — this only shapes the LLM input.
+// the limit. The DB row store is untouched, this only shapes the LLM input.
 export function truncateForContext(
   messages: MatterChat[],
   opts: { keepLast: number },
@@ -96,7 +96,7 @@ export function truncateForContext(
 }
 
 // =============================================================================
-// matter_contexts — narrative summary updated incrementally
+// matter_contexts, narrative summary updated incrementally
 // =============================================================================
 
 // Load (and lazy-initialize) the matter context row for a case.

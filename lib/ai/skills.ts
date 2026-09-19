@@ -112,7 +112,7 @@ async function loadFromBundled(): Promise<Skill[]> {
 }
 
 // =============================================================================
-// GitHub loader (production path — pulls from LDP_SKILLS_REPO)
+// GitHub loader (production path, pulls from LDP_SKILLS_REPO)
 // =============================================================================
 
 async function loadFromGithub(): Promise<Skill[]> {
@@ -167,13 +167,13 @@ async function loadFromGithub(): Promise<Skill[]> {
 // Frontmatter parser
 // =============================================================================
 // Lightweight YAML-like parser for the frontmatter at the top of each
-// skill file. We don't need full YAML — only key:value and key:[a,b]
+// skill file. We don't need full YAML, only key:value and key:[a,b]
 // patterns. Avoids pulling a yaml dependency for ~30 lines of parsing.
 
 function parseSkillFile(content: string, relPath: string): { meta: SkillFrontmatter; body: string } | null {
   const trimmed = content.replace(/^﻿/, ""); // BOM
   if (!trimmed.startsWith("---")) {
-    // No frontmatter — synthesize an id from the path.
+    // No frontmatter, synthesize an id from the path.
     return {
       meta: { id: relPath.replace(/\.md$/, "").replace(/\//g, "-"), name: relPath },
       body: trimmed,

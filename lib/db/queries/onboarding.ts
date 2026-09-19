@@ -1,12 +1,12 @@
 // Progreso de onboarding del firm.
 //
 // Un firm recién creado cae en el dashboard sin clientes, sin casos, sin
-// nada — y todos los widgets se ven vacíos sin guía de qué hacer primero.
+// nada, y todos los widgets se ven vacíos sin guía de qué hacer primero.
 // Esta query cuenta los hitos clave para decidir si mostramos el checklist
 // de onboarding y cuáles pasos ya están completos.
 //
 // Eficiencia: 5 count(*) en paralelo dentro de una sola transacción withFirm.
-// Cada uno es un index scan trivial filtrado por firm (RLS) — en un firm
+// Cada uno es un index scan trivial filtrado por firm (RLS), en un firm
 // nuevo las tablas están casi vacías, y en uno maduro igual son count
 // indexados. Se llama solo desde el dashboard.
 
@@ -52,7 +52,7 @@ export async function getFirmOnboardingProgress(
           and(
             isNull(users.deletedAt),
             ne(users.role, "client"),
-            // No contar al usuario actual (el admin fundador) — queremos
+            // No contar al usuario actual (el admin fundador), queremos
             // saber si invitó a ALGUIEN MÁS.
             ne(users.id, userId),
           ),

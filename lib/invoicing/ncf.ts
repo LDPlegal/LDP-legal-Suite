@@ -1,16 +1,16 @@
 // lib/invoicing/ncf.ts
 //
 // NCF (Numeración de Comprobante Fiscal) helpers for the Dominican Republic.
-// Format used by DGII since 2018: 11 characters total — a 3-character type
+// Format used by DGII since 2018: 11 characters total, a 3-character type
 // prefix (B01, B02, E31, E32) followed by an 8-digit sequential. Examples:
-//   B0100000001 — Comprobante de crédito fiscal (paper, persona jurídica)
-//   B0200000001 — Comprobante consumidor final (paper, persona física)
-//   E3100000001 — e-CF crédito fiscal (electrónico)
-//   E3200000001 — e-CF consumidor final (electrónico)
+//   B0100000001, Comprobante de crédito fiscal (paper, persona jurídica)
+//   B0200000001, Comprobante consumidor final (paper, persona física)
+//   E3100000001, e-CF crédito fiscal (electrónico)
+//   E3200000001, e-CF consumidor final (electrónico)
 //
 // Maestro § 9.3: el sistema soporta los cuatro tipos. La emisión real a la
 // DGII (envío del XML del e-CF y manejo del TrackId) NO está implementada
-// — eso queda para Fase 4 o un proveedor externo (Mercury, eFacturador,
+// eso queda para Fase 4 o un proveedor externo (Mercury, eFacturador,
 // etc.). Lo que SÍ hace el sistema:
 //   * Asigna NCFs atómicamente desde rangos configurados por el firm.
 //   * Imprime/exporta facturas con NCF válido en el PDF para que el
@@ -18,7 +18,7 @@
 //
 // Una sola fila por (firm_id, ncf_type) en `ncf_counters`. Cuando la DGII
 // asigna un nuevo rango al firm, se actualiza esa fila (rango_inicio /
-// rango_fin / last_seq). NCFs ya emitidos NO cambian — viven en
+// rango_fin / last_seq). NCFs ya emitidos NO cambian, viven en
 // `invoices.ncf` permanentemente.
 
 import { and, eq, isNull, or, sql } from "drizzle-orm";
@@ -28,10 +28,10 @@ import { ncfCounters } from "../db/schema";
 export type NcfType = "B01" | "B02" | "E31" | "E32";
 
 export const NCF_TYPE_LABEL: Record<NcfType, string> = {
-  B01: "B01 — Crédito fiscal (papel)",
-  B02: "B02 — Consumidor final (papel)",
-  E31: "E31 — e-CF crédito fiscal (electrónico)",
-  E32: "E32 — e-CF consumidor final (electrónico)",
+  B01: "B01, Crédito fiscal (papel)",
+  B02: "B02, Consumidor final (papel)",
+  E31: "E31, e-CF crédito fiscal (electrónico)",
+  E32: "E32, e-CF consumidor final (electrónico)",
 };
 
 export const NCF_TYPE_SHORT: Record<NcfType, string> = {
@@ -66,7 +66,7 @@ export class NcfAssignmentError extends Error {
  * error when the range is unconfigured / exhausted / expired so the caller
  * can show a precise message.
  *
- * Race-safe via a single UPDATE with the seq guard in the WHERE clause —
+ * Race-safe via a single UPDATE with the seq guard in the WHERE clause,
  * if no row matches (range exhausted or expired), the UPDATE returns no rows
  * and we report the right error after a follow-up read.
  */
@@ -88,7 +88,7 @@ export async function assignNcf(tx: Tx, firmId: string, ncfType: NcfType): Promi
     return formatNcf(ncfType, row.lastSeq);
   }
 
-  // The atomic update didn't match — diagnose why so the user gets a precise
+  // The atomic update didn't match, diagnose why so the user gets a precise
   // error (range not configured vs exhausted vs expired).
   const [existing] = await tx
     .select({

@@ -153,7 +153,7 @@ export default async function DashboardPage() {
           ? "Buenas tardes"
           : "Buenas noches";
 
-  // Eventos de HOY (para el widget "Agenda de hoy") — se derivan de los
+  // Eventos de HOY (para el widget "Agenda de hoy"), se derivan de los
   // próximos 7 días ya cargados, sin consulta extra.
   const todayStr = now.toDateString();
   const eventosHoy = proximosEventos.filter(
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
               Cuentas por cobrar
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              Aging de las facturas vigentes — click una barra para detalles.
+              Aging de las facturas vigentes, click una barra para detalles.
             </p>
           </div>
           <Link

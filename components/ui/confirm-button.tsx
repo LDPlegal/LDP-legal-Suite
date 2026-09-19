@@ -69,7 +69,7 @@ export function ConfirmButton({
       <Dialog
         open={open}
         onOpenChange={(v) => {
-          // Bloquear cierre mientras la action está corriendo — sino el
+          // Bloquear cierre mientras la action está corriendo, sino el
           // user puede cerrar y la action queda huérfana en server.
           if (pending && !v) return;
           setOpen(v);
@@ -121,7 +121,7 @@ export function ConfirmButton({
 }
 
 // Botón submit que se deshabilita durante el envío. useFormStatus es la
-// forma idiomática de React 19 — captura el pending del <form> padre sin
+// forma idiomática de React 19, captura el pending del <form> padre sin
 // pasar props.
 function ConfirmSubmitButton({ label, pending: outerPending }: { label: string; pending: boolean }) {
   const status = useFormStatus();

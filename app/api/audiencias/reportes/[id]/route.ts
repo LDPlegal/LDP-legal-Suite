@@ -1,4 +1,4 @@
-// GET /api/audiencias/reportes/[id] — devuelve el contenido completo (JSON
+// GET /api/audiencias/reportes/[id], devuelve el contenido completo (JSON
 // tiptap) de un reporte existente, para que el drawer del editor lo cargue
 // al abrir. No expone HTML del contenido para evitar XSS si en algún
 // momento alguien lo renderizara sin sanitizar; el cliente solo necesita el

@@ -42,7 +42,7 @@ export function NoteCard({
               dateStyle: "long",
             })}
             {" · "}
-            {note.authorName ?? "—"}
+            {note.authorName ?? "-"}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -62,7 +62,7 @@ export function NoteCard({
           <ConfirmButton
             action={eliminarNotaAction}
             title="¿Eliminar esta gestión?"
-            description={note.title ? `"${note.title}" — esta acción es reversible (queda archivada).` : "Esta acción es reversible (queda archivada)."}
+            description={note.title ? `"${note.title}", esta acción es reversible (queda archivada).` : "Esta acción es reversible (queda archivada)."}
             confirmLabel="Eliminar"
             trigger={
               <Button

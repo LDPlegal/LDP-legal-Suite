@@ -1,6 +1,6 @@
 "use client";
 
-// Dialog "Mover a..." universal — sirve para mover docs Y carpetas.
+// Dialog "Mover a..." universal, sirve para mover docs Y carpetas.
 //
 // El listado de destinos se trae al abrir (no en cada render). El user
 // busca/filtra en memoria, click sobre una carpeta dispara la action.
@@ -45,14 +45,14 @@ export function MoveToDialog({
   currentFolderId,
 }: {
   trigger: React.ReactNode;
-  /** Tipo del item a mover — define qué action se llama. */
+  /** Tipo del item a mover, define qué action se llama. */
   itemKind: "document" | "folder";
   /** ID del doc o la carpeta a mover. */
   itemId: string;
   itemName: string;
-  /** Scope donde vive (case/client/firm) — los destinos se limitan al mismo. */
+  /** Scope donde vive (case/client/firm), los destinos se limitan al mismo. */
   scope: FolderScope;
-  /** Carpeta actual del item — para no listarla como destino. */
+  /** Carpeta actual del item, para no listarla como destino. */
   currentFolderId: string | null;
 }) {
   const router = useRouter();
@@ -62,7 +62,7 @@ export function MoveToDialog({
   const [search, setSearch] = useState("");
   const [pending, startTransition] = useTransition();
 
-  // Cargar destinos al abrir. Cache no — el árbol cambia con creación
+  // Cargar destinos al abrir. Cache no, el árbol cambia con creación
   // de carpetas y queremos data fresca cada vez.
   useEffect(() => {
     if (!open) return;

@@ -1,10 +1,10 @@
-// Detector diario de facturas vencidas — disparado por Vercel Cron.
+// Detector diario de facturas vencidas, disparado por Vercel Cron.
 //
 // Qué hace:
 //   1. Busca invoices con status en ('sent', 'partial') cuyo dueOn < now()
 //      y que no estén borradas. Las marca como 'overdue'.
 //   2. Notifica al `createdBy` (el emisor de la factura) cada vez que
-//      DETECTA por primera vez una factura vencida — es decir, solo cuando
+//      DETECTA por primera vez una factura vencida, es decir, solo cuando
 //      pasa de sent/partial a overdue. Una vez en overdue no re-notifica
 //      al día siguiente (evita spam diario por una misma factura).
 //
@@ -32,7 +32,7 @@ async function handler(req: Request): Promise<Response> {
 
   const now = new Date();
 
-  // Buscar candidatos ANTES del update — necesitamos el firmId/clientId/
+  // Buscar candidatos ANTES del update, necesitamos el firmId/clientId/
   // createdBy para notificar. status IN ('sent', 'partial') porque draft
   // todavía no se "envió" y paid/void/overdue no aplican.
   const candidates = await adminDb
@@ -80,7 +80,7 @@ async function handler(req: Request): Promise<Response> {
     );
 
   // Notificar al creador. Si createdBy es null (usuario removido del firm),
-  // skipea esa factura — no tenemos a quién avisarle de manera precisa.
+  // skipea esa factura, no tenemos a quién avisarle de manera precisa.
   let notified = 0;
   for (const inv of candidates) {
     if (!inv.createdBy) continue;
@@ -94,7 +94,7 @@ async function handler(req: Request): Promise<Response> {
         firmId: inv.firmId,
         userId: inv.createdBy,
         type: "invoice_overdue",
-        title: `Factura vencida: ${inv.number} — ${clientName}`,
+        title: `Factura vencida: ${inv.number}, ${clientName}`,
         body: `Balance ${inv.balance} ${inv.currency}. Vencida hace ${daysOverdue} día(s).`,
         href: `/facturacion/${inv.id}`,
       });

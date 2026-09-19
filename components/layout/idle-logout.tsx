@@ -1,6 +1,6 @@
 "use client";
 
-// F7+ Bloque 4 — Idle timeout client-side.
+// F7+ Bloque 4, Idle timeout client-side.
 //
 // La spec pide cerrar sesión a los 30 min de INACTIVIDAD (sin mouse,
 // teclado, scroll, ni cambios de pestaña). Implementarlo a nivel de
@@ -74,7 +74,7 @@ export function IdleLogout() {
     };
   }, [router]);
 
-  // Render nothing visible — the toast handles UX.
+  // Render nothing visible, the toast handles UX.
   void warning;
   return null;
 }

@@ -5,12 +5,12 @@
 // Por qué existe: los documentos subidos antes de v0.23 (cuando agregamos
 // magic-byte detection) tienen mime "application/octet-stream" porque el
 // browser no detectó el tipo. El nuevo pipeline de OCR detecta el tipo
-// real al re-procesar — y de paso corrige el mime + filename del doc para
+// real al re-procesar, y de paso corrige el mime + filename del doc para
 // que el download funcione.
 //
 // Dos modos:
-//   reprocessOneDocAction(docId)       — un solo doc, sync (~5-30s)
-//   reprocessAllPendingDocsAction()    — bulk, hasta 10 docs por llamada
+//   reprocessOneDocAction(docId)      , un solo doc, sync (~5-30s)
+//   reprocessAllPendingDocsAction()   , bulk, hasta 10 docs por llamada
 //                                        (límite para fit en 60s de Vercel)
 
 import { revalidatePath } from "next/cache";
@@ -64,7 +64,7 @@ export type ReprocessBulkState =
     }
   | { ok: false; error: string };
 
-/** Re-procesa OCR de un solo documento. Sync — el caller espera la respuesta. */
+/** Re-procesa OCR de un solo documento. Sync, el caller espera la respuesta. */
 export async function reprocessOneDocAction(
   docId: string,
 ): Promise<ReprocessOneState> {

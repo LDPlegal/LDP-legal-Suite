@@ -1,7 +1,7 @@
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
-// Stripped-down header for /portal — no command palette, no active-timer
+// Stripped-down header for /portal, no command palette, no active-timer
 // widget. Clients only need theme + their menu (logout).
 
 export function PortalHeader({

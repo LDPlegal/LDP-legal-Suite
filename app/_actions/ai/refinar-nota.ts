@@ -31,7 +31,7 @@ export async function refinarNotaAction(
   if (!parsed.success) return { ok: false, error: "Datos inválidos." };
 
   // Verify the case belongs to the user's firm before sending content to
-  // the AI provider — defense in depth, even though Tiptap content is
+  // the AI provider, defense in depth, even though Tiptap content is
   // user-supplied.
   const caso = await getCaseById(user.firmId, user.userId, parsed.data.caseId);
   if (!caso) return { ok: false, error: "Caso no encontrado." };

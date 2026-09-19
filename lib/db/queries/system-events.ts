@@ -1,4 +1,4 @@
-// Eventos del sistema — fallos silenciosos hechos visibles (Fase 12).
+// Eventos del sistema, fallos silenciosos hechos visibles (Fase 12).
 //
 // logSystemEvent() reemplaza el patron `catch { console.error(...) }` en los
 // puntos criticos: envio de email, sync de calendario, Graph sendMail, OCR.
@@ -32,7 +32,7 @@ export async function logSystemEvent(input: SystemEventInput): Promise<void> {
       userId: input.userId ?? null,
     });
   } catch (e) {
-    // No escalar — el registro de un fallo no debe romper nada. Dejamos
+    // No escalar, el registro de un fallo no debe romper nada. Dejamos
     // rastro en los logs del runtime como ultimo recurso.
     console.error("[system-events] no se pudo registrar el evento:", e);
   }

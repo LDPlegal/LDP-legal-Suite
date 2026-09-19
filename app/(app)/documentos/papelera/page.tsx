@@ -1,4 +1,4 @@
-// Papelera — vista para restaurar o eliminar definitivamente carpetas y docs
+// Papelera, vista para restaurar o eliminar definitivamente carpetas y docs
 // que fueron soft-deleted. Se accede desde un link en /documentos.
 
 import Link from "next/link";
@@ -84,7 +84,7 @@ export default async function PapeleraPage() {
                           Eliminada{" "}
                           {f.deletedAt
                             ? formatInFirmTz(f.deletedAt, undefined, "dd/MM/yyyy HH:mm")
-                            : "—"}
+                            : "-"}
                           {f.path && f.path !== "/" ? ` · path: ${f.path}` : ""}
                         </p>
                       </div>
@@ -147,7 +147,7 @@ export default async function PapeleraPage() {
                             {formatBytes(d.sizeBytes)} · Eliminado{" "}
                             {d.deletedAt
                               ? formatInFirmTz(d.deletedAt, undefined, "dd/MM/yyyy HH:mm")
-                              : "—"}
+                              : "-"}
                           </p>
                         </div>
                       </div>

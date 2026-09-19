@@ -1,6 +1,6 @@
 "use client";
 
-// Tabla de casos con jerarquía padre/hijo — el punto central del rediseño
+// Tabla de casos con jerarquía padre/hijo, el punto central del rediseño
 // de esta pantalla (handoff 3c).
 //
 // Los expedientes vinculados se anidan como filas hijas del padre: mismo
@@ -130,11 +130,11 @@ function Row({
         {depth === 1 ? (
           <span className="text-faint">vinculado</span>
         ) : (
-          (row.clientDisplayName ?? "—")
+          (row.clientDisplayName ?? "-")
         )}
       </TableCell>
       <TableCell className="text-[13px] text-muted-foreground">
-        {row.leadLawyerName ?? "—"}
+        {row.leadLawyerName ?? "-"}
       </TableCell>
       <TableCell>
         <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
@@ -146,10 +146,10 @@ function Row({
   );
 }
 
-// — Móvil: la tabla se convierte en lista de tarjetas (handoff, sección
+// Móvil: la tabla se convierte en lista de tarjetas (handoff, sección
 //   Móvil). Dato principal 14.5px, meta en una línea de 11.5px, y los
 //   vinculados anidados dentro de la tarjeta del padre con fondo #FCFCFA
-//   e indentación de 26px. —
+//   e indentación de 26px. -
 function MobileCard({ row, nested = false }: { row: CasoRow; nested?: boolean }) {
   return (
     <Link
@@ -167,7 +167,7 @@ function MobileCard({ row, nested = false }: { row: CasoRow; nested?: boolean })
           <span className="mt-0.5 block truncate text-[11.5px] text-faint">
             <span className="tabular">{row.code}</span>
             {" · "}
-            {nested ? "vinculado" : (row.clientDisplayName ?? "—")}
+            {nested ? "vinculado" : (row.clientDisplayName ?? "-")}
             {" · "}
             {row.matterLabel}
           </span>

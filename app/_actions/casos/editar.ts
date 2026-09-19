@@ -85,7 +85,7 @@ export async function editarCasoAction(
       .map((v) => String(v))
       .filter((v) => /^[0-9a-f-]{36}$/i.test(v)),
   );
-  // El líder siempre tiene acceso a su propio caso — evitá que un restricted
+  // El líder siempre tiene acceso a su propio caso, evitá que un restricted
   // deje al líder afuera por accidente.
   if (leadLawyerId) assignedUserIds.add(leadLawyerId);
 
@@ -105,7 +105,7 @@ export async function editarCasoAction(
   if (!updated) return { ok: false, error: "Caso no encontrado." };
 
   // Reemplazá el set de asignaciones. Rol: 'lead' para el líder, 'associate'
-  // para el resto — la RLS solo mira pertenencia, así que el rol es de display.
+  // para el resto, la RLS solo mira pertenencia, así que el rol es de display.
   await setCaseAssignments(
     user.firmId,
     user.userId,

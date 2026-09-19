@@ -1,4 +1,4 @@
-// F7 bloque 4 — Queries para la bandeja de sugerencias proactivas (ai_suggestions).
+// F7 bloque 4, Queries para la bandeja de sugerencias proactivas (ai_suggestions).
 //
 // La generación (worker) vive en lib/ai/suggestions.ts; este archivo solo
 // expone las operaciones que la UI necesita: listar pending, marcar

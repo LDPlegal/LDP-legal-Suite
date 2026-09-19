@@ -1,6 +1,6 @@
 "use client";
 
-// F7+ Bloque 4 — Panel para des-silenciar tipos de sugerencias que el
+// F7+ Bloque 4, Panel para des-silenciar tipos de sugerencias que el
 // usuario marcó como "no me muestres más" en el dashboard. Sin esta UI
 // no había forma de revertir el silencio una vez aplicado.
 

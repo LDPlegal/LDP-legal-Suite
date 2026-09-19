@@ -1,4 +1,4 @@
-// Reportes — tablas, no gráficos decorativos (handoff 3p).
+// Reportes, tablas, no gráficos decorativos (handoff 3p).
 //
 // Antes este archivo exportaba un BarChart de antigüedad y un LineChart de
 // horas, ambos de recharts. El rediseño pide lectura tabular.
@@ -63,7 +63,7 @@ export function HoursMonthlyChart({
           <TableCell className="tabular text-right text-subtle">
             {totalHoras > 0
               ? `${((totalFacturables / totalHoras) * 100).toFixed(0)}%`
-              : "—"}
+              : "-"}
           </TableCell>
         </TableRow>
       </TableBody>

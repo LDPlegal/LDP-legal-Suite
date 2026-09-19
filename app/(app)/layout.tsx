@@ -14,18 +14,18 @@ import { getCurrentFirm } from "@/lib/db/queries/firms";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  // Portal-cliente users land here only by typing /casos etc. directly —
+  // Portal-cliente users land here only by typing /casos etc. directly,
   // route them to their own area instead of the internal app.
   if (user.role === "client") redirect("/portal/dashboard");
   const firm = await getCurrentFirm(user.firmId, user.userId);
 
-  // IMPORTANTE — layout de altura:
+  // IMPORTANTE, layout de altura:
   // El outer container es `h-screen` (no min-h-screen) + `overflow-hidden`.
   // Eso fija la altura total a 100vh y previene que el BODY scrollee.
   // El scroll vive en <main>, que tiene su propia altura constrained vía
   // flex-1 dentro de un flex-col de altura 100vh.
   // Resultado: el sidebar es flex item con h-screen y NUNCA se mueve,
-  // porque su parent tampoco crece. No depende de `position: sticky` —
+  // porque su parent tampoco crece. No depende de `position: sticky`,
   // simplemente está fuera del scroll container.
   return (
     <TooltipProvider>

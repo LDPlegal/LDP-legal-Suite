@@ -1,13 +1,13 @@
 "use client";
 
-// Subida de documentos al caso — multi-archivo y carpeta completa.
+// Subida de documentos al caso, multi-archivo y carpeta completa.
 //
 // Diseño:
 //   - El user puede elegir: 1 archivo, N archivos sueltos, o una carpeta
 //     completa (HTML5 webkitdirectory). En todos los casos terminamos con
 //     un array de File objects.
 //   - La carpeta se "aplana": todos los archivos se suben al raíz del caso.
-//     Las subcarpetas no se preservan en la DB (sería ruido) — pero
+//     Las subcarpetas no se preservan en la DB (sería ruido), pero
 //     mostramos el path relativo en la UI para que sepas qué estás subiendo.
 //   - Las etiquetas que pongas aplican a TODOS los archivos.
 //   - Los archivos se suben SECUENCIAL (uno por uno) para evitar timeouts
@@ -45,7 +45,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
 type QueueItem = {
   id: string; // stable per file durante esta sesión del drawer
   file: File;
-  /** Path relativo si vino de webkitdirectory — "MyFolder/sub/file.pdf".
+  /** Path relativo si vino de webkitdirectory, "MyFolder/sub/file.pdf".
    *  Si vino de file picker normal, igual al nombre. */
   relPath: string;
   status: "queued" | "uploading" | "done" | "error";
@@ -126,7 +126,7 @@ export function DocumentUploadDrawer({
   }
 
   async function uploadOne(item: QueueItem): Promise<void> {
-    // Validación cliente — el server también valida, pero evitamos un
+    // Validación cliente, el server también valida, pero evitamos un
     // round-trip si claramente excede.
     if (item.file.size === 0) {
       setQueue((prev) =>
@@ -196,11 +196,11 @@ export function DocumentUploadDrawer({
 
     setUploading(true);
     try {
-      // Secuencial — más amigable con el server (Vercel function limit
+      // Secuencial, más amigable con el server (Vercel function limit
       // por request, OCR fire-and-forget en cada uno) y con el progress
       // bar visual.
       for (const item of pending) {
-        // Recheck el estado actual de la cola — el user puede haber
+        // Recheck el estado actual de la cola, el user puede haber
         // borrado el item mientras subía.
         const stillThere = queue.find((q) => q.id === item.id);
         if (!stillThere) continue;
@@ -210,7 +210,7 @@ export function DocumentUploadDrawer({
       const after = queue.filter((q) => q.status === "done").length;
       const errors = queue.filter((q) => q.status === "error").length;
       if (errors === 0 && after === 0) {
-        // Estado raro — recheck con setState callback indirecto.
+        // Estado raro, recheck con setState callback indirecto.
         setQueue((prev) => prev); // noop para forzar re-render
       }
 
@@ -233,7 +233,7 @@ export function DocumentUploadDrawer({
       setTags("");
     } else if (done > 0 && errors > 0) {
       toast.warning(
-        `Subí ${done}/${queue.length}. ${errors} fallaron — revisá la lista.`,
+        `Subí ${done}/${queue.length}. ${errors} fallaron, revisá la lista.`,
       );
     }
   }
@@ -287,7 +287,7 @@ export function DocumentUploadDrawer({
               variant="outline"
               onClick={() => folderInputRef.current?.click()}
               disabled={uploading}
-              title="Selecciona una carpeta — todos sus archivos se suben al caso"
+              title="Selecciona una carpeta, todos sus archivos se suben al caso"
             >
               <FolderUp className="h-4 w-4" />
               Seleccionar carpeta
@@ -306,14 +306,14 @@ export function DocumentUploadDrawer({
             ref={folderInputRef}
             type="file"
             multiple
-            // @ts-expect-error — webkitdirectory no está en los types estándar
+            // @ts-expect-error, webkitdirectory no está en los types estándar
             webkitdirectory=""
             directory=""
             onChange={(e) => addFiles(e.target.files)}
             className="hidden"
           />
 
-          {/* Visibilidad interna — oculta cuando el destino ya es fijo (Mi carpeta) */}
+          {/* Visibilidad interna, oculta cuando el destino ya es fijo (Mi carpeta) */}
           <div className={lockVisibility ? "hidden" : "space-y-1.5"}>
             <Label>Visibilidad</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -351,7 +351,7 @@ export function DocumentUploadDrawer({
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Solo para mí</p>
                   <p className="text-[11px] text-muted-foreground">
-                    Privado — nadie más del equipo lo ve.
+                    Privado, nadie más del equipo lo ve.
                   </p>
                 </div>
               </button>

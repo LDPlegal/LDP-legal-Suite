@@ -2,7 +2,7 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 import { users, type User } from "../schema";
 
-// Returns staff users only (admin/partner/lawyer/paralegal/tester) — never
+// Returns staff users only (admin/partner/lawyer/paralegal/tester), never
 // portal clients. Use this for every "select assignee / lead lawyer /
 // timekeeper" UI in the app. listing portal clients is a separate function
 // (`listPortalUsersForClient`) so the contexts don't get confused.

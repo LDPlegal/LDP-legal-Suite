@@ -1,10 +1,10 @@
 "use client";
 
-// F7+ Bloque 5 — Conectar/desconectar Microsoft (calendario + correo).
+// F7+ Bloque 5, Conectar/desconectar Microsoft (calendario + correo).
 //
 // Gabriel decidió que la firma usa exclusivamente Microsoft (Outlook +
 // Calendar). El código Google sigue presente en el backend por si más
-// adelante cambia la decisión — para reactivarlo basta con cambiar
+// adelante cambia la decisión, para reactivarlo basta con cambiar
 // SHOW_GOOGLE a true abajo.
 //
 // Pickup de query params: el callback de OAuth redirige acá con
@@ -161,7 +161,7 @@ export function OAuthIntegrationsPanel({
             <p className="text-sm font-medium">{label}</p>
             {!configured ? (
               <p className="text-[11px] text-muted-foreground">
-                No configurado en el servidor — falta OAuth credentials.
+                No configurado en el servidor, falta OAuth credentials.
               </p>
             ) : conn ? (
               <p className="text-[11px] text-muted-foreground">
@@ -212,7 +212,7 @@ export function OAuthIntegrationsPanel({
 
   return (
     <div className="space-y-3">
-      {/* Banner persistente — éxito o error del último intento OAuth */}
+      {/* Banner persistente, éxito o error del último intento OAuth */}
       {bannerSuccess ? (
         <div className="flex items-start gap-2 rounded-md border border-success/30 bg-success/[0.08] p-3 text-sm">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
@@ -277,7 +277,7 @@ export function OAuthIntegrationsPanel({
                 <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
                   En cuentas corporativas, Microsoft pide aprobación de un
                   admin del tenant cada vez. Hay <strong>2 formas</strong> de
-                  resolverlo definitivamente —{" "}
+                  resolverlo definitivamente -{" "}
                   <strong>solo el admin del Microsoft 365 de LDP</strong>{" "}
                   necesita hacerlo una vez. Después todos conectan sin
                   aprobación.
@@ -314,7 +314,7 @@ export function OAuthIntegrationsPanel({
               para autorizar toda la firma de una vez. Si en cambio aprobaron
               tu solicitud individual (te llegó un correo de confirmación),{" "}
               <strong>volvé acá y hacé click en &quot;Conectar&quot; otra
-              vez</strong> — Microsoft no completa el OAuth automáticamente
+              vez</strong>, Microsoft no completa el OAuth automáticamente
               después de la aprobación.
             </p>
           </div>
@@ -324,7 +324,7 @@ export function OAuthIntegrationsPanel({
       <p className="rounded-md border border-dashed bg-muted/30 p-3 text-[11px] text-muted-foreground">
         <strong>Privacidad:</strong> al conectar autorizás a LDP Legal Suite a
         leer/escribir en tu calendario y a enviar correos en tu nombre. La
-        lectura de correo entrante NO se activa por defecto — necesitás
+        lectura de correo entrante NO se activa por defecto, necesitás
         autorizarla por separado más adelante. Podés desconectar en cualquier
         momento desde este mismo panel.
       </p>

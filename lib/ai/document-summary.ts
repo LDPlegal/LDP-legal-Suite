@@ -1,7 +1,7 @@
 // Document summary via Claude (Fase 5 extension).
 //
 // Takes a document's OCR text (or name if no OCR) and asks Claude for an
-// executive summary. For legal docs this is very useful — a 40-page PDF
+// executive summary. For legal docs this is very useful, a 40-page PDF
 // becomes a 200-word summary that a partner can skim.
 
 import "server-only";
@@ -57,7 +57,7 @@ export async function summarizeDocument(
         "Genera un resumen ejecutivo en español, en formato Markdown, estructurando los puntos principales.",
         "Si el documento es legal o formal, incluye secciones como: Tipo de documento, Partes, Fechas clave, y Obligaciones.",
         "Si es otro tipo de documento (ej. un examen, artículo, receta, manual), simplemente extrae el tema principal, los conceptos clave y cualquier conclusión relevante.",
-        "Sé conciso — máximo 400 palabras.",
+        "Sé conciso, máximo 400 palabras.",
         "Solo usa información del texto provisto."
       ].join(" "),
       maxTokens: 1500,

@@ -24,12 +24,12 @@ export const generateDocumentTool: AiTool = {
       title: {
         type: "string",
         description:
-          "Título legible del documento que verá el usuario en el listado. Ej: 'Acta de Asamblea Ordinaria Anual 2026 — Constructora Caribe'.",
+          "Título legible del documento que verá el usuario en el listado. Ej: 'Acta de Asamblea Ordinaria Anual 2026, Constructora Caribe'.",
       },
       bodyMarkdown: {
         type: "string",
         description:
-          "Cuerpo del documento en Markdown LDP. Usar # / ## / ### para títulos, **bold**, *italic*, '– ' para bullets, y [DATO PENDIENTE: ...] para placeholders. NO inventes datos: si falta algo, usa el marcador.",
+          "Cuerpo del documento en Markdown LDP. Usar # / ## / ### para títulos, **bold**, *italic*, '- ' para bullets, y [DATO PENDIENTE: ...] para placeholders. NO inventes datos: si falta algo, usa el marcador.",
       },
       summary: {
         type: "string",
@@ -63,7 +63,7 @@ export const createEventTool: AiTool = {
       },
       title: {
         type: "string",
-        description: "Título conciso del evento. Ej: 'Audiencia conciliación — Demanda en desalojo'.",
+        description: "Título conciso del evento. Ej: 'Audiencia conciliación, Demanda en desalojo'.",
       },
       description: {
         type: "string",
@@ -97,7 +97,7 @@ export const createEventTool: AiTool = {
 export const readDocumentTool: AiTool = {
   name: "read_document",
   description:
-    "Lee el contenido completo (OCR) de un documento ya cargado en este expediente. Úsalo cuando necesites datos literales: nombres de socios, cláusulas previas, fechas exactas, números de cédula/RNC, etc. NO inventes — si el documento no existe o no tiene OCR, te lo decimos para que marques [DATO PENDIENTE].",
+    "Lee el contenido completo (OCR) de un documento ya cargado en este expediente. Úsalo cuando necesites datos literales: nombres de socios, cláusulas previas, fechas exactas, números de cédula/RNC, etc. NO inventes, si el documento no existe o no tiene OCR, te lo decimos para que marques [DATO PENDIENTE].",
   input_schema: {
     type: "object",
     properties: {
@@ -172,7 +172,7 @@ export const cancelEventTool: AiTool = {
 };
 
 // Compone y envía un correo en nombre del usuario (Microsoft Graph).
-// SIEMPRE requiere confirmación humana — el usuario revisa el contenido
+// SIEMPRE requiere confirmación humana, el usuario revisa el contenido
 // final en la tarjeta del chat antes de que se envíe.
 //
 // La IA debe primero redactar el correo en el chat (texto plano), pedir
@@ -216,7 +216,7 @@ export const sendEmailTool: AiTool = {
       bodyHtml: {
         type: "string",
         description:
-          "Cuerpo del correo en HTML simple (párrafos con <p>, saltos con <br>, listas con <ul><li>). Sin estilos inline complicados — el cliente del destinatario decide cómo se ve.",
+          "Cuerpo del correo en HTML simple (párrafos con <p>, saltos con <br>, listas con <ul><li>). Sin estilos inline complicados, el cliente del destinatario decide cómo se ve.",
       },
       attachDocumentIds: {
         type: "array",

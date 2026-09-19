@@ -15,9 +15,9 @@ export type AuditEntry = {
 };
 
 // listAuditFor supports two filter modes:
-//   1) Exact entity:    pass { entityType, entityId } — returns events whose
+//   1) Exact entity:    pass { entityType, entityId }, returns events whose
 //      target IS that entity. Use for non-case detail pages.
-//   2) Case correlation: pass { caseId } — returns events whose target IS the
+//   2) Case correlation: pass { caseId }, returns events whose target IS the
 //      case itself, OR whose target is any sub-entity (invoice / time / expense
 //      / document / note / task / event) tagged with case_id = caseId. Use
 //      this on the case detail's Bitácora tab so all activity related to the
@@ -132,9 +132,9 @@ export type AgingBucket = "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus"
 
 export const AGING_BUCKET_LABEL: Record<AgingBucket, string> = {
   current: "Al día",
-  d1_30: "1–30 días",
-  d31_60: "31–60 días",
-  d61_90: "61–90 días",
+  d1_30: "1-30 días",
+  d31_60: "31-60 días",
+  d61_90: "61-90 días",
   d90_plus: "+90 días",
 };
 
@@ -440,7 +440,7 @@ export async function aiCreatedEventsReport(
 }
 
 // =============================================================================
-// DGII Reporte 607 — ventas con NCF del período (Fase 6.2)
+// DGII Reporte 607, ventas con NCF del período (Fase 6.2)
 // =============================================================================
 // Formato standard DGII: una línea por factura emitida con NCF en el período,
 // pipe-delimited, con columnas predefinidas. Lo usa el contador para subir el

@@ -1,6 +1,6 @@
 "use client";
 
-// Botón "Vaciar papelera" — elimina definitivamente TODOS los items.
+// Botón "Vaciar papelera", elimina definitivamente TODOS los items.
 // Doble confirmación porque es irreversible.
 
 import { useState, useTransition } from "react";
@@ -54,7 +54,7 @@ export function EmptyTrashButton({ itemCount }: { itemCount: number }) {
           <DialogTitle>¿Vaciar la papelera?</DialogTitle>
           <DialogDescription>
             Se eliminan <span className="font-medium">definitivamente</span>{" "}
-            los {itemCount} item{itemCount === 1 ? "" : "s"} de la papelera —
+            los {itemCount} item{itemCount === 1 ? "" : "s"} de la papelera,
             carpetas y documentos, incluyendo los archivos en el storage. Esta
             acción <span className="font-medium">no se puede deshacer</span>.
           </DialogDescription>

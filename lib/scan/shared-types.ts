@@ -23,7 +23,7 @@ export const scanIngestSchema = z.object({
   sourcePrinter: z.enum(["hp_m428fdw", "canon_mf452dw", "unknown"]),
   // Idempotency key (Fase 6 hardening). When set, a retry with the same
   // scanId returns the existing document instead of creating a duplicate.
-  // Strongly recommended — workers SHOULD always send this. Optional for
+  // Strongly recommended, workers SHOULD always send this. Optional for
   // backward compatibility with the original worker that doesn't send it
   // (those calls aren't idempotent and a retry creates a duplicate row).
   scanId: z.string().min(1).max(120).optional(),
@@ -31,7 +31,7 @@ export const scanIngestSchema = z.object({
     model: z.string().max(80),
     inputTokens: z.number().int().nonnegative(),
     outputTokens: z.number().int().nonnegative(),
-    // Worker-reported cost — the server re-computes using its own pricing
+    // Worker-reported cost, the server re-computes using its own pricing
     // table so this field is informational only. Keeps `costUsd` honest
     // even if the worker miscomputes or is compromised.
     costUsd: z.number().nonnegative(),

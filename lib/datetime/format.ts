@@ -14,9 +14,9 @@ export function formatInFirmTz(
   timezone: string = DEFAULT_TZ,
   pattern = "dd/MM/yyyy HH:mm",
 ): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return formatInTimeZone(d, timezone, pattern, { locale: es });
 }
 
@@ -31,9 +31,9 @@ export function formatRelative(
   date: Date | string | null | undefined,
   timezone: string = DEFAULT_TZ,
 ): string {
-  if (!date) return "—";
+  if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   const zoned = toZonedTime(d, timezone);
   return format(zoned, "PP p", { locale: es });
 }

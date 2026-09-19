@@ -119,7 +119,7 @@ export function GenerarFacturaDrawer({
         setOpen(false);
         router.push(`/facturacion/${result.invoiceId}`);
       } else {
-        // Bubble the server error as a toast too — the inline message inside
+        // Bubble the server error as a toast too, the inline message inside
         // the drawer body can be hidden by scroll on a long form.
         toast.error(result.error);
       }
@@ -378,7 +378,7 @@ export function GenerarFacturaDrawer({
               </div>
             </div>
 
-            {/* Tipo de documento — Factura vs Proforma */}
+            {/* Tipo de documento, Factura vs Proforma */}
             <div className="rounded-lg border p-4 space-y-2">
               <Label className="text-sm">Tipo de documento</Label>
               <div className="grid grid-cols-2 gap-2">
@@ -407,7 +407,7 @@ export function GenerarFacturaDrawer({
                 >
                   Proforma
                   <span className="block text-[11px] font-normal text-muted-foreground">
-                    Cotización — sin NCF
+                    Cotización, sin NCF
                   </span>
                 </button>
               </div>
@@ -421,7 +421,7 @@ export function GenerarFacturaDrawer({
               ) : null}
             </div>
 
-            {/* Modo fiscal — solo aplica a facturas (no proforma) */}
+            {/* Modo fiscal, solo aplica a facturas (no proforma) */}
             {kind === "standard" ? (
             <div className="rounded-lg border p-4">
               <div className="flex items-start justify-between gap-3">
@@ -503,7 +503,7 @@ export function GenerarFacturaDrawer({
               </div>
               {totals.isrWithholdingAmount > 0 ? (
                 <Row
-                  label="− Retención ISR (10%) — paga el cliente a DGII por ti"
+                  label="− Retención ISR (10%), paga el cliente a DGII por ti"
                   value={`− ${formatMoney(totals.isrWithholdingAmount)}`}
                 />
               ) : null}
@@ -517,7 +517,7 @@ export function GenerarFacturaDrawer({
                   El cliente te transfiere {formatMoney(totals.total)} y deposita los{" "}
                   {formatMoney(totals.isrWithholdingAmount)} restantes a la DGII como anticipo de
                   tu ISR (Anexo A del 606). Esos {formatMoney(totals.isrWithholdingAmount)} son un
-                  crédito que descuentas al pagar tu IR-2 anual — no son una rebaja a tu
+                  crédito que descuentas al pagar tu IR-2 anual, no son una rebaja a tu
                   honorario.
                 </p>
               ) : null}

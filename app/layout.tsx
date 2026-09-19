@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
-// Interfaz — Libre Franklin (400/500/600). Reemplaza a Inter.
+// Interfaz, Libre Franklin (400/500/600). Reemplaza a Inter.
 const libreFranklin = Libre_Franklin({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -13,7 +13,7 @@ const libreFranklin = Libre_Franklin({
   display: "swap",
 });
 
-// Titulares — Charis SIL, equivalente libre de Charter (la fuente de los
+// Titulares, Charis SIL, equivalente libre de Charter (la fuente de los
 // documentos de la oficina). Solo 400/700 disponibles en Google Fonts.
 const charisSil = Charis_SIL({
   subsets: ["latin"],
@@ -42,7 +42,7 @@ export default function RootLayout({
       className={`${libreFranklin.variable} ${charisSil.variable}`}
     >
       <head>
-        {/* Material Symbols Sharp (FILL 1) — iconografía sólida de esquinas
+        {/* Material Symbols Sharp (FILL 1), iconografía sólida de esquinas
             rectas. Se consume con la clase `.ms` (ver globals.css). */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

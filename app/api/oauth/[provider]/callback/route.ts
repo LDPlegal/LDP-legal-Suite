@@ -72,7 +72,7 @@ export async function GET(
 
   // ---- ADMIN CONSENT FLOW ----
   // Si viene admin_consent (True/False), es la respuesta del endpoint
-  // /adminconsent. No hay `code` para intercambiar — solo confirma que el
+  // /adminconsent. No hay `code` para intercambiar, solo confirma que el
   // admin autorizó (o no) la app para toda la organización.
   if (adminConsent !== null) {
     if (error) {
@@ -97,11 +97,11 @@ export async function GET(
   }
 
   if (!code || !state) {
-    return redirectWithError(req, "missing_code_or_state — el flow OAuth se cortó antes de obtener autorización");
+    return redirectWithError(req, "missing_code_or_state, el flow OAuth se cortó antes de obtener autorización");
   }
   const verified = verifyState(state);
   if (!verified || verified.provider !== provider) {
-    return redirectWithError(req, "invalid_state — la sesión OAuth ya no es válida. Volvé a clickear Conectar.");
+    return redirectWithError(req, "invalid_state, la sesión OAuth ya no es válida. Volvé a clickear Conectar.");
   }
 
   // requireUser() puede tirar si la sesión expiró mientras esperabas
@@ -113,13 +113,13 @@ export async function GET(
   } catch {
     return redirectWithError(
       req,
-      "session_mismatch — tu sesión en la app expiró mientras autorizabas. Iniciá sesión y volvé a clickear Conectar.",
+      "session_mismatch, tu sesión en la app expiró mientras autorizabas. Iniciá sesión y volvé a clickear Conectar.",
     );
   }
   if (user.userId !== verified.userId || user.firmId !== verified.firmId) {
     return redirectWithError(
       req,
-      "session_mismatch — la sesión actual no coincide con la que inició OAuth.",
+      "session_mismatch, la sesión actual no coincide con la que inició OAuth.",
     );
   }
 

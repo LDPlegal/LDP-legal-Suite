@@ -1,6 +1,6 @@
 "use client";
 
-// Post 04 — Día del Abogado (1080×1350).
+// Post 04, Día del Abogado (1080×1350).
 
 import { renderRichText } from "@/lib/marketing/rich-text";
 import {

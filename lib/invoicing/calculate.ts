@@ -12,11 +12,11 @@
 //     clientes persona jurídica que retienen al firm).
 //   * Resta de pagos contra el total para producir el balance.
 // Lo que NO está aún (Fase 2.5+):
-//   * Retención ITBIS 30% por servicios profesionales — requiere distinguir
+//   * Retención ITBIS 30% por servicios profesionales, requiere distinguir
 //     servicios vs bienes a nivel de línea, lo difiero (DECISIONS.md F2.X).
-//   * Modo fiscal con NCF/e-CF — tabla soporta los campos pero la emisión
+//   * Modo fiscal con NCF/e-CF, tabla soporta los campos pero la emisión
 //     real con la DGII queda fuera. Por ahora ncf=NULL y los PDFs se
-//     emiten como "Factura interna — no válida para fines fiscales".
+//     emiten como "Factura interna, no válida para fines fiscales".
 
 export type LineInput = {
   description: string;
@@ -59,7 +59,7 @@ export function computeTotals(
   const subtotal = round2(computed.reduce((acc, l) => acc + l.amount, 0));
   const itbisAmount = round2(computed.reduce((acc, l) => acc + l.taxAmount, 0));
   const isrWithholdingAmount = options.isrWithholding ? round2(subtotal * 0.1) : 0;
-  // ITBIS withholding is documented as Fase 2.5 — keep field at 0 for now.
+  // ITBIS withholding is documented as Fase 2.5, keep field at 0 for now.
   const itbisWithholdingAmount = options.itbisWithholding ? round2(itbisAmount * 0.3) : 0;
   const total = round2(subtotal + itbisAmount - isrWithholdingAmount - itbisWithholdingAmount);
   return {

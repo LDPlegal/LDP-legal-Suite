@@ -29,14 +29,14 @@ function visibleToUser(userId: string) {
 
 // Global document listing across all visible cases. Powers /documentos.
 // Search hits document name, tags (joined with comma), AND ocr_text when
-// available — OCR was decided to be real in F2 (§9.7) so a search for
+// available, OCR was decided to be real in F2 (§9.7) so a search for
 // "demanda 2024" actually finds the scanned PDF.
 export type GlobalDocumentRow = DocumentListRow & {
   caseId: string | null;
   caseCode: string | null;
   caseTitle: string | null;
   ocrTextSnippet: string | null;
-  // Contexto de carpeta — para que en búsqueda el user sepa DÓNDE está el
+  // Contexto de carpeta, para que en búsqueda el user sepa DÓNDE está el
   // doc. folderName null = está en la raíz del scope.
   folderId: string | null;
   folderName: string | null;
@@ -68,11 +68,11 @@ export async function listAllDocuments(
         ilike(documents.name, like),
         ilike(documents.ocrText, like),
         sql`array_to_string(${documents.tags}, ',') ILIKE ${like}`,
-        // Buscar también por caso (código y título) — útil cuando el user
+        // Buscar también por caso (código y título), útil cuando el user
         // recuerda el caso pero no el nombre del doc.
         ilike(cases.code, like),
         ilike(cases.title, like),
-        // Buscar por cliente — "todos los docs del cliente Pérez"
+        // Buscar por cliente, "todos los docs del cliente Pérez"
         ilike(clients.displayName, like),
         // Por nombre del subidor
         ilike(users.name, like),
@@ -105,7 +105,7 @@ export async function listAllDocuments(
           folderId: documents.folderId,
           folderName: folders.name,
           folderPath: folders.path,
-          // Truncated context around the search term — best-effort, just
+          // Truncated context around the search term, best-effort, just
           // takes the first 200 chars when there's a hit on ocr_text.
           ocrTextSnippet: term
             ? sql<string | null>`CASE WHEN ${documents.ocrText} ILIKE ${`%${term}%`} THEN substring(${documents.ocrText} FROM 1 FOR 200) ELSE NULL END`
@@ -188,7 +188,7 @@ export async function getDocumentById(
           eq(documents.id, documentId),
           isNull(documents.deletedAt),
           // Seguridad: un documento privado de OTRO usuario devuelve null
-          // (como si no existiera) — protege download, preview, edit, delete.
+          // (como si no existiera), protege download, preview, edit, delete.
           visibleToUser(userId),
         ),
       )
@@ -253,7 +253,7 @@ export async function updateDocumentMetadata(
   });
 }
 
-/** Lista todos los documentos del firm cuyo OCR no está "done" — usado por
+/** Lista todos los documentos del firm cuyo OCR no está "done", usado por
  *  la acción bulk de re-procesamiento. Incluye los marcados como
  *  "processing" que llevan demasiado tiempo (limbo). */
 export async function listDocumentsNeedingOcr(
@@ -269,7 +269,7 @@ export async function listDocumentsNeedingOcr(
       .where(
         and(
           isNull(documents.deletedAt),
-          // Cualquier estado distinto de "done" — usamos NOT EQ porque
+          // Cualquier estado distinto de "done", usamos NOT EQ porque
           // ocrStatus es un enum, no SQL string.
           sql`${documents.ocrStatus} != 'done'`,
         ),
@@ -346,7 +346,7 @@ export async function restoreDocument(
 }
 
 /**
- * Hard delete del documento. NO borra del storage — el archivo en R2/S3
+ * Hard delete del documento. NO borra del storage, el archivo en R2/S3
  * queda huérfano. Si se quiere también limpiar storage, hay que llamar
  * storage.remove(storageKey) ANTES (lo hace la action).
  */
@@ -404,7 +404,7 @@ export async function cacheDocumentFormattedMarkdown(
 }
 
 // Cambia la visibilidad interna de un documento (Fase 13/UX). Solo el
-// dueño (uploaded_by) puede moverlo a/desde su carpeta privada — mover el
+// dueño (uploaded_by) puede moverlo a/desde su carpeta privada, mover el
 // privado de otro no tiene sentido y visibleToUser ya lo protege en el
 // lookup previo. Devuelve el caseId para revalidar.
 export async function setDocumentVisibility(

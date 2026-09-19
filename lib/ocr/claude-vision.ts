@@ -1,5 +1,5 @@
 // OCR via Claude API multi-modal. Soporta:
-//   - PDFs (incluso escaneados — Claude los procesa con su propio vision)
+//   - PDFs (incluso escaneados, Claude los procesa con su propio vision)
 //   - Imágenes (JPG, PNG, WebP, GIF)
 //
 // Costo aproximado: ~$0.01-0.02 por documento de 1-3 páginas (Sonnet 4.6).
@@ -12,7 +12,7 @@
 //   - Soporta español + acentos sin tunear
 //
 // Uso: solo se invoca como fallback cuando la extracción local falla
-// (PDF sin texto digital, Tesseract baja confidence) — no se llama
+// (PDF sin texto digital, Tesseract baja confidence), no se llama
 // gratis a Claude para todo upload.
 
 import "server-only";
@@ -22,7 +22,7 @@ const OCR_INSTRUCTION =
   "Extraé TODO el texto legible de este documento. Devolvé únicamente el texto en " +
   "orden de lectura natural (de arriba a abajo, izquierda a derecha), preservando " +
   "saltos de línea para separar párrafos y secciones. NO agregues comentarios, NO " +
-  "analices el contenido, NO traduzcas — solo el texto literal. Si hay tablas, " +
+  "analices el contenido, NO traduzcas, solo el texto literal. Si hay tablas, " +
   "formatealas de manera legible con separadores. Si una parte es ilegible, marcala " +
   "como [ILEGIBLE]. Si no hay texto visible, respondé exactamente: SIN_TEXTO.";
 
@@ -105,14 +105,14 @@ export async function ocrWithClaude(input: ClaudeOcrInput): Promise<ClaudeOcrRes
 
   try {
     const result = await runPrompt(
-      // messages convencional vacío — usamos messagesRaw para los blocks
+      // messages convencional vacío, usamos messagesRaw para los blocks
       [{ role: "user", content: "" }],
       {
-        // Modelo cheap para OCR puro — Haiku es mucho más barato que Sonnet
+        // Modelo cheap para OCR puro, Haiku es mucho más barato que Sonnet
         // y para extraer texto literal sirve perfecto.
         model: "claude-haiku-4-5-20251001",
         maxTokens: 8000, // Documentos legales pueden ser largos
-        temperature: 0, // Extracción literal — sin creatividad
+        temperature: 0, // Extracción literal, sin creatividad
         systemAddendum: OCR_INSTRUCTION,
         messagesRaw: [
           {

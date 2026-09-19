@@ -1,4 +1,4 @@
-// F7+ Bloque 5 — Persistencia de tokens OAuth.
+// F7+ Bloque 5, Persistencia de tokens OAuth.
 //
 // Decisión post-mortem: el cifrado app-layer de tokens (AES-256-GCM con
 // HKDF) causaba errores intermitentes "Unable to authenticate data" en
@@ -139,7 +139,7 @@ export async function getValidAccessToken(
 
   // Refresh el access token. Si esto falla, el refresh token está
   // muerto (revocado por el user, password change, sesión Azure expirada,
-  // app re-consented, etc.) — auto-desconectamos para que la UI muestre
+  // app re-consented, etc.), auto-desconectamos para que la UI muestre
   // "Conectar" en vez de mantener al usuario creyendo que sigue activo
   // mientras cada Graph call falla en silencio.
   let refreshed;

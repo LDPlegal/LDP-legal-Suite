@@ -1,4 +1,4 @@
-// F7+ Bloque 5 — Sync bidireccional con calendarios OAuth (Microsoft).
+// F7+ Bloque 5, Sync bidireccional con calendarios OAuth (Microsoft).
 //
 // Modelo:
 //   - Cada usuario que conectó su Microsoft tiene una fila en
@@ -96,7 +96,7 @@ export async function pullCalendarFromProvider(
   // 3. Para cada evento del provider, upsert en events.
   //    Identificador estable: external_subscription_id = integration.id,
   //    external_uid = e.id (Graph REST id, único por instancia incluyendo
-  //    eventos recurrentes — el iCalUId se comparte entre instancias).
+  //    eventos recurrentes, el iCalUId se comparte entre instancias).
   //    El icalUid local lo generamos nosotros (no usamos el del provider)
   //    para no chocar con events_ical_uid_unique que cuenta cada fila.
   let firstEventError: string | null = null;
@@ -190,7 +190,7 @@ export async function pullCalendarFromProvider(
   }
 
   // 4. Actualizar el timestamp + último error si hubo. NO limpiamos
-  //    lastError si hubo errores per-event — antes los borrábamos a null
+  //    lastError si hubo errores per-event, antes los borrábamos a null
   //    y dejábamos al usuario sin pista de qué falló.
   await adminDb
     .update(calendarIntegrations)
@@ -246,7 +246,7 @@ export async function pushEventToProvider(
 
     // Marcar el evento local con su referencia al provider para poder
     // hacer update/delete después. Usamos el id REST (único por instancia)
-    // como externalUid — mismo criterio que el pull.
+    // como externalUid, mismo criterio que el pull.
     await adminDb
       .update(events)
       .set({
@@ -288,7 +288,7 @@ export async function pushEventUpdateToProvider(
     if (!row?.externalUid || !row.oauthIntegrationId) {
       return { ok: false, error: "not_synced" };
     }
-    // El externalUid es el id REST del Graph (no el iCalUId) — podemos
+    // El externalUid es el id REST del Graph (no el iCalUId), podemos
     // usarlo directamente en PATCH/DELETE.
     await updateCalendarEvent(userId, row.externalUid, {
       subject: patch.title,

@@ -1,5 +1,5 @@
 // Tiptap stores rich-text as a JSON tree. For AI prompts we just need the
-// plain text — strip the formatting and concatenate. The exact tree shape
+// plain text, strip the formatting and concatenate. The exact tree shape
 // is `{ type, content?, text? }` recursively; we walk it and collect text
 // nodes, inserting newlines at paragraph boundaries.
 

@@ -1,6 +1,6 @@
 "use client";
 
-// Sidebar del rediseño visual — blanca (238px) en claro, superficie oscura en dark.
+// Sidebar del rediseño visual, blanca (238px) en claro, superficie oscura en dark.
 // Ítem activo en marino sólido; inactivo con icono azul de acción.
 // Sin gradientes, sin sombras, sin movimiento: solo transiciones de color.
 // Referencia: design_handoff_rediseno_visual/Nav Lateral.dc.html

@@ -4,7 +4,7 @@
 // > 15min the timer is treated as stale at the next visit.
 //
 // Returns { ok: true } if a timer was updated, { ok: false } if there was no
-// active timer (idempotent — safe to send heartbeats from a tab that lost
+// active timer (idempotent, safe to send heartbeats from a tab that lost
 // the timer in the meantime).
 
 import { NextResponse } from "next/server";

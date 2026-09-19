@@ -1,5 +1,5 @@
-// Extracción de texto de Word LEGACY (.doc — formato Compound File Binary,
-// CFB/OLE2, usado por Word 97–2003).
+// Extracción de texto de Word LEGACY (.doc, formato Compound File Binary,
+// CFB/OLE2, usado por Word 97-2003).
 //
 // word-extractor es pure JS, funciona en Vercel sin dependencias nativas.
 // Lee el stream "WordDocument" del contenedor CFB y devuelve el texto plano.
@@ -39,7 +39,7 @@ export async function extractDocLegacyText(
     const endnotes = document.getEndnotes().trim();
     const footnotes = document.getFootnotes().trim();
 
-    // Concatenamos todo en orden lógico — para OCR/búsqueda nos interesa
+    // Concatenamos todo en orden lógico, para OCR/búsqueda nos interesa
     // tener TODO el texto disponible. Headers/footers van al final con
     // separadores para no contaminar el body.
     const parts: string[] = [];
@@ -62,7 +62,7 @@ export async function extractDocLegacyText(
     const msg = err instanceof Error ? err.message : String(err);
     return { status: "failed", reason: `word-extractor falló: ${msg.slice(0, 200)}` };
   } finally {
-    // Borrar el temp file siempre — no nos importa si falla (Vercel
+    // Borrar el temp file siempre, no nos importa si falla (Vercel
     // limpia /tmp entre invocations de todos modos).
     await unlink(tmpPath).catch(() => {});
   }

@@ -1,9 +1,9 @@
 // Hourly-rate overrides (Fase 6).
 //
 // Lookup precedence (most specific first):
-//   1. (user, client)  — "doctor X cobra Y al cliente Z"
-//   2. (user, matter)  — "doctor X cobra Y en lo civil"
-//   3. (user)          — "doctor X cobra Y a todos"
+//   1. (user, client) , "doctor X cobra Y al cliente Z"
+//   2. (user, matter) , "doctor X cobra Y en lo civil"
+//   3. (user)         , "doctor X cobra Y a todos"
 //   4. fallback to users.hourly_rate
 // validFrom / validTo carve historical periods.
 
@@ -139,7 +139,7 @@ export async function resolveRate(
         ),
       );
     if (rows.length === 0) return null;
-    // Compute specificity score in JS — clearer than SQL CASE for review.
+    // Compute specificity score in JS, clearer than SQL CASE for review.
     let best: (typeof rows)[number] | null = null;
     let bestScore = -1;
     for (const r of rows) {

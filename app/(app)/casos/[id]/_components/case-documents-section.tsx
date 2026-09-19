@@ -2,7 +2,7 @@
 
 // Sección de documentos del caso: buscador + tabla con filas.
 //
-// El buscador filtra EN MEMORIA — los docs de un caso son bounded
+// El buscador filtra EN MEMORIA, los docs de un caso son bounded
 // (típicamente 5-50, raras veces más), entonces no vale la pena un
 // round-trip al server. Búsqueda instantánea por:
 //   - Nombre del archivo
@@ -30,7 +30,7 @@ import type { DocumentListRow } from "@/lib/documents/format";
 
 // El tipo que server-side te pasa incluye opcionalmente el OCR text para
 // que podamos filtrar por contenido sin un round-trip adicional. Por ahora
-// el ocrText NO viene en el listado (es pesado) — filtramos solo por
+// el ocrText NO viene en el listado (es pesado), filtramos solo por
 // nombre/tags/uploader. Si más adelante queremos full-text de OCR acá,
 // agregamos el campo en listDocumentsForCase.
 

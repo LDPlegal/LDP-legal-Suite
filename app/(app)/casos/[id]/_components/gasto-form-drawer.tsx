@@ -72,7 +72,7 @@ export function GastoFormDrawer({
 
   const isEdit = !!expense;
 
-  // useActionState con dos shapes — distinguimos por modo.
+  // useActionState con dos shapes, distinguimos por modo.
   const [createState, createAction, createPending] = useActionState<GastoFormState, FormData>(
     async (prev, fd) => {
       const result = await crearGastoAction(prev, fd);

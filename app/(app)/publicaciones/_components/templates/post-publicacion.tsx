@@ -1,6 +1,6 @@
 "use client";
 
-// Post 03 — Publicación destacada (1080×1350).
+// Post 03, Publicación destacada (1080×1350).
 //
 // Foto de fondo + frost card grande con categoría/fecha en eyebrow,
 // título serif, extracto en italic, separador, autor con foto circular.

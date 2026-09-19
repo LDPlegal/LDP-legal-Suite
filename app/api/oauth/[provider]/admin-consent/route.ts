@@ -5,7 +5,7 @@
 // cualquier usuario del tenant puede conectar sin pasar por aprobación.
 //
 // Solo admins/socios de LDP pueden iniciar esto (no tiene sentido que un
-// abogado lo dispare — necesita ser admin del tenant Microsoft de todos
+// abogado lo dispare, necesita ser admin del tenant Microsoft de todos
 // modos, pero filtramos por rol del app también).
 
 export const runtime = "nodejs";

@@ -2,7 +2,7 @@
 
 // Botón "Nueva versión" para reemplazar el contenido de un documento.
 //
-// Fase 7 — usa direct upload via presigned URL (R2/S3 en prod). El archivo
+// Fase 7, usa direct upload via presigned URL (R2/S3 en prod). El archivo
 // va directo al storage; este botón solo crea el record en DB apuntando al
 // padre. Tope 500 MB.
 
@@ -125,7 +125,7 @@ export function DocumentNewVersionButton({
           <DialogDescription>
             Subí un archivo de reemplazo para{" "}
             <span className="font-medium">{documentName}</span>. La versión
-            actual (v{currentVersion}) queda en histórico — nunca se borra,
+            actual (v{currentVersion}) queda en histórico, nunca se borra,
             podés volver a ella si hace falta. Tope: {MAX_UPLOAD_BYTES / 1024 / 1024} MB.
           </DialogDescription>
         </DialogHeader>

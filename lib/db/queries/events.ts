@@ -73,7 +73,7 @@ export async function listEventsForCase(
 // Detect conflicting events for a user (BRIEF / maestro 3.7). A conflict is
 // any non-deleted event whose [startAt, endAt) range overlaps the proposed
 // window AND whose attendees array contains the user. Excludes a specific
-// id (used when editing — don't conflict with self).
+// id (used when editing, don't conflict with self).
 export async function findConflictingEvents(
   firmId: string,
   userId: string,

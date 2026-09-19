@@ -1,7 +1,7 @@
 "use client";
 
-// Kbd — un tag de tecla individual, estilo iOS/macOS.
-// KbdShortcut — combinación de teclas con el modificador resuelto según
+// Kbd, un tag de tecla individual, estilo iOS/macOS.
+// KbdShortcut, combinación de teclas con el modificador resuelto según
 // plataforma (⌘ en Mac, Ctrl en Windows/Linux).
 
 import { Fragment } from "react";

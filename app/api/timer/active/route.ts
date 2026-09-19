@@ -1,6 +1,6 @@
 // GET /api/timer/active
 // Returns the active timer for the current user (one or none). Used by the
-// header client component to render the live timer badge — opening a new
+// header client component to render the live timer badge, opening a new
 // tab calls this on mount and shows the SAME timer (no duplication, § 9.4).
 
 import { NextResponse } from "next/server";

@@ -11,7 +11,7 @@ import { TaskList } from "./task-list";
 // @dnd-kit's useDraggable assigns incrementing aria-describedby ids
 // (DndDescribedBy-N) which differ between server-render and client-render,
 // causing a React hydration mismatch on first paint. Loading the kanban
-// only on the client side avoids that — the kanban is interactive anyway.
+// only on the client side avoids that, the kanban is interactive anyway.
 const TaskKanban = dynamic(
   () => import("./task-kanban").then((m) => ({ default: m.TaskKanban })),
   {

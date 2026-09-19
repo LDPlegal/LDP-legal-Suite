@@ -77,7 +77,7 @@ export async function POST() {
 
   // Guard explícito: si NO hay integración activa, no hace falta llamar al sync.
   // Esto cubre el caso donde una sync anterior auto-desconectó (decryption error)
-  // y ahora el front insiste — devolvemos un needsReconnect claro inmediato.
+  // y ahora el front insiste, devolvemos un needsReconnect claro inmediato.
   const [activeIntegration] = await adminDb
     .select({ id: calendarIntegrations.id })
     .from(calendarIntegrations)

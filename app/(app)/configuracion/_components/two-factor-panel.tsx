@@ -1,6 +1,6 @@
 "use client";
 
-// F7 bloque 4 — Panel de 2FA (TOTP).
+// F7 bloque 4, Panel de 2FA (TOTP).
 //
 // Flujo de activación:
 //   1. Usuario hace clic "Activar 2FA".

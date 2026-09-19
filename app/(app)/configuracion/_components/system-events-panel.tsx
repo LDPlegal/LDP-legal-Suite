@@ -1,6 +1,6 @@
 "use client";
 
-// Panel de "Eventos del sistema" — muestra los fallos que antes morían
+// Panel de "Eventos del sistema", muestra los fallos que antes morían
 // silenciosos (email no enviado, sync de Outlook fallido, envío parcial de
 // reporte). Cada uno se puede marcar como resuelto.
 

@@ -78,7 +78,7 @@ export async function sendChatMessageAction(input: {
   }
 }
 
-// Initial load for the chat panel — last 200 messages, oldest first.
+// Initial load for the chat panel, last 200 messages, oldest first.
 export async function loadChatHistory(caseId: string) {
   const user = await requireUser();
   const id = z.string().uuid().parse(caseId);

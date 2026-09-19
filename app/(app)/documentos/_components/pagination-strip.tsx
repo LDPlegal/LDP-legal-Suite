@@ -1,4 +1,4 @@
-// Server component — pagination simple para el listado global de docs.
+// Server component, pagination simple para el listado global de docs.
 // Renderiza: "X-Y de Z resultados · ← Anterior · Página N · Siguiente →"
 // Los hrefs preservan otros searchParams (q, shared) para que la búsqueda
 // no se pierda al paginar.
@@ -45,7 +45,7 @@ export function PaginationStrip({
           "Sin resultados"
         ) : (
           <>
-            {firstShown}–{lastShown} de {total}{" "}
+            {firstShown}-{lastShown} de {total}{" "}
             {total === 1 ? "resultado" : "resultados"}
           </>
         )}

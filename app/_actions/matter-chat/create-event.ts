@@ -143,8 +143,8 @@ export async function createEventFromChatAction(input: {
 
   // Best-effort: push al calendario Microsoft del usuario si tiene
   // conectado. No bloquea el flow ni revierte si falla (el cron diario
-  // lo recoge en el siguiente pull). Logueamos a console — Vercel los
-  // captura — para que cuando un evento NO aparezca en Outlook tengamos
+  // lo recoge en el siguiente pull). Logueamos a console, Vercel los
+  // captura, para que cuando un evento NO aparezca en Outlook tengamos
   // pista del porqué.
   try {
     const { pushEventToProvider } = await import("@/lib/calendar/sync");

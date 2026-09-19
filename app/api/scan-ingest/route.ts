@@ -114,7 +114,7 @@ export async function POST(req: Request) {
   }
   const payload = parsed.data;
 
-  // Re-resolve the user from email — don't trust whatever firmId/userId the
+  // Re-resolve the user from email, don't trust whatever firmId/userId the
   // worker might have cached. If the user was suspended between resolve and
   // ingest, this fails closed.
   const [user] = await adminDb
@@ -224,7 +224,7 @@ export async function POST(req: Request) {
   // Build a friendly name from classification when available, else the file
   // name. Truncate to 200 chars to keep the DB column happy.
   const niceName = payload.classification.documentType
-    ? `${payload.classification.documentType}${payload.classification.parties[0] ? ` — ${payload.classification.parties[0]}` : ""}`.slice(
+    ? `${payload.classification.documentType}${payload.classification.parties[0] ? `, ${payload.classification.parties[0]}` : ""}`.slice(
         0,
         200,
       )
@@ -262,7 +262,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 
-  // Recompute cost from our pricing table — worker's `costUsd` is
+  // Recompute cost from our pricing table, worker's `costUsd` is
   // informational only. Falls back to the worker's value if the model
   // isn't in our table (e.g. they're on a newer model).
   const recomputedCost = computeCostUsd(

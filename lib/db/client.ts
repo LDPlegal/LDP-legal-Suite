@@ -4,7 +4,7 @@
 // `withFirm(firmId, userId, ...)` (see `./with-firm.ts`) so that
 // `app.firm_id` and `app.user_id` are set on the transaction. A query that
 // reaches this client outside `withFirm` will raise an RLS-induced error
-// rather than silently leak data — that is the intended behavior.
+// rather than silently leak data, that is the intended behavior.
 //
 // For schema migrations and seeds (operations that must bypass RLS), use
 // `./admin.ts` instead. Never import this file from a script that needs
@@ -17,7 +17,7 @@ import * as schema from "./schema";
 const url = process.env.DATABASE_URL;
 if (!url) {
   throw new Error(
-    "DATABASE_URL is required (runtime connection — uses app_user with BYPASSRLS = false).",
+    "DATABASE_URL is required (runtime connection, uses app_user with BYPASSRLS = false).",
   );
 }
 

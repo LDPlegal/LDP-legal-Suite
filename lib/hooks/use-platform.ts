@@ -7,7 +7,7 @@
 //
 // Server-render seguro: el primer render asume "mac" (display ⌘) y
 // re-renderiza con el valor real en el cliente. Como sólo cambia el
-// label visual, no hay hydration mismatch real — usamos useEffect para
+// label visual, no hay hydration mismatch real, usamos useEffect para
 // resolver después del mount.
 
 import { useEffect, useState } from "react";
@@ -26,7 +26,7 @@ export function detectPlatform(): Platform {
 }
 
 export function usePlatform(): Platform {
-  // Default "mac" en server-render — la mayoría del UI tooling se diseña
+  // Default "mac" en server-render, la mayoría del UI tooling se diseña
   // pensando en Mac, y si el usuario es Windows lo corregimos a los ms
   // del mount.
   const [platform, setPlatform] = useState<Platform>("mac");

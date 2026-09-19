@@ -17,7 +17,7 @@ export async function GET() {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Range: 90 days back to 365 days forward — matches a typical cal client window.
+  // Range: 90 days back to 365 days forward, matches a typical cal client window.
   const now = new Date();
   const start = new Date(now);
   start.setUTCDate(start.getUTCDate() - 90);

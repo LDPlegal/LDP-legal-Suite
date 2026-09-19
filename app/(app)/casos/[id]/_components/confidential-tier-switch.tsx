@@ -1,11 +1,11 @@
 "use client";
 
-// F7+ Bloque 4 — Switch para marcar un caso como confidencial o ultra
+// F7+ Bloque 4, Switch para marcar un caso como confidencial o ultra
 // confidencial. Solo admin/partner ven el control habilitado.
 //
 // 'ultra_confidential' activa el cifrado app-layer sobre TODOS los
 // documentos subidos a partir de ese momento. Los documentos previos se
-// quedan sin cifrar — bajar y re-subir manualmente queda al criterio del
+// quedan sin cifrar, bajar y re-subir manualmente queda al criterio del
 // admin (el costo de re-encrypt automático para una funcionalidad poco
 // usada no se justifica en V1).
 

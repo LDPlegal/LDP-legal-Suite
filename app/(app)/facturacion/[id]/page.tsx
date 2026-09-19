@@ -86,7 +86,7 @@ export default async function InvoiceDetailPage({
           <div>
             <p className="font-mono text-xs text-muted-foreground">{invoice.number}</p>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {client?.legalName ?? client?.displayName ?? "—"}
+              {client?.legalName ?? client?.displayName ?? "-"}
             </h1>
             <p className="text-sm text-muted-foreground">
               Emitida {formatInFirmTz(invoice.issuedOn, undefined, "dd/MM/yyyy")} · Vence{" "}
@@ -283,7 +283,7 @@ export default async function InvoiceDetailPage({
                       {METHOD_LABEL[p.method as keyof typeof METHOD_LABEL]}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {p.reference ?? "—"}
+                      {p.reference ?? "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
                       {formatMoney(num(p.amount), invoice.currency)}

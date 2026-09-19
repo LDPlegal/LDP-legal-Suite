@@ -83,7 +83,7 @@ export default async function ConfiguracionPage() {
     ? await listSystemEvents(user.firmId, user.userId, { limit: 50 })
     : [];
   // OAuth: traemos las integraciones del usuario actual (no las del firm
-  // completo — cada socio ve solo las suyas).
+  // completo, cada socio ve solo las suyas).
   const oauthConnections = await adminDb
     .select({
       provider: calendarIntegrations.provider,
@@ -304,7 +304,7 @@ export default async function ConfiguracionPage() {
                 <strong>Importante:</strong> el cifrado app-layer requiere la
                 variable de entorno <code>APP_CRYPTO_MASTER_KEY</code> configurada
                 en producción. Rotarla deja inaccesibles los documentos cifrados
-                con la versión anterior — solo hacelo si tenés respaldo de la
+                con la versión anterior, solo hacelo si tenés respaldo de la
                 clave original.
               </p>
             </CardContent>

@@ -1,4 +1,4 @@
-// PageTransition — passthrough.
+// PageTransition, passthrough.
 //
 // El rediseño visual no admite animaciones de entrada ni movimiento
 // decorativo: solo transiciones de color de 120-150ms en hover/estado.

@@ -3,7 +3,7 @@
 // El texto que sale del OCR / extracción de DOCX viene "plano": sin títulos,
 // sin negritas, con saltos de línea raros. Esto pide a Claude que lo
 // re-estructure en Markdown legible (títulos, negritas en los temas,
-// párrafos, listas) SIN inventar ni resumir — es un reformateo fiel, no un
+// párrafos, listas) SIN inventar ni resumir, es un reformateo fiel, no un
 // resumen. Útil para leer un contrato o escrito directamente en la app.
 
 import "server-only";

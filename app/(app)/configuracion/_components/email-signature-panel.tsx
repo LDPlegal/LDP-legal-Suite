@@ -1,6 +1,6 @@
 "use client";
 
-// F7+ Bloque 5 — Firma profesional por usuario. Se anexa automáticamente
+// F7+ Bloque 5, Firma profesional por usuario. Se anexa automáticamente
 // al final de cada correo enviado desde el chat IA. HTML básico permitido.
 
 import { useState, useTransition } from "react";

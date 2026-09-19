@@ -7,7 +7,7 @@ import {
   type ActiveTimer,
 } from "../schema";
 
-// Stale threshold: BRIEF / maestro § 9.4 — if no heartbeat for >15 min, the
+// Stale threshold: BRIEF / maestro § 9.4, if no heartbeat for >15 min, the
 // timer is considered stale and the user should decide whether to keep or
 // discard it on next visit.
 export const STALE_THRESHOLD_MINUTES = 15;
@@ -42,7 +42,7 @@ export async function startTimer(
   data: { caseId: string; description?: string | null },
 ): Promise<ActiveTimer> {
   return withFirm(firmId, userId, async (tx) => {
-    // Replace any existing timer atomically — one per user (PK on user_id).
+    // Replace any existing timer atomically, one per user (PK on user_id).
     const [row] = await tx
       .insert(activeTimers)
       .values({

@@ -1,4 +1,4 @@
-// KPI Card — cifra protagonista sobre superficie blanca plana.
+// KPI Card, cifra protagonista sobre superficie blanca plana.
 //
 // El handoff no admite animaciones de entrada ni movimiento decorativo,
 // así que se retiran la entrada con framer-motion, el contador animado y
@@ -85,7 +85,7 @@ export function KpiCard({
             />
           </div>
           <p className="stat-number tabular mt-3 text-[30px] leading-none text-foreground">
-            {numeric ? formatNumeric(numeric) : (displayValue ?? "—")}
+            {numeric ? formatNumeric(numeric) : (displayValue ?? "-")}
           </p>
           <p className="mt-2 text-[11.5px] text-subtle">{hint}</p>
         </div>

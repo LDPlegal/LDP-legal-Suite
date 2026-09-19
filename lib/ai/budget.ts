@@ -1,4 +1,4 @@
-// F7 bloque 4 — Presupuesto IA por firm.
+// F7 bloque 4, Presupuesto IA por firm.
 //
 // Configuración: cada firm fija un techo mensual en USD via `firms.settings.aiBudget`:
 //   {
@@ -66,7 +66,7 @@ export async function setFirmBudget(
     hardCap: cfg.hardCap ?? current.hardCap,
   };
   // Merge into existing settings using jsonb_set semantics via Drizzle's
-  // sql template (atomic — never overwrite the whole jsonb).
+  // sql template (atomic, never overwrite the whole jsonb).
   await adminDb
     .update(firms)
     .set({
@@ -151,7 +151,7 @@ export async function preflightBudget(
 }
 
 // Breakdown del mes en curso por socio. Útil para el dashboard "consumo
-// por socio" que pide Gabriel — cada socio puede tener un sub-tope (de
+// por socio" que pide Gabriel, cada socio puede tener un sub-tope (de
 // momento sólo informativo: no bloqueamos).
 export type UserSpend = {
   userId: string;
@@ -221,7 +221,7 @@ export async function getSpendByFeature(firmId: string): Promise<FeatureSpend[]>
 // ROI rough estimate: 25 min ahorrados por documento generado, 5 min por
 // evento creado desde chat, 10 min por carta. Multiplicado por la tarifa
 // horaria promedio del firm para dar el "ahorro" en USD.
-// Es una aproximación — Gabriel lo pide explícito en la spec para
+// Es una aproximación, Gabriel lo pide explícito en la spec para
 // justificar el costo de la IA frente a Marc y Jorge.
 export type RoiSummary = {
   monthSpendUsd: number;
@@ -314,7 +314,7 @@ export async function recordSpendAndMaybeWarn(firmId: string): Promise<void> {
     const body =
       b.threshold >= 1
         ? `La firma consumió US$${status.monthSpendUsd.toFixed(2)} de US$${status.config.monthlyUsd.toFixed(2)} este mes. ${status.config.hardCap ? "Las nuevas consultas a la IA están bloqueadas hasta el próximo mes o hasta que aumentes el límite." : "Las consultas siguen funcionando porque el hard-cap está desactivado, pero estás sobrepasando el presupuesto."}`
-        : `Llevas US$${status.monthSpendUsd.toFixed(2)} de US$${status.config.monthlyUsd.toFixed(2)} este mes en consultas a la IA. ${b.threshold >= 0.9 ? "Te queda poco margen — considerá pausar features no críticas." : ""}`;
+        : `Llevas US$${status.monthSpendUsd.toFixed(2)} de US$${status.config.monthlyUsd.toFixed(2)} este mes en consultas a la IA. ${b.threshold >= 0.9 ? "Te queda poco margen, considerá pausar features no críticas." : ""}`;
 
     await adminDb.insert(aiSuggestions).values(
       admins.map((a) => ({

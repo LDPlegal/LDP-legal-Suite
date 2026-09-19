@@ -18,7 +18,7 @@ export function LoginForm() {
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // useRef da un guard SINCRÓNICO. useState es asíncrono — entre múltiples
+  // useRef da un guard SINCRÓNICO. useState es asíncrono, entre múltiples
   // submits rápidos (Enter spam, doble click) el react schedule no aplica
   // setPending(true) entre uno y otro y se disparan N requests al server.
   // Ref bloquea al primer submit.
@@ -42,7 +42,7 @@ export function LoginForm() {
       return;
     }
 
-    // "Mantener la sesión abierta" (handoff 3b) — better-auth lo traduce a
+    // "Mantener la sesión abierta" (handoff 3b), better-auth lo traduce a
     // una sesión persistente en vez de una de navegador.
     const rememberMe = fd.get("rememberMe") !== null;
 

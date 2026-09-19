@@ -3,7 +3,7 @@
 // Zona de "arrastrá y soltá" para subir archivos desde el escritorio.
 //
 // Usa el DnD NATIVO del browser (eventos dragover/drop sobre dataTransfer.files)
-// — distinto del DnD de @dnd-kit que mueve documentos YA existentes entre
+// distinto del DnD de @dnd-kit que mueve documentos YA existentes entre
 // carpetas (ese es pointer-based). Los dos coexisten sin pisarse.
 //
 // Sube cada archivo con uploadFileDirect (presigned R2, bypassa el server),
@@ -34,7 +34,7 @@ export function UploadDropZone({
   const [isOver, setIsOver] = useState(false);
   const [queue, setQueue] = useState<Uploading[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Contador para dragenter/dragleave anidados — sin esto, mover el cursor
+  // Contador para dragenter/dragleave anidados, sin esto, mover el cursor
   // sobre un hijo dispara dragleave y parpadea el highlight.
   const dragDepth = useRef(0);
 

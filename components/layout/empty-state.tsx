@@ -1,4 +1,4 @@
-// EmptyState — patrón consistente cuando una lista no tiene resultados.
+// EmptyState, patrón consistente cuando una lista no tiene resultados.
 // Watermark del monograma LDP detrás del contenido para dar identidad
 // y peso visual sin caer en illustration-startup.
 

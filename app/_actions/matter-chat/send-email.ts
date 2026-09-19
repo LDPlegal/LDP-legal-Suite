@@ -1,10 +1,10 @@
 "use server";
 
-// F7+ Bloque 5 — Envío de correos desde el chat IA via Microsoft Graph.
+// F7+ Bloque 5, Envío de correos desde el chat IA via Microsoft Graph.
 // Se invoca cuando el usuario clickea "Enviar" en la tarjeta send_email.
 // Persiste un registro en sent_emails con audit completo (prompt original,
 // chat message, draft de la IA, y el cuerpo final que se mandó tras
-// posible edición humana — por ahora la edición no existe pero el slot
+// posible edición humana, por ahora la edición no existe pero el slot
 // está reservado).
 
 import { z } from "zod";
@@ -47,7 +47,7 @@ export type SendEmailState =
 function appendSignature(bodyHtml: string, signature: string | null): string {
   if (!signature) return bodyHtml;
   // Si la firma ya está en el body (ej. porque la IA la incluyó), no
-  // duplicar. Comparación naive — buscamos las primeras 40 chars de la
+  // duplicar. Comparación naive, buscamos las primeras 40 chars de la
   // firma sin tags.
   const sigPlain = signature.replace(/<[^>]+>/g, "").slice(0, 40).trim();
   if (sigPlain && bodyHtml.includes(sigPlain.slice(0, 20))) return bodyHtml;
@@ -74,7 +74,7 @@ export async function sendEmailFromChatAction(
 
   const finalBody = appendSignature(data.bodyHtml, u?.emailSignature ?? null);
 
-  // Determinar from. Microsoft Graph usa SIEMPRE la cuenta del token —
+  // Determinar from. Microsoft Graph usa SIEMPRE la cuenta del token,
   // el campo `from` que mandemos al endpoint es ignorado. Para audit
   // logueamos el email que sabemos asociado al token: viene del flow OAuth
   // (id_token o /me fallback) y está guardado en
@@ -82,7 +82,7 @@ export async function sendEmailFromChatAction(
   //
   // Antes acá llamábamos /me (getProfile) para "verificar" la conexión
   // antes de mandar. Pero /me requiere scope User.Read que no consentimos
-  // — y agregarlo dispararía re-consent de TODO el tenant. La integración
+  // y agregarlo dispararía re-consent de TODO el tenant. La integración
   // ya nos garantiza que el token funciona; si está roto, sendMail() lo
   // dirá directamente.
   const [integration] = await adminDb
@@ -106,10 +106,10 @@ export async function sendEmailFromChatAction(
   const fromAddress = integration.externalAccountId ?? u?.email ?? "unknown";
 
   // Resolver adjuntos: el modelo nos da una lista de documentIds. Validamos
-  // que cada uno pertenece a este firm (RLS-equivalent — adminDb bypasa RLS
+  // que cada uno pertenece a este firm (RLS-equivalent, adminDb bypasa RLS
   // entonces lo verificamos a mano) y opcionalmente al caso. Después leemos
   // los bytes del storage. Si un doc no existe / pertenece a otro firm /
-  // está vacío, abortamos antes de mandar el mail — preferimos fallar
+  // está vacío, abortamos antes de mandar el mail, preferimos fallar
   // explícito a mandar el correo sin adjuntos prometidos.
   let attachments: SendMailAttachment[] | undefined;
   if (data.attachDocumentIds && data.attachDocumentIds.length > 0) {
@@ -135,7 +135,7 @@ export async function sendEmailFromChatAction(
       const missing = data.attachDocumentIds.filter((id) => !found.has(id));
       return {
         ok: false,
-        error: `No pude adjuntar ${missing.length} documento(s) — puede ser que ya no existan o no pertenezcan a este expediente.`,
+        error: `No pude adjuntar ${missing.length} documento(s), puede ser que ya no existan o no pertenezcan a este expediente.`,
       };
     }
     // Si el correo está vinculado a un caso, los docs deberían pertenecer al
@@ -148,7 +148,7 @@ export async function sendEmailFromChatAction(
       if (wrongCase.length > 0) {
         return {
           ok: false,
-          error: `${wrongCase.length} documento(s) pertenecen a otro expediente — no los adjunté por seguridad.`,
+          error: `${wrongCase.length} documento(s) pertenecen a otro expediente, no los adjunté por seguridad.`,
         };
       }
     }

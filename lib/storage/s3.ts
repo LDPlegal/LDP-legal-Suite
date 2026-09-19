@@ -28,7 +28,7 @@ function sanitizeFilename(name: string): string {
 
 async function streamToBuffer(stream: ReadableStream | NodeJS.ReadableStream | null): Promise<Uint8Array> {
   if (!stream) return new Uint8Array(0);
-  // Node.js streams (most common in serverless) — accumulate Buffer chunks.
+  // Node.js streams (most common in serverless), accumulate Buffer chunks.
   if (typeof (stream as NodeJS.ReadableStream).on === "function") {
     const chunks: Buffer[] = [];
     return new Promise<Uint8Array>((resolve, reject) => {
@@ -131,7 +131,7 @@ export class S3Storage implements StorageProvider {
       );
     } catch (e) {
       // S3 returns 204 for missing keys typically, but some providers throw.
-      // Idempotent contract — swallow not-found.
+      // Idempotent contract, swallow not-found.
       const err = e as { name?: string; $metadata?: { httpStatusCode?: number } };
       if (
         err.name === "NoSuchKey" ||
@@ -151,7 +151,7 @@ export class S3Storage implements StorageProvider {
   ): Promise<PresignedPut> {
     // El browser va a hacer PUT directo al storage con este URL. Importante:
     // ContentType en el command DEBE coincidir con el header Content-Type que
-    // el browser envíe — la firma SigV4 lo incluye, y si no calza S3 rechaza
+    // el browser envíe, la firma SigV4 lo incluye, y si no calza S3 rechaza
     // con SignatureDoesNotMatch.
     const command = new PutObjectCommand({
       Bucket: this.bucket,
@@ -161,7 +161,7 @@ export class S3Storage implements StorageProvider {
     // Cast: @aws-sdk/client-s3 y @aws-sdk/s3-request-presigner pullan
     // versiones distintas de @smithy/types en el árbol de deps, lo que
     // hace que TypeScript no reconcilie los types nominalmente. El runtime
-    // funciona — usamos un cast estrecho para desbloquear el typecheck.
+    // funciona, usamos un cast estrecho para desbloquear el typecheck.
     // Issue conocido: https://github.com/aws/aws-sdk-js-v3/issues/6435
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const uploadUrl = await getSignedUrl(this.client as any, command as any, {

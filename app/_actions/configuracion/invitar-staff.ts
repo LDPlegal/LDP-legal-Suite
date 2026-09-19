@@ -227,7 +227,7 @@ export async function desactivarStaffAction(formData: FormData): Promise<void> {
 }
 
 // =============================================================================
-// Editar perfil de un miembro (nombre, email, hourlyRate) — admin/partner.
+// Editar perfil de un miembro (nombre, email, hourlyRate), admin/partner.
 // =============================================================================
 
 const UpdateProfileSchema = z.object({
@@ -336,7 +336,7 @@ export async function actualizarPerfilStaffAction(
 }
 
 // =============================================================================
-// Resetear contraseña de un miembro — admin/partner.
+// Resetear contraseña de un miembro, admin/partner.
 // =============================================================================
 // El admin elige una nueva password (no se envía link por email, se le
 // dicta al usuario directamente). El usuario puede cambiarla luego desde
@@ -410,7 +410,7 @@ export async function resetearPasswordStaffAction(
       ),
     );
 
-  // Mata las sesiones activas del target — fuerza re-login con la nueva.
+  // Mata las sesiones activas del target, fuerza re-login con la nueva.
   await adminDb.delete(sessions).where(eq(sessions.userId, parsed.data.targetId));
 
   await logAuditStandalone({

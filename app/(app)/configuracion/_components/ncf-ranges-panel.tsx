@@ -80,7 +80,7 @@ export function NcfRangesPanel({
                     <TableCell className="font-mono text-xs">{formatNcf(type, r.rangeStart)}</TableCell>
                     <TableCell className="font-mono text-xs">{formatNcf(type, r.rangeEnd)}</TableCell>
                     <TableCell className="font-mono text-xs">
-                      {r.lastSeq < r.rangeEnd ? formatNcf(type, r.lastSeq + 1) : "—"}
+                      {r.lastSeq < r.rangeEnd ? formatNcf(type, r.lastSeq + 1) : "-"}
                     </TableCell>
                     <TableCell className="font-mono">
                       {Math.max(0, r.rangeEnd - r.lastSeq)}
@@ -90,7 +90,7 @@ export function NcfRangesPanel({
                         ? new Date(r.expiresOn).toLocaleDateString("es-DO", {
                             dateStyle: "medium",
                           })
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       <RangeStatus range={r} />

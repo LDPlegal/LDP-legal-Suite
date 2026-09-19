@@ -175,7 +175,7 @@ export default async function PortalFacturaDetailPage({
                     </TableCell>
                     <TableCell>{METHOD_LABEL[p.method] ?? p.method}</TableCell>
                     <TableCell className="font-mono text-xs">
-                      {p.reference ?? "—"}
+                      {p.reference ?? "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
                       {formatMoney(num(p.amount))}

@@ -6,7 +6,7 @@
 // Por qué separar esta acción de la subida:
 //   - El payload es chiquito (texto, kBs), pasa cualquier body limit.
 //   - El cliente luego sube cada archivo directo al storage via
-//     uploadFileDirect (lib/uploads/client) — flow de Fase 7 con
+//     uploadFileDirect (lib/uploads/client), flow de Fase 7 con
 //     presigned URLs, no toca Vercel function.
 //   - Cada archivo es un PUT independiente al storage → no choca con bodySizeLimit
 //     ni memory limit de Vercel functions.
@@ -33,7 +33,7 @@ const InputSchema = z.object({
   scope: ScopeSchema,
   parentFolderId: z.string().uuid().nullable(),
   // Paths relativos como "A", "A/B", "A/B/C". Ordenamos por profundidad.
-  // Cap a 500 carpetas — más que eso es señal de error o abuso.
+  // Cap a 500 carpetas, más que eso es señal de error o abuso.
   dirPaths: z.array(z.string().min(1).max(500)).max(500),
 });
 

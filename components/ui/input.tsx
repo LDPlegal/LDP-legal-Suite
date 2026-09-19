@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
-// Input — plano: borde #C9CCC5 sobre blanco, radio 3px, sin sombra.
+// Input, plano: borde #C9CCC5 sobre blanco, radio 3px, sin sombra.
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => (
     <input

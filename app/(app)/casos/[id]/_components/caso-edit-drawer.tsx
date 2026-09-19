@@ -2,7 +2,7 @@
 
 // Drawer para editar los datos del caso: básicos + líder + acceso por usuario.
 // El acceso se controla usuario por usuario (checkboxes). Con visibilidad
-// "restringido", solo los usuarios marcados (y los admins) ven el caso — lo
+// "restringido", solo los usuarios marcados (y los admins) ven el caso, lo
 // hace cumplir la RLS (policy cases_firm_visibility). El líder siempre queda
 // con acceso automáticamente (lo fuerza la action al guardar).
 
@@ -202,7 +202,7 @@ export function CasoEditDrawer({
               </p>
             </div>
 
-            {/* Líder del caso — antes no se podía cambiar acá. */}
+            {/* Líder del caso, antes no se podía cambiar acá. */}
             <div className="space-y-1.5">
               <Label htmlFor="ce-lead">Líder del caso</Label>
               <select
@@ -281,7 +281,7 @@ export function CasoEditDrawer({
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
                   <option value="firm">Toda la firma puede ver</option>
-                  <option value="restricted">Restringido — solo usuarios seleccionados</option>
+                  <option value="restricted">Restringido, solo usuarios seleccionados</option>
                 </select>
                 <p className="text-xs text-muted-foreground">
                   {visibility === "restricted" ? (

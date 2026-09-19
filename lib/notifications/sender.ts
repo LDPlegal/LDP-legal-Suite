@@ -63,7 +63,7 @@ export async function resolveFirmGraphSenderUserId(
   return (admin ?? candidates[0]!).userId;
 }
 
-/** Lista los usuarios del firm con M365 conectado — para el selector de
+/** Lista los usuarios del firm con M365 conectado, para el selector de
  *  "casilla emisora" en Configuración. Devuelve el BUZÓN conectado
  *  (externalAccountId), que es desde donde realmente sale el correo, no el
  *  email de login de la app (pueden diferir). Pasa por adminDb, filtra por firm. */

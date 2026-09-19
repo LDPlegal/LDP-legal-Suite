@@ -1,6 +1,6 @@
 // Server-side session helpers. Use these in server actions, server components,
 // and route handlers. They call into better-auth (which uses the admin
-// connection — see lib/auth/server.ts) and return the firm + user identifiers
+// connection, see lib/auth/server.ts) and return the firm + user identifiers
 // that domain code needs to pass to withFirm().
 
 import "server-only";
@@ -38,7 +38,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   }
 
   // Belt-and-suspenders soft-delete check. better-auth's cookie cache (5 min
-  // TTL) means session.user can survive after we soft-delete the row — for
+  // TTL) means session.user can survive after we soft-delete the row, for
   // example when a portal user's owning client gets archived. Verify the
   // user is still alive on each request before treating them as logged in.
   // The query is a single PK lookup, indexed; cost is trivial.
@@ -76,14 +76,14 @@ export async function requireAdmin(): Promise<SessionUser> {
 }
 
 // Roles with admin-level powers: invitar staff, editar firm, crear plantillas,
-// archivar/restaurar, gestionar tarifas, etc. 'tester' es para QA del firm —
+// archivar/restaurar, gestionar tarifas, etc. 'tester' es para QA del firm,
 // puede tocarlo todo durante pruebas sin riesgo (es solo dentro del firm).
 export function hasAdminPowers(role: SessionUser["role"]): boolean {
   return role === "admin" || role === "partner" || role === "tester";
 }
 
 // Portal Cliente entry point: requires role='client' and a non-null clientId.
-// Anything else (anonymous, staff role, role='client' but missing client_id —
+// Anything else (anonymous, staff role, role='client' but missing client_id,
 // data integrity bug) is sent to login.
 export type PortalSessionUser = SessionUser & { role: "client"; clientId: string };
 

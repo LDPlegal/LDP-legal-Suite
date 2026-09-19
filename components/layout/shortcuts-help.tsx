@@ -12,7 +12,7 @@ import { useModKey } from "@/lib/hooks/use-platform";
 
 // Keyboard shortcuts cheat sheet, opened with `?` from anywhere in the app
 // (when no input is focused). The shortcuts themselves live in the
-// individual feature components — this dialog is documentation only.
+// individual feature components, this dialog is documentation only.
 
 type Shortcut = { keys: string[]; description: string };
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Login — handoff 3b. Sin citas ni texto de marketing: titular "Acceder",
+// Login, handoff 3b. Sin citas ni texto de marketing: titular "Acceder",
 // el formulario, y la nota de acceso restringido al pie.
 //
 // El enlace "¿Olvidó su contraseña?" vive dentro del formulario, en línea

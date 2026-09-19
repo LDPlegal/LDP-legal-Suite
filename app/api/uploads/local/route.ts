@@ -1,4 +1,4 @@
-// PUT endpoint para dev — ejercita el flow de "direct upload" sin necesitar
+// PUT endpoint para dev, ejercita el flow de "direct upload" sin necesitar
 // S3 / R2 corriendo en local. En prod (STORAGE_DRIVER=s3) este endpoint NO
 // se usa porque presignedPut() devuelve URLs reales de R2/S3.
 //
@@ -12,7 +12,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { verifyLocalUploadToken } from "@/lib/storage/local";
 
-// Vercel functions tienen body limits — este handler NO se ejecuta en Vercel,
+// Vercel functions tienen body limits, este handler NO se ejecuta en Vercel,
 // solo en dev. Si por alguna razón se llamara en prod, los body chicos
 // pasarían y los grandes rebotarían igual que antes.
 export const runtime = "nodejs";

@@ -6,7 +6,7 @@
 //   2. fetch(uploadUrl, { method: "PUT", body: file })  ← directo a R2/S3/local
 //   3. Llamar completarUploadAction({ storageKey, ...metadata }) → documentId
 //
-// El browser nunca sube el archivo al server de Next.js — bypaso completo
+// El browser nunca sube el archivo al server de Next.js, bypaso completo
 // del bodySizeLimit y del memory cap de Vercel functions. Tope efectivo:
 // 500 MB (cap del schema en preparar-upload), realmente limitado por la red
 // del usuario.
@@ -44,7 +44,7 @@ export async function uploadFileDirect(
   const { scope, file, folderId, tags, parentDocumentId, visibility, onProgress } = opts;
 
   // El browser a veces pone file.type vacío para archivos sin extensión.
-  // Fallback al genérico — el OCR re-detecta por magic bytes server-side.
+  // Fallback al genérico, el OCR re-detecta por magic bytes server-side.
   const contentType = file.type || "application/octet-stream";
 
   // ── Paso 1: pedir presigned URL ──
@@ -87,7 +87,7 @@ export async function uploadFileDirect(
       };
       xhr.onerror = () => {
         // El browser nunca expone "esto fue CORS" vs "esto fue DNS" por
-        // razones de seguridad — ambos terminan en onerror sin info. Pero
+        // razones de seguridad, ambos terminan en onerror sin info. Pero
         // 99% de las veces que llegamos acá en prod es CORS del bucket.
         // Damos un mensaje accionable con el host que intentamos.
         let host = "el storage";
@@ -113,7 +113,7 @@ export async function uploadFileDirect(
     return { ok: false, error: msg };
   }
 
-  // ── Paso 3: completar — crea el record en DB + dispara OCR ──
+  // ── Paso 3: completar, crea el record en DB + dispara OCR ──
   const completePayload: CompletarUploadInput = {
     scope,
     storageKey: prep.storageKey,

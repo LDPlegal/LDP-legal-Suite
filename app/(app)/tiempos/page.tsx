@@ -103,10 +103,10 @@ export default async function TiemposPage() {
                         {e.caseCode}
                       </Link>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </TableCell>
-                  <TableCell className="text-sm">{e.description ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{e.description ?? "-"}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">
                     {formatDuration(e.durationSeconds)}
                   </TableCell>

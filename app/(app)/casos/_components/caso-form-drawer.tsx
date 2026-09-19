@@ -63,7 +63,7 @@ export function CasoFormDrawer({
   const [assignments, setAssignments] = useState<Assignment[]>(
     parentCase?.assignments ?? [],
   );
-  // Lista local de clientes — empieza con los del server y se extiende
+  // Lista local de clientes, empieza con los del server y se extiende
   // cuando el user crea uno inline desde el quick-create.
   const [clienteList, setClienteList] = useState<Cliente[]>(clientes);
   // Cliente seleccionado actualmente (controlado, así podemos seleccionar
@@ -114,7 +114,7 @@ export function CasoFormDrawer({
             {parentCase ? (
               <>
                 Se creará dentro de{" "}
-                <span className="font-mono">{parentCase.code}</span> —{" "}
+                <span className="font-mono">{parentCase.code}</span> -{" "}
                 {parentCase.title}. El código será{" "}
                 <span className="font-mono">{parentCase.code}-NN</span>.
               </>
@@ -142,7 +142,7 @@ export function CasoFormDrawer({
                     {/*
                       Trigger del form COMPLETO de cliente (mismo que /clientes).
                       Cuando se crea desde acá, onCreated mete el cliente al
-                      dropdown y lo selecciona — el caso sigue sin perder estado.
+                      dropdown y lo selecciona, el caso sigue sin perder estado.
                     */}
                     <ClienteFormDrawer
                       trigger={
@@ -214,7 +214,7 @@ export function CasoFormDrawer({
                   onChange={(e) => setTemplateId(e.target.value)}
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="">— Sin plantilla —</option>
+                  <option value="">- Sin plantilla -</option>
                   {matchingTemplates.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name} ({t.defaultTasks.length} tareas, {t.defaultEvents.length} eventos)

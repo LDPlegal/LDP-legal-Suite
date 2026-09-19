@@ -1,6 +1,6 @@
 "use server";
 
-// F7 bloque 4 — Server actions para configurar el presupuesto IA del firm.
+// F7 bloque 4, Server actions para configurar el presupuesto IA del firm.
 //
 // Solo admin/partner pueden cambiar el presupuesto. Cualquier usuario del
 // firm puede leer el estado (porque la UI de chat muestra el % consumido

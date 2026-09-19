@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   LDP Legal Suite — Sistema visual (rediseño 2026)
+   LDP Legal Suite, Sistema visual (rediseño 2026)
    =============================================================================
    Referencia: design_handoff_rediseno_visual.
    Filosofía:
@@ -69,7 +69,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Brand spectrum — marino LDP. El acento teal se retiró: un solo acento
+  /* Brand spectrum, marino LDP. El acento teal se retiró: un solo acento
      por pantalla (azul de acción), oro reservado al asistente IA. */
   --color-brand-50: #EEF2F6;
   --color-brand-100: #E4EBF2;
@@ -82,7 +82,7 @@
   --color-brand-800: #0A1B2C;
   --color-brand-900: #0B1929;
 
-  /* Escala de grises del handoff — verdosa/cálida, no azulada */
+  /* Escala de grises del handoff, verdosa/cálida, no azulada */
   --color-canvas: #F4F5F3;
   --color-surface: #FFFFFF;
   --color-surface-alt: #FAFAF8;
@@ -126,7 +126,7 @@
   --shadow-2xl: none;
   --shadow-inner: none;
 
-  /* Radios — 3-4px en tarjetas/inputs, nunca más. */
+  /* Radios, 3-4px en tarjetas/inputs, nunca más. */
   --radius-sm: 0px;
   --radius-md: 3px;
   --radius-lg: 4px;
@@ -138,7 +138,7 @@
   /* Radios: 3-4px en tarjetas/inputs, 0 en botones CTA. Nada tipo pill. */
   --radius: 4px;
 
-  /* Light mode — lienzo #F4F5F3, superficies blancas planas.
+  /* Light mode, lienzo #F4F5F3, superficies blancas planas.
      Sin translucidez, sin blur, sin sombras de color. */
   --background: #F4F5F3;
   --foreground: #161C24;
@@ -203,19 +203,19 @@
   --text-subtle: #8E8F89;
   --text-faint: #9C9D96;
 
-  /* Azul de acción (links, iconos, CTA) — distinto del marino de branding */
+  /* Azul de acción (links, iconos, CTA), distinto del marino de branding */
   --action: #0F4C81;
   --action-hover: #0A3A63;
   --action-soft: #EEF2F6;
   --action-soft2: #F2F5F8;
 
-  /* Acento dorado — exclusivo del asistente IA */
+  /* Acento dorado, exclusivo del asistente IA */
   --color-gold: #B89254;
   --color-gold-light: #D4B173;
 }
 
 .dark {
-  /* Dark mode — el handoff es light-only; acá se traduce el mismo lenguaje
+  /* Dark mode, el handoff es light-only; acá se traduce el mismo lenguaje
      plano a superficies oscuras: sin translucidez, sin blur, sin sombras. */
   --background: #0A1B2C;
   --foreground: #E8EAE5;
@@ -318,7 +318,7 @@
     letter-spacing: -0.015em;
   }
 
-  /* Todas las cifras con numerales tabulares — columnas de montos, horas
+  /* Todas las cifras con numerales tabulares, columnas de montos, horas
      y fechas quedan alineadas. */
   table,
   .tabular {
@@ -351,7 +351,7 @@
     border: 2px solid transparent;
   }
 
-  /* Focus rings — sin radio, acordes al lenguaje de esquinas rectas */
+  /* Focus rings, sin radio, acordes al lenguaje de esquinas rectas */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -361,7 +361,7 @@
 
 @layer utilities {
   /* ---------------------------------------------------------------------
-     Iconografía — Material Symbols Sharp, FILL 1 (sólidos, esquinas rectas)
+     Iconografía, Material Symbols Sharp, FILL 1 (sólidos, esquinas rectas)
      --------------------------------------------------------------------- */
   .ms {
     font-family: "Material Symbols Sharp";
@@ -380,7 +380,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Superficies — planas. Los nombres `glass*` se conservan para que las
+     Superficies, planas. Los nombres `glass*` se conservan para que las
      usages existentes migren solas; ya no hay translucidez ni blur.
      --------------------------------------------------------------------- */
   .glass {
@@ -427,7 +427,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Franja del asistente IA — siempre al pie del contenido, nunca panel
+     Franja del asistente IA, siempre al pie del contenido, nunca panel
      protagonista. Variante `-warn` cuando advierte.
      --------------------------------------------------------------------- */
   .assistant-strip {
@@ -446,7 +446,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Badges — 11px, 600, sin radio.
+     Badges, 11px, 600, sin radio.
      --------------------------------------------------------------------- */
   .badge-flat {
     display: inline-flex;
@@ -473,7 +473,7 @@
   }
 
   /* ---------------------------------------------------------------------
-     Estados de interacción — solo color, 120-150ms ease-out.
+     Estados de interacción, solo color, 120-150ms ease-out.
      Las utilidades de movimiento quedan neutralizadas a propósito.
      --------------------------------------------------------------------- */
   .press,
@@ -496,7 +496,7 @@
     color: var(--color-brand-700);
   }
 
-  /* Entrada sin animación — el handoff no permite movimiento decorativo. */
+  /* Entrada sin animación, el handoff no permite movimiento decorativo. */
   .fade-in-up {
     opacity: 1;
   }
@@ -511,7 +511,7 @@
     animation: ldp-skeleton 1.4s ease-in-out infinite;
   }
 
-  /* Oro — exclusivo del asistente IA */
+  /* Oro, exclusivo del asistente IA */
   .text-gold {
     color: var(--color-gold);
   }
@@ -524,7 +524,7 @@
 }
 
 /* =============================================================================
-   FullCalendar — responsive mobile
+   FullCalendar, responsive mobile
    =============================================================================
    El toolbar de FullCalendar pone 3 grupos (prev/next+hoy · título · vistas)
    en una sola fila con space-between. En pantallas chicas se enciman (el
@@ -577,7 +577,7 @@
 }
 
 /* =============================================================================
-   FullCalendar — paleta del rediseño (handoff 3i)
+   FullCalendar, paleta del rediseño (handoff 3i)
    ============================================================================= */
 
 /* Cabeceras de día: microetiqueta sobre superficie alterna. */
@@ -594,7 +594,7 @@
   text-decoration: none;
 }
 
-/* "Hoy" — el amarillo por defecto de FullCalendar no pertenece a la paleta.
+/* "Hoy", el amarillo por defecto de FullCalendar no pertenece a la paleta.
    Se reemplaza por el azul tenue de selección. */
 .fc .fc-day-today {
   background: var(--action-soft2) !important;
@@ -636,7 +636,7 @@
   box-shadow: none;
 }
 
-/* Botones del toolbar — planos, sin radio ni sombra. */
+/* Botones del toolbar, planos, sin radio ni sombra. */
 .fc .fc-button,
 .fc .fc-button-primary {
   background: #fff;

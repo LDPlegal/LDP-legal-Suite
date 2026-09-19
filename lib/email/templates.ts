@@ -26,7 +26,7 @@ const COLORS = {
 
 const FONT_STACK = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 
-/** Render del layout base — header con marca, card central, footer.
+/** Render del layout base, header con marca, card central, footer.
  *  Acepta el bloque de contenido como HTML "crudo" para que cada template
  *  solo se preocupe de qué decir, no de cómo enmarcarlo. */
 function emailLayout(input: {
@@ -88,7 +88,7 @@ function emailLayout(input: {
 </body></html>`;
 }
 
-/** Botón CTA centralizado — siempre el mismo estilo. */
+/** Botón CTA centralizado, siempre el mismo estilo. */
 function ctaButton(href: string, label: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 4px">
     <tr><td style="border-radius:8px;background:${COLORS.navy}">
@@ -114,16 +114,16 @@ export function buildResetPasswordEmail(input: {
     </p>
     ${ctaButton(input.resetUrl, "Restablecer contraseña")}
     <p style="margin:18px 0 0;font-size:13px;color:${COLORS.inkSoft};line-height:1.5">
-      El link expira en una hora. Si no solicitaste este cambio, ignorá este mensaje — tu contraseña seguirá igual.
+      El link expira en una hora. Si no solicitaste este cambio, ignorá este mensaje, tu contraseña seguirá igual.
     </p>
     <p style="margin:14px 0 0;font-size:12px;color:${COLORS.inkMuted};line-height:1.4">
       URL directa (si el botón no funciona):<br>
       <a href="${input.resetUrl}" style="color:${COLORS.navy};word-break:break-all">${input.resetUrl}</a>
     </p>`;
   return {
-    subject: `Restablecer contraseña — ${FROM_FIRM}`,
+    subject: `Restablecer contraseña, ${FROM_FIRM}`,
     html: emailLayout({
-      preheader: "Restablecé tu contraseña — link válido por una hora.",
+      preheader: "Restablecé tu contraseña, link válido por una hora.",
       eyebrow: "Seguridad",
       contentHtml,
     }),
@@ -188,7 +188,7 @@ export function buildNotificationEmail(input: {
     ${body}
     ${cta}`;
   return {
-    subject: `${input.title} — ${FROM_FIRM}`,
+    subject: `${input.title}, ${FROM_FIRM}`,
     html: emailLayout({
       preheader: input.body ?? input.title,
       eyebrow: input.categoryLabel,
@@ -275,7 +275,7 @@ export function buildHearingReportEmail(input: {
     <div style="background:${COLORS.bgPage};border:1px solid ${COLORS.border};border-radius:10px;padding:16px 18px;margin:0 0 22px">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:${COLORS.gold};font-weight:700;margin-bottom:10px">Audiencia</div>
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr><td style="padding:4px 0;font-size:13px;color:${COLORS.inkSoft};width:80px;vertical-align:top">Caso</td><td style="padding:4px 0;font-size:13px;color:${COLORS.ink}"><strong>${input.caseCode}</strong> — ${input.caseTitle}</td></tr>
+        <tr><td style="padding:4px 0;font-size:13px;color:${COLORS.inkSoft};width:80px;vertical-align:top">Caso</td><td style="padding:4px 0;font-size:13px;color:${COLORS.ink}"><strong>${input.caseCode}</strong>, ${input.caseTitle}</td></tr>
         <tr><td style="padding:4px 0;font-size:13px;color:${COLORS.inkSoft};vertical-align:top">Título</td><td style="padding:4px 0;font-size:13px;color:${COLORS.ink}">${input.hearingTitle}</td></tr>
         <tr><td style="padding:4px 0;font-size:13px;color:${COLORS.inkSoft};vertical-align:top">Fecha</td><td style="padding:4px 0;font-size:13px;color:${COLORS.ink}">${dateFmt}</td></tr>
         ${locationRow}
@@ -292,7 +292,7 @@ export function buildHearingReportEmail(input: {
   return {
     subject: `[Audiencia ${input.caseCode}] ${input.reportTitle}`,
     html: emailLayout({
-      preheader: `Reporte de audiencia: ${input.hearingTitle} — ${dateFmt}`,
+      preheader: `Reporte de audiencia: ${input.hearingTitle}, ${dateFmt}`,
       eyebrow: "Reporte de audiencia",
       contentHtml,
       footerNote: `Recibís este correo porque ${input.senderName} te eligió como destinatario de este reporte.`,

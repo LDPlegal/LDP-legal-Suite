@@ -1,4 +1,4 @@
-// Lista simple — antes aplicaba una entrada escalonada con framer-motion.
+// Lista simple, antes aplicaba una entrada escalonada con framer-motion.
 //
 // El handoff no admite animaciones de entrada ni movimiento decorativo,
 // así que el stagger se retira. Se conserva el componente y su API para

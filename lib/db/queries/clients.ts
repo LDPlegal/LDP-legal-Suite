@@ -116,7 +116,7 @@ export async function updateClient(
 //
 // We do this inside withFirm so the soft-deletes go through RLS-protected
 // connection (firm isolation). Sessions table doesn't have firm_id so the
-// session delete uses the userIds we already collected — no cross-firm
+// session delete uses the userIds we already collected, no cross-firm
 // leakage.
 export async function listArchivedClients(
   firmId: string,

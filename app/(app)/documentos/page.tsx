@@ -23,7 +23,6 @@ import {
   listFolderChildren,
 } from "@/lib/db/queries/folders";
 import { isAiEnabled } from "@/lib/ai";
-import { AiDocumentSearch } from "./_components/ai-search";
 import { DocumentGlobalRow } from "./_components/document-global-row";
 import { DocumentUploadGlobalDrawer } from "./_components/document-upload-global-drawer";
 import { ReprocessAllButton } from "./_components/reprocess-buttons";
@@ -48,7 +47,7 @@ export default async function DocumentosPage({
   const q = (sp.q ?? "").trim();
   const onlyShared = sp.shared === "1";
   const folderId = sp.folder ?? null;
-  // Paginación — solo aplica en search mode. Page 1-indexed; default 50/page.
+  // Paginación, solo aplica en search mode. Page 1-indexed; default 50/page.
   const PAGE_SIZE = 50;
   const pageParam = Number.parseInt(sp.page ?? "1", 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
@@ -64,7 +63,7 @@ export default async function DocumentosPage({
 
   // En la raíz del explorador aseguramos los dos "espacios": la carpeta
   // personal del usuario (privada, migración 0035) y la biblioteca compartida
-  // de la firma. Idempotente — los usuarios/firmas nuevos las obtienen acá.
+  // de la firma. Idempotente, los usuarios/firmas nuevos las obtienen acá.
   const atRoot = !isSearchMode && folderId === null;
   const [personalRoot, libraryRoot] = atRoot
     ? await Promise.all([
@@ -99,7 +98,7 @@ export default async function DocumentosPage({
     ]);
 
   // Validar que el folder existe (si se accedió a uno borrado o de otro firm,
-  // RLS ya lo bloqueó arriba — getFolderById extra para mensaje claro).
+  // RLS ya lo bloqueó arriba, getFolderById extra para mensaje claro).
   const currentFolder = folderId
     ? await getFolderById(user.firmId, user.userId, folderId)
     : null;
@@ -130,7 +129,7 @@ export default async function DocumentosPage({
         {/* Botones directos (sin wrapper flex extra) para que el flex-wrap
             de PageHeader los envuelva uno por uno en mobile en vez de
             dejarlos en una fila que se corta. */}
-        <WithTooltip label="Documentos eliminados (reversible — podés restaurar)">
+        <WithTooltip label="Documentos eliminados (reversible, podés restaurar)">
           <Link
             href="/documentos/papelera"
             className="inline-flex h-9 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm hover:bg-accent"
@@ -154,7 +153,6 @@ export default async function DocumentosPage({
         />
       </PageHeader>
 
-      {isAiEnabled() ? <AiDocumentSearch /> : null}
 
       <form className="flex flex-wrap items-center gap-2" action="/documentos">
         {/* w-full en mobile (ocupa toda la fila y los controles caen debajo),
@@ -259,7 +257,7 @@ export default async function DocumentosPage({
             </CardContent>
           </Card>
 
-          {/* Paginación inferior — repetida para que el user no scrollee arriba */}
+          {/* Paginación inferior, repetida para que el user no scrollee arriba */}
           {searchResults.rows.length > 0 ? (
             <PaginationStrip
               page={page}
@@ -297,7 +295,7 @@ export default async function DocumentosPage({
                   <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                 </span>
                 <span className="block text-sm text-muted-foreground">
-                  Privada — solo vos ves lo que guardás acá.
+                  Privada, solo vos ves lo que guardás acá.
                 </span>
               </span>
             </Link>
@@ -308,7 +306,7 @@ export default async function DocumentosPage({
                 <>
                   <Lock className="h-4 w-4 flex-none text-primary" />
                   <span>
-                    Estás en tu <strong className="font-medium text-foreground">carpeta personal</strong> — privada.
+                    Estás en tu <strong className="font-medium text-foreground">carpeta personal</strong>, privada.
                     Solo vos ves lo que guardás acá.
                   </span>
                 </>
@@ -316,7 +314,7 @@ export default async function DocumentosPage({
                 <>
                   <Library className="h-4 w-4 flex-none text-primary" />
                   <span>
-                    Estás en un <strong className="font-medium text-foreground">espacio compartido</strong> —
+                    Estás en un <strong className="font-medium text-foreground">espacio compartido</strong>,
                     visible para toda la firma.
                   </span>
                 </>

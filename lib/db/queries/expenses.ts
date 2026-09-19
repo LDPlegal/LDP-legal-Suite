@@ -64,7 +64,7 @@ export async function updateExpense(
       .where(
         and(
           eq(expenses.id, expenseId),
-          // No permitimos editar gastos ya facturados — la factura los
+          // No permitimos editar gastos ya facturados, la factura los
           // congela. Si quieren cambiarlo deben anular la factura primero.
           ne(expenses.status, "invoiced"),
           isNull(expenses.deletedAt),
@@ -120,7 +120,7 @@ export function totalAmount(rows: Array<{ amount: string }>): number {
   return rows.reduce((acc, r) => acc + Number(r.amount), 0);
 }
 
-// .ics generator helper — minimal RFC 5545 builder for export.
+// .ics generator helper, minimal RFC 5545 builder for export.
 // We emit DTSTAMP/DTSTART/DTEND in UTC (ending with Z) since timestamptz is UTC.
 export function buildIcs(eventsList: Array<{
   icalUid: string;

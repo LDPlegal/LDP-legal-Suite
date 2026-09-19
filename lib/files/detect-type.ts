@@ -30,7 +30,7 @@ export type DetectedFileType = {
 export const PROCESSABLE_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-  "application/msword", // .doc legacy — extraído con word-extractor
+  "application/msword", // .doc legacy, extraído con word-extractor
   "application/x-cfb", // contenedor CFB/OLE2 (a menudo .doc viejo)
   "image/jpeg",
   "image/png",
@@ -48,7 +48,7 @@ export async function detectFileType(
   browserHint?: string | null,
   filenameHint?: string | null,
 ): Promise<DetectedFileType> {
-  // Magic byte detection — el caso ideal.
+  // Magic byte detection, el caso ideal.
   const ft = await fileTypeFromBuffer(bytes);
   if (ft) {
     return {
@@ -69,7 +69,7 @@ export async function detectFileType(
   }
 
   // Fallback 2: lo que dijo el browser. Si dijo "application/octet-stream",
-  // se queda así — claramente no sabemos qué es.
+  // se queda así, claramente no sabemos qué es.
   const browserMime = browserHint && browserHint !== "application/octet-stream"
     ? browserHint
     : "application/octet-stream";
@@ -116,7 +116,7 @@ export function ensureFilenameExtension(
   // Si ya tiene una extensión coherente, no la tocamos.
   const lower = filename.toLowerCase();
   if (lower.endsWith(`.${detected.extension}`)) return filename;
-  // Edge: jpg/jpeg son intercambiables — no agregamos otra extensión.
+  // Edge: jpg/jpeg son intercambiables, no agregamos otra extensión.
   if (
     detected.extension === "jpg" &&
     (lower.endsWith(".jpeg") || lower.endsWith(".jpg"))

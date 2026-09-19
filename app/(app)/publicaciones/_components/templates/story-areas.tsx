@@ -1,6 +1,6 @@
 "use client";
 
-// Story 02 — Áreas (1080×1920).
+// Story 02, Áreas (1080×1920).
 
 import { renderRichText } from "@/lib/marketing/rich-text";
 import {

@@ -1,13 +1,13 @@
 "use client";
 
-// Matter chat panel — opens as a right-side sheet from the case detail.
+// Matter chat panel, opens as a right-side sheet from the case detail.
 // Persistent: whatever Marc wrote yesterday, Gabriel sees today.
 //
 // Shortcut: Cmd+J (or Ctrl+J on Windows) from anywhere inside /casos/[id]
 // opens the panel. The Cmd+K shortcut stays for the global command palette.
 //
 // Streaming: the v1 returns the full assistant response after Anthropic
-// finishes. Streaming will come in a follow-up — for now the wait is
+// finishes. Streaming will come in a follow-up, for now the wait is
 // typically 2-6 seconds with Sonnet, acceptable.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -371,7 +371,7 @@ export function MatterChatPanel({
         ),
       );
       toast.success("Correo enviado", {
-        description: `${inp.to.length} destinatario(s) — copia guardada en Outlook.`,
+        description: `${inp.to.length} destinatario(s), copia guardada en Outlook.`,
       });
       router.refresh();
     } catch (err) {
@@ -598,7 +598,7 @@ export function MatterChatPanel({
               La IA conoce: {knownItems}
             </span>
             <span className="block text-[11px] text-muted-foreground">
-              Este chat es privado — solo vos ves tu conversación.
+              Este chat es privado, solo vos ves tu conversación.
             </span>
           </SheetDescription>
           {!aiEnabled ? (
@@ -839,7 +839,7 @@ function ToolUseCard({
     );
   }
 
-  // create_event card — assistant proposed an event. The user confirms by
+  // create_event card, assistant proposed an event. The user confirms by
   // clicking "Crear evento", which calls createEventFromChatAction and
   // schedules alerts per the policy for that event type.
   if (use.name === "create_event") {
@@ -890,7 +890,7 @@ function ToolUseCard({
     );
   }
 
-  // update_event card — la IA propuso mover/editar un evento existente.
+  // update_event card, la IA propuso mover/editar un evento existente.
   if (use.name === "update_event") {
     const inp = use.input as {
       eventId?: string;
@@ -935,7 +935,7 @@ function ToolUseCard({
     );
   }
 
-  // cancel_event card — la IA propuso cancelar un evento.
+  // cancel_event card, la IA propuso cancelar un evento.
   if (use.name === "cancel_event") {
     const inp = use.input as { eventId?: string; reason?: string };
     return (
@@ -970,7 +970,7 @@ function ToolUseCard({
     );
   }
 
-  // send_email card — la IA propone enviar un correo. El usuario revisa
+  // send_email card, la IA propone enviar un correo. El usuario revisa
   // destinatarios + asunto + cuerpo y confirma con click. Por seguridad
   // siempre requiere confirmación (no autosend).
   if (use.name === "send_email") {
@@ -1048,12 +1048,12 @@ function ToolUseCard({
     return (
       <div className="mt-3 rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">
         📖 Leyó documento {inp.documentId ? <code>{inp.documentId.slice(0, 8)}</code> : ""}
-        {inp.reason ? ` — ${inp.reason}` : ""}
+        {inp.reason ? `, ${inp.reason}` : ""}
       </div>
     );
   }
 
-  // Fallback for unknown tools — keeps the UI from breaking when we add
+  // Fallback for unknown tools, keeps the UI from breaking when we add
   // new tools server-side before the client supports them.
   return (
     <div className="mt-3 rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground">

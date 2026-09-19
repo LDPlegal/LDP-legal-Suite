@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 
 // Skeleton generico para paginas de listado (casos, clientes, documentos).
-// Se usa desde los loading.tsx — Next lo muestra al instante durante la
+// Se usa desde los loading.tsx, Next lo muestra al instante durante la
 // navegacion mientras el server resuelve las queries del listado.
 export function ListPageSkeleton({
   rows = 8,

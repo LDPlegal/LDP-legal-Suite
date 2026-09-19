@@ -34,7 +34,7 @@ export function GastoRowActions({
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
-  // Gastos ya facturados son inmutables — la factura los congela. Mostramos
+  // Gastos ya facturados son inmutables, la factura los congela. Mostramos
   // editar/eliminar deshabilitados o los ocultamos directamente.
   const locked = status === "invoiced";
 
@@ -49,7 +49,7 @@ export function GastoRowActions({
       </IconButton>
       <IconButton
         className="h-8 w-8"
-        label={locked ? "Gasto ya facturado — no se puede editar" : "Editar gasto"}
+        label={locked ? "Gasto ya facturado, no se puede editar" : "Editar gasto"}
         onClick={() => setEditOpen(true)}
         disabled={locked}
       >
@@ -59,7 +59,7 @@ export function GastoRowActions({
         <ConfirmButton
           action={eliminarGastoAction}
           title="¿Eliminar este gasto?"
-          description={`"${expense.description}" — esta acción es reversible (queda archivado).`}
+          description={`"${expense.description}", esta acción es reversible (queda archivado).`}
           confirmLabel="Eliminar"
           trigger={
             <IconButton
@@ -108,7 +108,7 @@ export function GastoRowActions({
               </Badge>
             </DetailRow>
             <DetailRow label="Registró">
-              {userName ?? <span className="text-muted-foreground">—</span>}
+              {userName ?? <span className="text-muted-foreground">-</span>}
             </DetailRow>
             {expense.receiptUrl ? (
               <DetailRow label="Recibo">

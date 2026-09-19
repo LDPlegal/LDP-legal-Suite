@@ -18,7 +18,7 @@ import { OCR_STATUS_LABEL, formatBytes } from "@/lib/documents/format";
 import { formatInFirmTz } from "@/lib/datetime/format";
 
 // Row component for the global /documentos table. Distinct from the per-case
-// DocumentRow because the columns and the link targets differ — but we
+// DocumentRow because the columns and the link targets differ, but we
 // reuse the same edit drawer, share toggle, delete confirm, and download.
 
 export type GlobalDocRow = {
@@ -82,7 +82,7 @@ export function DocumentGlobalRow({
             </Badge>
           ) : null}
           {doc.visibility === "private" ? (
-            <WithTooltip label="Privado — solo vos lo ves.">
+            <WithTooltip label="Privado, solo vos lo ves.">
               <Badge variant="secondary" className="gap-1 text-[10px]">
                 <Lock className="h-2.5 w-2.5" />
                 Privado
@@ -121,7 +121,7 @@ export function DocumentGlobalRow({
         ) : (
           <Badge variant="secondary" className="text-[10px]">General</Badge>
         )}
-        {/* Ubicación de carpeta — para que en búsqueda el user sepa dónde
+        {/* Ubicación de carpeta, para que en búsqueda el user sepa dónde
             está el doc sin abrirlo. */}
         {doc.folderName ? (
           <div
@@ -138,7 +138,7 @@ export function DocumentGlobalRow({
         ) : null}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {doc.uploadedByName ?? "—"}
+        {doc.uploadedByName ?? "-"}
         <br />
         {formatInFirmTz(doc.createdAt, undefined, "dd/MM/yyyy")}
       </TableCell>

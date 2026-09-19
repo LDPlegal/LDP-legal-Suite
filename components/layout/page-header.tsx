@@ -1,13 +1,13 @@
-// PageHeader — patrón editorial consistente para encabezados de páginas.
+// PageHeader, patrón editorial consistente para encabezados de páginas.
 //
 // Estructura:
-//   • Eyebrow (uppercase tracked muted) — categoría / contexto
+//   • Eyebrow (uppercase tracked muted), categoría / contexto
 //   • Title (semibold tracking-tight)
-//   • Description (muted) — opcional
-//   • Stat tag (badge gris con número) — opcional, e.g. "47 casos"
-//   • Slot derecho — botones, filtros, acciones
+//   • Description (muted), opcional
+//   • Stat tag (badge gris con número), opcional, e.g. "47 casos"
+//   • Slot derecho, botones, filtros, acciones
 //
-// Se usa como server component — no requiere "use client".
+// Se usa como server component, no requiere "use client".
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";

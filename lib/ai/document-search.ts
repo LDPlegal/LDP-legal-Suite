@@ -7,7 +7,7 @@
 // query, which is fine for a per-firm internal tool.
 //
 // Failure mode if the candidate set is empty: skip the LLM call and
-// return [] — Claude can't rank what isn't there.
+// return [], Claude can't rank what isn't there.
 
 import "server-only";
 import { runPrompt } from "./claude";
@@ -19,7 +19,7 @@ export type RankedDocument = {
   caseCode: string | null;
   caseTitle: string | null;
   createdAt: Date;
-  // Claude's score 0–10. Higher = more relevant.
+  // Claude's score 0-10. Higher = more relevant.
   score: number;
   // Short explanation in Spanish: why this doc is relevant.
   reason: string;
@@ -62,7 +62,7 @@ export async function rankDocumentsByQuery(
       const ocr = d.ocrText
         ? d.ocrText.slice(0, MAX_OCR_PER_DOC).replace(/\n+/g, " ")
         : "(sin OCR)";
-      return `[${i}] ${d.name} (${d.caseCode ?? "sin caso"}) — ${ocr}`;
+      return `[${i}] ${d.name} (${d.caseCode ?? "sin caso"}), ${ocr}`;
     })
     .join("\n\n");
 

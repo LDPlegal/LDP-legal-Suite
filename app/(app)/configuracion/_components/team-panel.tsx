@@ -136,7 +136,7 @@ export function TeamPanel({
                 </Badge>
               </TableCell>
               <TableCell className="text-right font-mono text-xs tabular-nums">
-                {m.hourlyRate ? `DOP ${Number(m.hourlyRate).toFixed(2)}` : "—"}
+                {m.hourlyRate ? `DOP ${Number(m.hourlyRate).toFixed(2)}` : "-"}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {m.lastLoginAt
@@ -250,7 +250,7 @@ function InviteDrawer({
               </select>
               <p className="text-[11px] text-muted-foreground">
                 {isAdmin
-                  ? "Solo los admins pueden crear otros admins. El rol Tester tiene acceso a todo (igual que admin) — úsalo solo para QA del sistema."
+                  ? "Solo los admins pueden crear otros admins. El rol Tester tiene acceso a todo (igual que admin), úsalo solo para QA del sistema."
                   : "Para crear un admin, pide a un admin existente."}
               </p>
             </div>

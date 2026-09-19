@@ -1,4 +1,4 @@
-// F7+ Bloque 5 — OAuth con Google y Microsoft Graph para conectar el
+// F7+ Bloque 5, OAuth con Google y Microsoft Graph para conectar el
 // calendario y el correo personal de cada socio.
 //
 // Diseño:
@@ -74,7 +74,7 @@ const AUTH_URL: Record<OAuthProvider, string> = {
   // /organizations/ en vez de /common/: fuerza cuentas corporativas
   // (work/school accounts) y rechaza cuentas personales outlook.com.
   // Esto evita el caso "usuario logueó con su cuenta personal y el admin
-  // consent de LDP no aplica" — Microsoft pide consent individual y se traba.
+  // consent de LDP no aplica", Microsoft pide consent individual y se traba.
   microsoft: "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
 };
 const TOKEN_URL: Record<OAuthProvider, string> = {
@@ -91,11 +91,11 @@ export function buildAuthorizeUrl(
 ): string | null {
   const cfg = readClientConfig(provider, opts.includeMailRead ?? false);
   if (!cfg) return null;
-  // IMPORTANTE — prompt:
+  // IMPORTANTE, prompt:
   //   - Google: necesitamos "consent" para garantizar refresh_token en la
   //     primera conexión. Google solo da refresh_token cuando el usuario
   //     explícitamente consiente.
-  //   - Microsoft: NUNCA forzamos "consent" — si lo hacemos, Microsoft
+  //   - Microsoft: NUNCA forzamos "consent", si lo hacemos, Microsoft
   //     ignora el admin consent del tenant y pide consent individual al
   //     usuario, lo que en tenants corporativos con user-consent restringido
   //     dispara el flujo de "necesitás aprobación del admin". Usamos
@@ -118,7 +118,7 @@ export function buildAuthorizeUrl(
   return `${AUTH_URL[provider]}?${params.toString()}`;
 }
 
-// Admin consent URL — un admin del tenant lo usa UNA vez para autorizar
+// Admin consent URL, un admin del tenant lo usa UNA vez para autorizar
 // la app para TODA la organización. Después, cualquier usuario conecta sin
 // pasar por aprobación. Es la forma correcta de manejar tenants corporativos
 // que tienen restringido el consentimiento individual.
@@ -142,7 +142,7 @@ export function buildAdminConsentUrl(
     scope: cfg.scopes.join(" "),
     state,
   });
-  // Endpoint /organizations/v2.0/adminconsent — fuerza tenant corporativo.
+  // Endpoint /organizations/v2.0/adminconsent, fuerza tenant corporativo.
   return `https://login.microsoftonline.com/organizations/v2.0/adminconsent?${params.toString()}`;
 }
 

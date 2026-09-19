@@ -4,7 +4,7 @@
 //
 // Recibe metadatos del archivo (NO los bytes) y devuelve un presigned URL
 // para que el browser haga PUT directo al storage (R2/S3 en prod, endpoint
-// local en dev). El payload de esta action es kBs — no choca con ningún
+// local en dev). El payload de esta action es kBs, no choca con ningún
 // bodySizeLimit.
 //
 // El client luego hace fetch(uploadUrl, { method: "PUT", body: file, headers }).
@@ -43,7 +43,7 @@ export type PrepararUploadState =
 export async function prepararUploadAction(
   input: PrepararUploadInput,
 ): Promise<PrepararUploadState> {
-  // Big-net try/catch: requireUser, validación, storage init, presigned —
+  // Big-net try/catch: requireUser, validación, storage init, presigned,
   // todo dentro. Cualquier throw inesperado (auth expirada, env var
   // faltante, problema de red) termina como `{ ok: false, error }` y se
   // muestra al user como toast, NO como crash de React tree.
@@ -88,7 +88,7 @@ export async function prepararUploadAction(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Log estructurado — esto aparece en Vercel Function Logs y ayuda a
+    // Log estructurado, esto aparece en Vercel Function Logs y ayuda a
     // identificar la causa raíz cuando el toast del cliente no es suficiente.
     console.error("[prepararUploadAction] uncaught:", {
       message: msg,

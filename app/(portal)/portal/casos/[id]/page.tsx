@@ -110,7 +110,7 @@ export default async function PortalCasoDetailPage({
                       ) : null}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {e.location ?? "—"}
+                      {e.location ?? "-"}
                     </TableCell>
                   </TableRow>
                 ))}

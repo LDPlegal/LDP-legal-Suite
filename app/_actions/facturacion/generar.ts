@@ -60,7 +60,7 @@ export async function generarFacturaAction(
 
   const kindRaw = formData.get("kind");
   const kind = kindRaw === "proforma" ? "proforma" : "standard";
-  // Una proforma nunca es fiscal — ignoramos cualquier flag fiscal que venga.
+  // Una proforma nunca es fiscal, ignoramos cualquier flag fiscal que venga.
   const fiscalRaw = formData.get("fiscal");
   const fiscal =
     kind === "proforma" ? false : fiscalRaw === "true" || fiscalRaw === "on";
@@ -133,7 +133,7 @@ export async function generarFacturaAction(
     revalidatePath(`/casos/${parsed.data.caseId}`);
     // Returning ok:true (instead of redirect()) lets the drawer toast,
     // close itself, and call router.push to /facturacion/[id]. Redirect
-    // from here was opaque to useActionState — the drawer thought the
+    // from here was opaque to useActionState, the drawer thought the
     // call was still pending, never showed success.
     return { ok: true, invoiceId: inv.id };
   } catch (e) {

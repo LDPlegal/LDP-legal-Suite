@@ -129,7 +129,7 @@ export async function deleteMarketingPhotoAction(
   if (!row) return { ok: false, error: "Foto no encontrada." };
 
   // Best-effort: borrar del storage. Si falla, igual marcamos soft-delete
-  // — el archivo huérfano no se sirve más porque la query lo filtra.
+  // el archivo huérfano no se sirve más porque la query lo filtra.
   try {
     const storage = getStorage();
     await storage.remove(row.storageKey);
@@ -155,7 +155,7 @@ export async function deleteMarketingPhotoAction(
   return { ok: true };
 }
 
-/** Server-only — devuelve las fotos activas del firm actual. */
+/** Server-only, devuelve las fotos activas del firm actual. */
 export async function listMarketingPhotosForFirm(
   firmId: string,
 ): Promise<MarketingPhoto[]> {

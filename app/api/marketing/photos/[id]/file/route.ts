@@ -1,7 +1,7 @@
 // GET /api/marketing/photos/[id]/file
 //
 // Sirve el binario de una foto subida al firm. Valida que el usuario
-// pertenezca al firm dueño. Sin auth pública — los URLs no son
+// pertenezca al firm dueño. Sin auth pública, los URLs no son
 // adivinables (UUID) pero igual chequeamos sesión por defensa en
 // profundidad.
 

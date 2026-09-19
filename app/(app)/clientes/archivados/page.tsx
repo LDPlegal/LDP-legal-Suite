@@ -78,12 +78,12 @@ export default async function ClientesArchivadosPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {c.taxId ?? "—"}
+                      {c.taxId ?? "-"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {c.deletedAt
                         ? formatInFirmTz(c.deletedAt, undefined, "dd/MM/yyyy")
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       {canRestore ? (

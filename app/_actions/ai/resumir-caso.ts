@@ -74,7 +74,7 @@ export async function guardarResumenComoNotaAction(
 
   const note = await createNote(user.firmId, user.userId, {
     caseId: parsed.data.caseId,
-    title: `Resumen IA — ${new Date().toLocaleDateString("es-DO")}`,
+    title: `Resumen IA, ${new Date().toLocaleDateString("es-DO")}`,
     content,
   });
   await logAuditStandalone({

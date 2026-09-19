@@ -84,7 +84,7 @@ export default async function PortalFacturasPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {i.ncf ?? "—"}
+                      {i.ncf ?? "-"}
                     </TableCell>
                     <TableCell className="text-xs">
                       {i.caseCode ? (
@@ -95,7 +95,7 @@ export default async function PortalFacturasPage() {
                           {i.caseCode}
                         </Link>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">

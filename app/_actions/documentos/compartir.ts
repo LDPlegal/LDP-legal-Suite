@@ -49,7 +49,7 @@ export async function compartirDocumentoAction(formData: FormData): Promise<void
 
     // Notificar al resto del equipo asignado al caso (no al que ejecuta la
     // acción). Compartir/ocultar un doc del cliente es un evento visible
-    // hacia afuera — los demás abogados necesitan enterarse.
+    // hacia afuera, los demás abogados necesitan enterarse.
     try {
       const [docRow] = await adminDb
         .select({ name: documents.name })

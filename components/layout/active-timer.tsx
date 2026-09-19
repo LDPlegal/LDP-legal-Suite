@@ -128,7 +128,7 @@ export function ActiveTimerWidget() {
         {formatElapsed(elapsedSec)}
       </span>
       <span className="font-mono text-[10px] opacity-80">
-        {active.caseCode ?? "—"}
+        {active.caseCode ?? "-"}
       </span>
       {active.stale ? (
         <span className="hidden text-[10px] md:inline">inactivo &gt;15min</span>

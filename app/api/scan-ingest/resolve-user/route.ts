@@ -80,7 +80,7 @@ export async function POST(req: Request) {
   const { userEmail } = parsed.data;
 
   // Case-insensitive lookup via the LOWER(email) functional index added in
-  // migration 0013. Filter to active staff only — portal-cliente users
+  // migration 0013. Filter to active staff only, portal-cliente users
   // (role='client') can't legitimately receive scans, and we don't want
   // soft-deleted or suspended accounts to resolve either.
   const [user] = await adminDb

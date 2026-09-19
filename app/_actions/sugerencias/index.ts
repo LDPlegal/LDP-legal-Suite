@@ -1,6 +1,6 @@
 "use server";
 
-// F7 bloque 4 — Actions para la bandeja de sugerencias proactivas IA.
+// F7 bloque 4, Actions para la bandeja de sugerencias proactivas IA.
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";

@@ -3,7 +3,7 @@
 // Menú de acciones "⋮" (tres puntitos) para un documento. Reemplaza la fila
 // de ~8 botones por un solo botón que abre un dropdown limpio. Las acciones
 // que requieren un drawer (vista previa, editar, resumir IA, nueva versión)
-// se controlan por estado desde acá — los drawers se renderizan al final,
+// se controlan por estado desde acá, los drawers se renderizan al final,
 // fuera del dropdown, y se abren al elegir el item correspondiente.
 
 import { useState, useTransition } from "react";
@@ -78,7 +78,7 @@ export function DocumentActionsMenu({
   currentUserId?: string;
   /** Scope para subir nueva versión. Default: case scope si hay caseId. */
   scope?: UploadScope;
-  /** Item opcional "Mover a otra carpeta" — lo provee la vista por carpetas. */
+  /** Item opcional "Mover a otra carpeta", lo provee la vista por carpetas. */
   moveToFolderSlot?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -241,7 +241,7 @@ export function DocumentActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Drawers controlados — se montan siempre pero solo abren según estado */}
+      {/* Drawers controlados, se montan siempre pero solo abren según estado */}
       <DocumentPreviewDrawer
         documentId={doc.id}
         documentName={doc.name}
@@ -277,7 +277,7 @@ export function DocumentActionsMenu({
           <DialogHeader>
             <DialogTitle>¿Eliminar este documento?</DialogTitle>
             <DialogDescription>
-              &quot;{doc.name}&quot; — esta acción es reversible (queda archivado).
+              &quot;{doc.name}&quot;, esta acción es reversible (queda archivado).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">

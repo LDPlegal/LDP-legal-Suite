@@ -94,7 +94,7 @@ export type BreadcrumbItem = {
 type ViewMode = "grid" | "list" | "compact";
 const VIEW_STORAGE_KEY = "ldp-docs-view";
 
-// — IDs convencionados para D&D —
+// IDs convencionados para D&D
 //   draggable doc:    "doc:<uuid>"
 //   draggable folder: "folder:<uuid>"
 //   droppable folder: "folder:<uuid>"
@@ -138,7 +138,7 @@ export function FolderBrowser({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  // — Vista (grid/list/compact), recordada por navegador —
+  // Vista (grid/list/compact), recordada por navegador
   const [view, setView] = useState<ViewMode>("list");
   useEffect(() => {
     const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
@@ -151,13 +151,13 @@ export function FolderBrowser({
     try {
       window.localStorage.setItem(VIEW_STORAGE_KEY, v);
     } catch {
-      // localStorage puede fallar en modo privado — no es crítico.
+      // localStorage puede fallar en modo privado, no es crítico.
     }
   }
   const isGrid = view === "grid";
   const dense = view === "compact";
 
-  // — Estado de selección múltiple —
+  // Estado de selección múltiple
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(new Set());
 
@@ -404,7 +404,7 @@ export function FolderBrowser({
   );
 }
 
-// — Selector de vista (segmented control) —
+// Selector de vista (segmented control)
 function ViewToggle({
   view,
   onChange,
@@ -445,7 +445,7 @@ function ViewToggle({
   );
 }
 
-// — Breadcrumb segment como drop zone —
+// Breadcrumb segment como drop zone
 function BreadcrumbDroppable({
   id,
   href,
@@ -472,8 +472,8 @@ function BreadcrumbDroppable({
   );
 }
 
-// — Menú de acciones de carpeta (rename/share/move/delete), compartido por
-//   la fila y el tile para no duplicar la lógica. —
+// Menú de acciones de carpeta (rename/share/move/delete), compartido por
+//   la fila y el tile para no duplicar la lógica. -
 function FolderActions({
   folder,
   scope,
@@ -515,7 +515,7 @@ function FolderActions({
         }
         confirmLabel="Eliminar"
         trigger={
-          <IconButton className={btn} label="Eliminar carpeta (reversible — queda archivada)">
+          <IconButton className={btn} label="Eliminar carpeta (reversible, queda archivada)">
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </IconButton>
         }
@@ -543,7 +543,7 @@ function FolderActions({
   );
 }
 
-// — Carpeta cuadrada (vista grid) —
+// Carpeta cuadrada (vista grid)
 function FolderTile({
   folder,
   href,
@@ -602,7 +602,7 @@ function FolderTile({
   );
 }
 
-// — Carpeta en fila (vista list/compact) —
+// Carpeta en fila (vista list/compact)
 function FolderCard({
   folder,
   href,
@@ -677,7 +677,7 @@ function FolderCard({
   );
 }
 
-// — Documento cuadrado (vista grid) —
+// Documento cuadrado (vista grid)
 function DocumentTile({
   doc,
   aiEnabled,
@@ -770,7 +770,7 @@ function DocumentTile({
   );
 }
 
-// — Documento en fila (vista list/compact) —
+// Documento en fila (vista list/compact)
 function DocumentItem({
   doc,
   aiEnabled,
@@ -870,7 +870,7 @@ function DocumentItem({
           ) : null}
         </div>
         {doc.visibility === "private" ? (
-          <WithTooltip label="Privado — solo vos lo ves, el resto del equipo no.">
+          <WithTooltip label="Privado, solo vos lo ves, el resto del equipo no.">
             <Badge variant="secondary" className="hidden gap-1 text-[10px] sm:inline-flex">
               <Lock className="h-2.5 w-2.5" />
               Privado

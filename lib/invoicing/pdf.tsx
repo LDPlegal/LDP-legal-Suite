@@ -2,8 +2,8 @@
 //
 // Plantilla react-pdf para facturas. El renderer corre server-side en un route
 // handler (`/api/facturacion/[id]/pdf`) y stremea los bytes. Tres modos:
-//   - proforma: "FACTURA PROFORMA — documento sin valor fiscal".
-//   - interna (standard sin NCF): "FACTURA INTERNA — no válida fines fiscales".
+//   - proforma: "FACTURA PROFORMA, documento sin valor fiscal".
+//   - interna (standard sin NCF): "FACTURA INTERNA, no válida fines fiscales".
 //   - fiscal (standard con NCF): muestra NCF + disclaimer DGII.
 //
 // Rediseño (Fase 10): cabecera navy con acento dorado, tarjetas de partes,
@@ -206,11 +206,11 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
         {/* Banda de aviso según tipo */}
         {isProforma ? (
           <Text style={[styles.band, { backgroundColor: GOLD }]}>
-            FACTURA PROFORMA — DOCUMENTO SIN VALOR FISCAL · NO ES COMPROBANTE DE PAGO
+            FACTURA PROFORMA, DOCUMENTO SIN VALOR FISCAL · NO ES COMPROBANTE DE PAGO
           </Text>
         ) : isInternal ? (
           <Text style={[styles.band, { backgroundColor: "#D97706" }]}>
-            FACTURA INTERNA — NO VÁLIDA PARA FINES FISCALES
+            FACTURA INTERNA, NO VÁLIDA PARA FINES FISCALES
           </Text>
         ) : null}
 
@@ -353,7 +353,7 @@ export function InvoicePdf({ data }: { data: InvoicePdfData }) {
               <Text style={{ fontSize: 8, color: MUTED }}>
                 Comprobante Fiscal emitido al amparo del Código Tributario y la Ley 32-23
                 de Facturación Electrónica. NCF {data.invoice.ncf} · RNC emisor{" "}
-                {data.firm.rnc ?? "—"}.
+                {data.firm.rnc ?? "-"}.
               </Text>
             </View>
           ) : null}

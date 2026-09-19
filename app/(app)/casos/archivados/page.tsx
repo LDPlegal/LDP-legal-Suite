@@ -120,7 +120,7 @@ export default async function CasosArchivadosPage({
                       <TableCell className="text-xs text-muted-foreground">
                         {c.deletedAt
                           ? formatInFirmTz(c.deletedAt, undefined, "dd/MM/yyyy")
-                          : "—"}
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         {canRestore ? (

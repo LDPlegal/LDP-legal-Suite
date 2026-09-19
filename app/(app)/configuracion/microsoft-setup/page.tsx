@@ -1,5 +1,5 @@
 // Guía paso a paso para que el admin del tenant Microsoft 365 de LDP
-// habilite el consentimiento de usuarios — para que cualquier miembro de
+// habilite el consentimiento de usuarios, para que cualquier miembro de
 // la firma pueda conectar su cuenta sin necesidad de aprobación cada vez.
 
 import Link from "next/link";
@@ -43,11 +43,11 @@ export default async function MicrosoftSetupPage() {
         <PageHeader
           eyebrow="Microsoft 365"
           title="Cómo conectar las cuentas de la firma"
-          description="En cuentas corporativas, Microsoft pide aprobación de un admin del tenant. Hay dos formas de resolverlo — escoge la que prefieras. Solo el admin del Microsoft 365 de LDP necesita hacerlo, una vez."
+          description="En cuentas corporativas, Microsoft pide aprobación de un admin del tenant. Hay dos formas de resolverlo, escoge la que prefieras. Solo el admin del Microsoft 365 de LDP necesita hacerlo, una vez."
         />
       </div>
 
-      {/* OPCIÓN 1 — La más rápida */}
+      {/* OPCIÓN 1, La más rápida */}
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
@@ -56,7 +56,7 @@ export default async function MicrosoftSetupPage() {
             </span>
             <div className="flex-1 space-y-1">
               <h2 className="text-lg font-semibold tracking-tight">
-                Opción A — Habilitar consentimiento de usuarios (recomendado)
+                Opción A, Habilitar consentimiento de usuarios (recomendado)
               </h2>
               <p className="text-sm text-muted-foreground">
                 Cambio único en el panel de Azure. Tarda 30 segundos. Después,
@@ -111,7 +111,7 @@ export default async function MicrosoftSetupPage() {
         </CardContent>
       </Card>
 
-      {/* OPCIÓN 2 — Admin consent directo */}
+      {/* OPCIÓN 2, Admin consent directo */}
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-start gap-3">
@@ -120,7 +120,7 @@ export default async function MicrosoftSetupPage() {
             </span>
             <div className="flex-1 space-y-1">
               <h2 className="text-lg font-semibold tracking-tight">
-                Opción B — Pre-autorizar para toda la organización
+                Opción B, Pre-autorizar para toda la organización
               </h2>
               <p className="text-sm text-muted-foreground">
                 El admin grant consent una vez para toda la firma. Después
@@ -136,7 +136,7 @@ export default async function MicrosoftSetupPage() {
           <div className="space-y-3">
             <div className="rounded-md border bg-muted/30 p-4">
               <p className="mb-2 text-[13px] font-medium">
-                B.1 — Vía el Azure Portal (más confiable)
+                B.1, Vía el Azure Portal (más confiable)
               </p>
               <ol className="space-y-2 text-sm">
                 <Step n="1">
@@ -171,7 +171,7 @@ export default async function MicrosoftSetupPage() {
 
             <div className="rounded-md border bg-muted/30 p-4">
               <p className="mb-2 text-[13px] font-medium">
-                B.2 — Vía URL directa de Microsoft
+                B.2, Vía URL directa de Microsoft
               </p>
               <p className="mb-3 text-[12px] text-muted-foreground leading-relaxed">
                 Microsoft tiene una URL directa para grant consent. Hacé click,
@@ -208,7 +208,7 @@ export default async function MicrosoftSetupPage() {
           <p className="text-[13px] text-muted-foreground leading-relaxed">
             Pueden conectar con cuentas Microsoft <strong>personales</strong>{" "}
             (Outlook.com, Hotmail) sin ninguna aprobación. Sirve mientras se
-            resuelve la configuración del tenant — el calendario y los correos
+            resuelve la configuración del tenant, el calendario y los correos
             se sincronizan igual, solo que desde una cuenta personal en vez
             de la corporativa.
           </p>

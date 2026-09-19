@@ -197,10 +197,10 @@ export default async function CasoDetailPage({
                 canEdit={user.role === "admin" || user.role === "partner"}
               />
             </div>
-            {/* Titular del expediente — Charter 29px (handoff 3d). */}
+            {/* Titular del expediente, Charter 29px (handoff 3d). */}
             <h1 className="mt-1 text-[24px] leading-tight sm:text-[29px]">{c.title}</h1>
             <p className="text-[13px] text-muted-foreground">
-              {client?.displayName ?? "—"} · {MATTER_LABEL[c.matterType]}
+              {client?.displayName ?? "-"} · {MATTER_LABEL[c.matterType]}
             </p>
             {parent ? (
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
@@ -208,12 +208,12 @@ export default async function CasoDetailPage({
                 Expediente vinculado de{" "}
                 {parent.deletedAt ? (
                   <span>
-                    <span className="font-mono">{parent.code}</span> — {parent.title}{" "}
+                    <span className="font-mono">{parent.code}</span> · {parent.title}{" "}
                     <Badge variant="outline" className="ml-1 text-[10px]">archivado</Badge>
                   </span>
                 ) : (
                   <Link href={`/casos/${parent.id}`} className="hover:underline">
-                    <span className="font-mono">{parent.code}</span> — {parent.title}
+                    <span className="font-mono">{parent.code}</span> · {parent.title}
                   </Link>
                 )}
               </p>
@@ -304,7 +304,7 @@ export default async function CasoDetailPage({
             <ConfirmButton
               action={eliminarCasoAction}
               title="¿Archivar este caso?"
-              description={`"${c.title}" — queda archivado. Lo puedes restaurar desde /casos/archivados.`}
+              description={`"${c.title}", queda archivado. Lo puedes restaurar desde /casos/archivados.`}
               confirmLabel="Archivar"
               trigger={
                 <Button variant="ghost" size="sm" className="text-destructive">
@@ -349,7 +349,7 @@ export default async function CasoDetailPage({
                       {client.displayName}
                     </Link>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </Row>
                 <Row label="Líder">{leadLawyer?.name ?? "Sin asignar"}</Row>
@@ -370,7 +370,7 @@ export default async function CasoDetailPage({
                 {c.court ? <Row label="Tribunal">{c.court}</Row> : null}
                 <Separator />
                 <Row label="Contraparte">
-                  {c.counterpartyName ?? "—"}
+                  {c.counterpartyName ?? "-"}
                   {c.counterpartyTaxId ? (
                     <span className="ml-2 font-mono text-xs text-muted-foreground">
                       ({c.counterpartyTaxId})
@@ -438,7 +438,7 @@ export default async function CasoDetailPage({
                   {assignments.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       {c.visibility === "restricted"
-                        ? "Sin usuarios con acceso — solo los admins lo ven. Editá el caso para dar acceso."
+                        ? "Sin usuarios con acceso, solo los admins lo ven. Editá el caso para dar acceso."
                         : "Sin asignaciones específicas todavía."}
                     </p>
                   ) : (
@@ -510,7 +510,7 @@ export default async function CasoDetailPage({
                   {subcases.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                        Sin expedientes vinculados. Crea el primero con &quot;Nuevo expediente vinculado&quot; —
+                        Sin expedientes vinculados. Crea el primero con &quot;Nuevo expediente vinculado&quot; -
                         útil para separar demandas, recursos o incidencias dentro
                         de este expediente.
                       </TableCell>
@@ -591,8 +591,8 @@ export default async function CasoDetailPage({
                       <TableCell className="text-xs text-muted-foreground">
                         {formatInFirmTz(t.startedAt, undefined, "dd/MM HH:mm")}
                       </TableCell>
-                      <TableCell className="text-sm">{t.userName ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{t.description ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{t.userName ?? "-"}</TableCell>
+                      <TableCell className="text-sm">{t.description ?? "-"}</TableCell>
                       <TableCell className="text-right font-mono tabular-nums">
                         {fmtDuration(t.durationSeconds)}
                       </TableCell>
@@ -696,7 +696,7 @@ export default async function CasoDetailPage({
                       <TableCell className="text-xs text-muted-foreground">
                         {formatInFirmTz(g.incurredOn, undefined, "dd/MM/yyyy")}
                       </TableCell>
-                      <TableCell className="text-sm">{g.userName ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{g.userName ?? "-"}</TableCell>
                       <TableCell className="text-sm">{g.description}</TableCell>
                       <TableCell className="text-right font-mono tabular-nums">
                         {g.currency} {Number(g.amount).toFixed(2)}
@@ -803,7 +803,7 @@ export default async function CasoDetailPage({
                           <p className="text-xs text-muted-foreground line-clamp-1">{t.description}</p>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-sm">{t.assigneeName ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{t.assigneeName ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{TASK_PRIORITY_LABEL[t.priority]}</Badge>
                       </TableCell>
@@ -811,7 +811,7 @@ export default async function CasoDetailPage({
                         <Badge>{TASK_STATUS_LABEL[t.status]}</Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "—"}
+                        {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <TareaRowActions
@@ -923,7 +923,7 @@ export default async function CasoDetailPage({
                               {EVENT_TYPE_LABEL[e.eventType] ?? e.eventType}
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -932,7 +932,7 @@ export default async function CasoDetailPage({
                         <TableCell className="text-xs text-muted-foreground">
                           {formatInFirmTz(e.endAt, undefined, "dd/MM HH:mm")}
                         </TableCell>
-                        <TableCell className="text-sm">{e.location ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{e.location ?? "-"}</TableCell>
                         <TableCell className="text-right">
                           <EventoRowActions
                             event={{
@@ -1058,7 +1058,7 @@ export default async function CasoDetailPage({
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm text-muted-foreground">
-                        Tu espacio privado en este caso — solo vos ves estos
+                        Tu espacio privado en este caso, solo vos ves estos
                         documentos. Movés cualquiera al equipo desde el menú «⋮».
                       </p>
                       <DocumentUploadDrawer

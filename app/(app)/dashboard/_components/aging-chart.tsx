@@ -1,6 +1,6 @@
 "use client";
 
-// Bar chart de aging de cuentas por cobrar — muestra los 5 buckets con
+// Bar chart de aging de cuentas por cobrar, muestra los 5 buckets con
 // colores escalonados (vigente verde → 90+ rojo) y tooltip al hover.
 // Reemplaza la tabla aburrida del dashboard.
 
@@ -37,7 +37,7 @@ export function AgingChart({ data }: { data: AgingBucket[] }) {
   if (totalSum === 0) {
     return (
       <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
-        Sin facturas pendientes — todo cobrado al día.
+        Sin facturas pendientes, todo cobrado al día.
       </div>
     );
   }
@@ -59,7 +59,7 @@ export function AgingChart({ data }: { data: AgingBucket[] }) {
                 x2="0"
                 y2="1"
               >
-                {/* Relleno plano — el handoff no admite gradientes. */}
+                {/* Relleno plano, el handoff no admite gradientes. */}
                 <stop offset="0%" stopColor={c.fill} stopOpacity={1} />
                 <stop offset="100%" stopColor={c.fill} stopOpacity={1} />
               </linearGradient>

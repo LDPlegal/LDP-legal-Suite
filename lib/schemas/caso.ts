@@ -90,7 +90,7 @@ export const BILLING_MODE_LABEL: Record<
 export const CasoSchema = z
   .object({
     title: z.string().trim().min(3, "Título muy corto").max(240),
-    // Expediente vinculado: id del caso padre (opcional). Máx. 1 nivel — lo valida createCase.
+    // Expediente vinculado: id del caso padre (opcional). Máx. 1 nivel, lo valida createCase.
     parentCaseId: z
       .string()
       .uuid("Caso padre inválido")
@@ -103,7 +103,7 @@ export const CasoSchema = z
     leadLawyerId: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
     billingMode: z.enum(["hourly", "flat_fee", "retainer", "contingency"]).default("hourly"),
     // Honorarios multi-moneda. Cada uno: tipo + descripción opcional + monto + moneda.
-    // Vacío permitido — un caso por hora puede no tener fees fijos cargados.
+    // Vacío permitido, un caso por hora puede no tener fees fijos cargados.
     fees: z.array(CaseFeeInputSchema).default([]),
     court: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
     counterpartyName: z
@@ -142,7 +142,7 @@ export const CasoSchema = z
     }
     // En modo flat_fee, exigimos al menos un honorario de tipo flat_fee
     // cargado. En modo retainer, al menos un retainer. Esto evita casos
-    // marcados como "tarifa plana" sin honorarios definidos — confunde al
+    // marcados como "tarifa plana" sin honorarios definidos, confunde al
     // momento de facturar.
     if (val.billingMode === "flat_fee") {
       const hasFlat = val.fees.some((f) => f.feeType === "flat_fee");

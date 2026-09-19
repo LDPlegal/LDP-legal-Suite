@@ -1,7 +1,7 @@
 // lib/db/queries/portal.ts
 //
 // Read-only queries for the Portal Cliente (Fase 4). Every function takes a
-// `clientId` and ALWAYS filters by it — these are the only queries the
+// `clientId` and ALWAYS filters by it, these are the only queries the
 // portal layer ever calls. The portal layout enforces role='client' and a
 // non-null clientId, so functions here can trust that the caller has been
 // authorized for that specific client.
@@ -127,7 +127,7 @@ export async function listPortalEventsForCase(
   caseId: string,
 ) {
   return withFirm(firmId, userId, async (tx) => {
-    // Verify the case belongs to this client first — without this a portal
+    // Verify the case belongs to this client first, without this a portal
     // user could pass any caseId and read its events. The double-check is
     // cheap and removes any reliance on UI to filter.
     const ok = await tx

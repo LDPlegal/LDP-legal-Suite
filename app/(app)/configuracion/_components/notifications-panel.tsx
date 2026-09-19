@@ -124,7 +124,7 @@ export function NotificationsPanel({
         </span>
       </div>
 
-      {/* Casilla emisora (Microsoft 365) — admin only */}
+      {/* Casilla emisora (Microsoft 365), admin only */}
       {canEditSender ? (
         <div className="rounded-lg border p-3 space-y-2">
           <p className="text-sm font-medium">Casilla emisora (Microsoft 365)</p>
@@ -149,7 +149,7 @@ export function NotificationsPanel({
               <option value="">Automático (primer admin conectado)</option>
               {senderUsers.map((u) => (
                 <option key={u.id} value={u.id}>
-                  Enviar desde {u.mailbox} — {u.name}
+                  Enviar desde {u.mailbox} · {u.name}
                 </option>
               ))}
             </select>

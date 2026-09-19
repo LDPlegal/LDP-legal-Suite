@@ -85,7 +85,7 @@ export async function crearEventoAction(
   });
 
   // Best-effort: push al calendario Microsoft del usuario si lo tiene
-  // conectado. No bloquea ni revierte si falla — el cron diario reconcilia.
+  // conectado. No bloquea ni revierte si falla, el cron diario reconcilia.
   try {
     const { pushEventToProvider } = await import("@/lib/calendar/sync");
     void pushEventToProvider(user.userId, created.id, {
@@ -97,7 +97,7 @@ export async function crearEventoAction(
       allDay: data.allDay,
     });
   } catch {
-    // ignore — el sync diario lo recoge
+    // ignore, el sync diario lo recoge
   }
 
   // Returning ok:true (instead of redirect()) lets the client drawer close

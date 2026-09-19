@@ -30,7 +30,7 @@ export async function cambiarVisibilidadDocumentoAction(input: {
   if (!res.ok) {
     return {
       ok: false,
-      error: "No se pudo mover — solo podés mover documentos que vos subiste.",
+      error: "No se pudo mover, solo podés mover documentos que vos subiste.",
     };
   }
 

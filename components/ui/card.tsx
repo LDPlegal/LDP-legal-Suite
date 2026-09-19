@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Card — superficie blanca plana con borde #DFE0DC y radio 4px.
+// Card, superficie blanca plana con borde #DFE0DC y radio 4px.
 // Sin blur, sin sombra, sin borde con luz.
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
@@ -17,7 +17,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 );
 Card.displayName = "Card";
 
-// Cabecera con divisor — patrón "tarjeta con cabecera" del handoff.
+// Cabecera con divisor, patrón "tarjeta con cabecera" del handoff.
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div

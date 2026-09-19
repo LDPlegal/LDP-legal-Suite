@@ -66,7 +66,7 @@ export function ShareFolderButton({
           <DialogDescription>
             Aplica en cascada a TODOS los docs en esta carpeta y sus subcarpetas.
             Solo docs vinculados a un caso (con cliente asociado) entran al
-            portal — los docs general/firm-wide quedan exentos. Reversible.
+            portal, los docs general/firm-wide quedan exentos. Reversible.
           </DialogDescription>
         </DialogHeader>
 

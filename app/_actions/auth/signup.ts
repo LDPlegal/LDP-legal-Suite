@@ -10,7 +10,7 @@ import { SignUpSchema } from "@/lib/schemas/auth";
 
 // Signup flow (Trampa #6 of the BRIEF):
 //   * The first admin of a firm registers along with the firm itself.
-//   * `withFirm` cannot wrap this insert — the firm does not exist yet —
+//   * `withFirm` cannot wrap this insert, the firm does not exist yet,
 //     so we use the admin connection to create the firm row.
 //   * Better-auth then creates the user (with the new firmId + role=admin),
 //     hashes the password, and starts a session in one call.

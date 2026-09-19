@@ -100,7 +100,7 @@ export function ManualTimeEntryDrawer({
                 </option>
                 {casos.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.code} — {c.title}
+                    {c.code} · {c.title}
                   </option>
                 ))}
               </select>

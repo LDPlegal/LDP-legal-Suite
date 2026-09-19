@@ -61,7 +61,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: typeof Briefcase }> 
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
-// Acciones de creación rápida — navegan a la sección con ?nuevo=1, que el
+// Acciones de creación rápida, navegan a la sección con ?nuevo=1, que el
 // drawer de creación lee (useAutoOpen) para abrirse automáticamente. Cmd+K
 // → "nuevo caso" → Enter abre el formulario sin tocar el mouse.
 const CREATE_ACTIONS: Array<{ href: string; label: string }> = [
@@ -137,7 +137,7 @@ export function CommandPalette() {
         <CommandList>
           <CommandEmpty>Sin resultados.</CommandEmpty>
 
-          {/* Navegación rápida — cmdk filtra por el label. Con query vacío
+          {/* Navegación rápida, cmdk filtra por el label. Con query vacío
               se muestran todas; escribiendo "fact" matchea Facturación. */}
           <CommandGroup heading="Ir a">
             {NAV_ITEMS.map((item) => {
@@ -244,7 +244,7 @@ export function CommandPalette() {
                     key={d.id}
                     value={`doc-${d.name}`}
                     onSelect={() =>
-                      // Open the download endpoint in a new tab — the palette
+                      // Open the download endpoint in a new tab, the palette
                       // doesn't have an inline preview view yet.
                       window.open(`/api/documentos/${d.id}/download`, "_blank")
                     }

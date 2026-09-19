@@ -1,4 +1,4 @@
-// Material Symbols Sharp (FILL 1) — la iconografía del rediseño: sólida y
+// Material Symbols Sharp (FILL 1), la iconografía del rediseño: sólida y
 // de esquinas rectas. La fuente se carga en app/layout.tsx y la clase `.ms`
 // vive en globals.css.
 //

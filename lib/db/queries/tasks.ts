@@ -69,7 +69,7 @@ export async function createTask(
     return r;
   });
 
-  // Notificación cuando la tarea queda asignada a alguien — INCLUIDO uno
+  // Notificación cuando la tarea queda asignada a alguien, INCLUIDO uno
   // mismo (la firma pidió recibir el aviso aunque se autoasignen tareas,
   // como recordatorio/registro).
   // AWAIT (no void floating): notify() inserta la notificación in-app (rápido)
@@ -90,7 +90,7 @@ export async function createTask(
         href: data.caseId ? `/casos/${data.caseId}?tab=tareas` : "/tareas",
       });
     } catch {
-      // best-effort — un fallo de notificación no rompe la creación.
+      // best-effort, un fallo de notificación no rompe la creación.
     }
   }
 
@@ -123,7 +123,7 @@ export async function updateTask(
   taskId: string,
   data: Partial<Omit<NewTask, "firmId" | "id" | "createdAt" | "createdBy">>,
 ): Promise<Task | null> {
-  // Detectar reasignación ANTES del update — necesitamos saber si el
+  // Detectar reasignación ANTES del update, necesitamos saber si el
   // assigneeId cambió respecto al anterior para notificar al nuevo.
   let previousAssigneeId: string | null = null;
   if (data.assigneeId !== undefined) {
@@ -148,7 +148,7 @@ export async function updateTask(
   });
 
   // Notificar al nuevo asignado si el assigneeId cambió. Notifica también
-  // cuando el user se autoasigna (a pedido de la firma — sirve como recordatorio).
+  // cuando el user se autoasigna (a pedido de la firma, sirve como recordatorio).
   if (
     row &&
     data.assigneeId !== undefined &&
@@ -168,7 +168,7 @@ export async function updateTask(
         href: row.caseId ? `/casos/${row.caseId}?tab=tareas` : "/tareas",
       });
     } catch {
-      // best-effort — un fallo de notificación no rompe la actualización.
+      // best-effort, un fallo de notificación no rompe la actualización.
     }
   }
 

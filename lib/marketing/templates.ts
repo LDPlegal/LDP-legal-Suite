@@ -1,4 +1,4 @@
-// F7+ Marketing — definición de plantillas para Instagram + LinkedIn.
+// F7+ Marketing, definición de plantillas para Instagram + LinkedIn.
 //
 // Cada template es un objeto declarativo:
 //   - id: clave única
@@ -54,7 +54,7 @@ export type TemplateDef = {
 };
 
 // =============================================================================
-// Photo banks (vienen de /public/marketing-photos/ — copiadas de la web LDP)
+// Photo banks (vienen de /public/marketing-photos/, copiadas de la web LDP)
 // =============================================================================
 
 export const BG_PHOTOS = [
@@ -140,7 +140,7 @@ function frostControls(sizeMin: number, sizeMax: number): ControlDef[] {
   ];
 }
 
-// Bloques de texto extra disponibles en cada template — el usuario puede
+// Bloques de texto extra disponibles en cada template, el usuario puede
 // dejarlos vacíos para que no aparezcan.
 function extraTextControls(): ControlDef[] {
   return [
@@ -155,7 +155,7 @@ function extraTextControls(): ControlDef[] {
 
 export const TEMPLATES: TemplateDef[] = [
   // -------------------------------------------------------------------------
-  // POST 01 — Presentación
+  // POST 01, Presentación
   // -------------------------------------------------------------------------
   {
     id: "p1",
@@ -165,7 +165,7 @@ export const TEMPLATES: TemplateDef[] = [
     defaults: {
       photo: "/marketing-photos/oficina-pisapapeles-2.jpg",
       statement:
-        "Una firma boutique de *abogados* dominicanos — orientada al ejercicio del derecho aplicado a los *negocios.*",
+        "Una firma boutique de *abogados* dominicanos, orientada al ejercicio del derecho aplicado a los *negocios.*",
       value1: "Integridad",
       value2: "Excelencia",
       value3: "Criterio",
@@ -190,7 +190,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // POST 02 — Áreas de práctica
+  // POST 02, Áreas de práctica
   // -------------------------------------------------------------------------
   {
     id: "p2",
@@ -227,7 +227,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // POST 03 — Publicación destacada
+  // POST 03, Publicación destacada
   // -------------------------------------------------------------------------
   {
     id: "p3",
@@ -279,7 +279,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // POST 04 — Día del Abogado / Efeméride
+  // POST 04, Día del Abogado / Efeméride
   // -------------------------------------------------------------------------
   {
     id: "p4",
@@ -293,7 +293,7 @@ export const TEMPLATES: TemplateDef[] = [
       dayRoman: "XXIV",
       title: "Día del *Abogado* Dominicano.",
       dedication:
-        "A quienes hacen del derecho un oficio de cuidado, prudencia y servicio — nuestro reconocimiento a la profesión que escogimos honrar.",
+        "A quienes hacen del derecho un oficio de cuidado, prudencia y servicio, nuestro reconocimiento a la profesión que escogimos honrar.",
       excerptSize: 24,
       frostInset: 80,
       frostPad: 32,
@@ -316,7 +316,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // STORY 01-04 — versiones 9:16 (mismo contenido, layout vertical)
+  // STORY 01-04, versiones 9:16 (mismo contenido, layout vertical)
   // -------------------------------------------------------------------------
   {
     id: "s1",
@@ -326,7 +326,7 @@ export const TEMPLATES: TemplateDef[] = [
     defaults: {
       photo: "/marketing-photos/oficina-pisapapeles-2.jpg",
       statement:
-        "Una firma boutique de *abogados* dominicanos — orientada al ejercicio del derecho aplicado a los *negocios.*",
+        "Una firma boutique de *abogados* dominicanos, orientada al ejercicio del derecho aplicado a los *negocios.*",
       value1: "Integridad",
       value2: "Excelencia",
       value3: "Criterio",
@@ -442,7 +442,7 @@ export const TEMPLATES: TemplateDef[] = [
       dayRoman: "XXIV",
       title: "Día del *Abogado* Dominicano.",
       dedication:
-        "A quienes hacen del derecho un oficio de cuidado, prudencia y servicio — nuestro reconocimiento a la profesión que escogimos honrar.",
+        "A quienes hacen del derecho un oficio de cuidado, prudencia y servicio, nuestro reconocimiento a la profesión que escogimos honrar.",
       excerptSize: 32,
       frostInset: 90,
       frostPad: 40,
@@ -465,7 +465,7 @@ export const TEMPLATES: TemplateDef[] = [
   },
 
   // -------------------------------------------------------------------------
-  // LINKEDIN COVER — 1584×396 (4:1)
+  // LINKEDIN COVER, 1584×396 (4:1)
   // -------------------------------------------------------------------------
   {
     id: "li",

@@ -93,7 +93,7 @@ export default async function ClienteDetailPage({
             <ConfirmButton
               action={eliminarClienteAction}
               title="¿Archivar este cliente?"
-              description={`"${cliente.displayName}" — sus accesos al portal se desactivan. Lo puedes restaurar desde /clientes/archivados.`}
+              description={`"${cliente.displayName}", sus accesos al portal se desactivan. Lo puedes restaurar desde /clientes/archivados.`}
               confirmLabel="Archivar"
               trigger={
                 <Button variant="ghost" size="sm" className="text-destructive">
@@ -115,17 +115,17 @@ export default async function ClienteDetailPage({
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <Row label="Identificación">
-              <span className="font-mono text-xs">{cliente.taxId ?? "—"}</span>
+              <span className="font-mono text-xs">{cliente.taxId ?? "-"}</span>
               {cliente.taxIdType ? (
                 <span className="ml-2 text-muted-foreground">({cliente.taxIdType.toUpperCase()})</span>
               ) : null}
             </Row>
-            <Row label="Contacto">{cliente.primaryContactName ?? "—"}</Row>
-            <Row label="Email">{cliente.email ?? "—"}</Row>
-            <Row label="Teléfono">{cliente.phone ?? "—"}</Row>
+            <Row label="Contacto">{cliente.primaryContactName ?? "-"}</Row>
+            <Row label="Email">{cliente.email ?? "-"}</Row>
+            <Row label="Teléfono">{cliente.phone ?? "-"}</Row>
             <Separator />
-            <Row label="Dirección">{cliente.address ?? "—"}</Row>
-            <Row label="Facturación">{cliente.billingAddress ?? "—"}</Row>
+            <Row label="Dirección">{cliente.address ?? "-"}</Row>
+            <Row label="Facturación">{cliente.billingAddress ?? "-"}</Row>
           </CardContent>
         </Card>
 

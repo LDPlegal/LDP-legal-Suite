@@ -1,7 +1,7 @@
 // Convertidor server-side de un doc Tiptap (JSON) a HTML.
 //
 // Por qué hacemos esto a mano:
-//   - @tiptap/html requiere JSDOM (corre prosemirror real en node) — pesa
+//   - @tiptap/html requiere JSDOM (corre prosemirror real en node), pesa
 //     varios MB y demora el cold start.
 //   - El StarterKit que usamos en RichTextEditor solo trae un puñado de
 //     nodos / marks. Mapearlos a HTML es ~80 líneas y no necesita
@@ -95,7 +95,7 @@ function renderNode(n: TiptapNode): string {
     case "text":
       return renderMarks(n.marks, escapeHtml(n.text ?? ""));
     default:
-      // Nodo desconocido — renderizamos sus hijos para no perder contenido.
+      // Nodo desconocido, renderizamos sus hijos para no perder contenido.
       return renderChildren(n.content);
   }
 }

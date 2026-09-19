@@ -48,7 +48,7 @@ export async function eliminarCarpetaAction(formData: FormData): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[eliminarCarpetaAction] uncaught:", msg);
-    // Volvemos sin tirar — la form action devuelve void OK aunque haya
+    // Volvemos sin tirar, la form action devuelve void OK aunque haya
     // habido error. El user verá la carpeta seguir ahí, no un crash de
     // toda la página.
     revalidatePath("/documentos");

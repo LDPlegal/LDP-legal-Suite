@@ -8,7 +8,7 @@
 // IMPORTANT: we do NOT use auth.api.signUpEmail() here even though it would
 // be the obvious choice. With autoSignIn=true (our global config) signUpEmail
 // creates a session for the new user AND the nextCookies() plugin plants
-// the new session cookie in the response of THIS server action — which
+// the new session cookie in the response of THIS server action, which
 // silently logs the admin out and signs them in as the just-created client.
 //
 // Instead we go through auth.$context.internalAdapter directly: hash the

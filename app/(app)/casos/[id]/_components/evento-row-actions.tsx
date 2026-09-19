@@ -99,7 +99,7 @@ export function EventoRowActions({
       <ConfirmButton
         action={eliminarEventoAction}
         title="¿Eliminar este evento?"
-        description={`"${event.title}" — se archiva y desaparece del calendario. Si está sincronizado con Outlook, también se borra ahí.`}
+        description={`"${event.title}", se archiva y desaparece del calendario. Si está sincronizado con Outlook, también se borra ahí.`}
         confirmLabel="Eliminar"
         trigger={
           <IconButton className="h-8 w-8 text-destructive" label="Eliminar evento (archivar)">
@@ -111,7 +111,7 @@ export function EventoRowActions({
         <input type="hidden" name="caseId" value={caseId} />
       </ConfirmButton>
 
-      {/* Drawer de detalle del evento — se abre al clickear el título (via parent) */}
+      {/* Drawer de detalle del evento, se abre al clickear el título (via parent) */}
       <Sheet open={viewOpen} onOpenChange={setViewOpen}>
         <SheetContent className={isAudiencia ? "sm:max-w-2xl" : undefined}>
           <SheetHeader>
@@ -138,7 +138,7 @@ export function EventoRowActions({
               {event.allDay ? "Sí" : "No"}
             </DetailRow>
             <DetailRow label="Lugar">
-              {event.location || <span className="text-muted-foreground">—</span>}
+              {event.location || <span className="text-muted-foreground">-</span>}
             </DetailRow>
             <DetailRow label="Asistentes">
               {attendeeNames.length > 0 ? (
@@ -156,7 +156,7 @@ export function EventoRowActions({
             <DetailRow label="Recordatorio">
               {event.reminderMinutes != null
                 ? `${event.reminderMinutes} minutos antes`
-                : <span className="text-muted-foreground">—</span>}
+                : <span className="text-muted-foreground">-</span>}
             </DetailRow>
             {event.description ? (
               <div className="space-y-1">
@@ -271,7 +271,7 @@ export function EventoRowWithTitle({
               {event.allDay ? "Sí" : "No"}
             </DetailRow>
             <DetailRow label="Lugar">
-              {event.location || <span className="text-muted-foreground">—</span>}
+              {event.location || <span className="text-muted-foreground">-</span>}
             </DetailRow>
             <DetailRow label="Asistentes">
               {attendeeNames.length > 0 ? (
@@ -289,7 +289,7 @@ export function EventoRowWithTitle({
             <DetailRow label="Recordatorio">
               {event.reminderMinutes != null
                 ? `${event.reminderMinutes} minutos antes`
-                : <span className="text-muted-foreground">—</span>}
+                : <span className="text-muted-foreground">-</span>}
             </DetailRow>
             {event.description ? (
               <div className="space-y-1">
@@ -365,7 +365,7 @@ function ReportSection({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(
-    reportData.reportTitle ?? `Reporte — ${eventTitle}`,
+    reportData.reportTitle ?? `Reporte, ${eventTitle}`,
   );
   const [content, setContent] = useState<TiptapDoc>(EMPTY_DOC);
   const [loadingContent, setLoadingContent] = useState(!!reportData.reportId);
@@ -409,7 +409,7 @@ function ReportSection({
         const r = await guardarReporteAudienciaAction({
           caseId,
           eventId,
-          title: title.trim() || `Reporte — ${eventTitle}`,
+          title: title.trim() || `Reporte, ${eventTitle}`,
           contentJson: content,
         });
         if (r.ok) {
@@ -611,7 +611,7 @@ function ReportSection({
         </div>
         <p className="text-[11px] text-muted-foreground">
           {recipients.length === 0
-            ? "Ninguno seleccionado — podés guardar sin enviar."
+            ? "Ninguno seleccionado, podés guardar sin enviar."
             : `${recipients.length} destinatario(s) seleccionado(s).`}
         </p>
       </div>

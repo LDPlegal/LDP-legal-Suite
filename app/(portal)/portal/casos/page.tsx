@@ -75,7 +75,7 @@ export default async function PortalCasosPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {c.leadLawyerName ?? "—"}
+                      {c.leadLawyerName ?? "-"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatInFirmTz(c.openedAt, undefined, "dd/MM/yyyy")}

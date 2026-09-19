@@ -25,7 +25,7 @@ import { getStorage } from "@/lib/storage";
 
 const IdSchema = z.object({ id: z.string().uuid() });
 
-// — Carpetas —
+// Carpetas
 
 export async function restaurarCarpetaAction(formData: FormData): Promise<void> {
   try {
@@ -52,7 +52,7 @@ export async function eliminarDefinitivoCarpetaAction(formData: FormData): Promi
   }
 }
 
-// — Documentos —
+// Documentos
 
 export async function restaurarDocumentoAction(formData: FormData): Promise<void> {
   try {
@@ -88,7 +88,7 @@ export async function eliminarDefinitivoDocumentoAction(formData: FormData): Pro
   }
 }
 
-// — Vaciar papelera (bulk) —
+// Vaciar papelera (bulk)
 // Elimina definitivamente TODOS los items soft-deleted del firm: primero
 // los docs (borrando del storage), después las carpetas. Irreversible.
 export async function vaciarPapeleraAction(): Promise<{

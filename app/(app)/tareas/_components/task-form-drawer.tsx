@@ -38,7 +38,7 @@ export type TaskInitial = {
   status: "todo" | "in_progress" | "waiting" | "done";
 };
 
-// Convierte un Date a "YYYY-MM-DDTHH:mm" en hora local — formato que el
+// Convierte un Date a "YYYY-MM-DDTHH:mm" en hora local, formato que el
 // input datetime-local entiende. Si no hay fecha, devuelve "".
 function toLocalDatetimeInput(d: Date | null): string {
   if (!d) return "";
@@ -146,7 +146,7 @@ export function TaskFormDrawer({
                   <option value="">Sin caso (interno)</option>
                   {casos.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.code} — {c.title}
+                      {c.code} · {c.title}
                     </option>
                   ))}
                 </select>

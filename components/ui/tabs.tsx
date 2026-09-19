@@ -13,7 +13,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // Tabs subrayadas sobre línea inferior — no segmented control.
+      // Tabs subrayadas sobre línea inferior, no segmented control.
       "inline-flex items-center justify-start gap-5 border-b border-border",
       // Mobile-safe: si hay muchos tabs (ej. Configuración tiene 7), en vez
       // de desbordar la página el bar scrollea horizontalmente. max-w-full lo

@@ -1,7 +1,7 @@
 // GET /api/documentos/<id>/download
 // Streams a document's bytes back to the user with the original filename and
 // mime type. RLS-scoped: a user that can't see the document's case won't be
-// able to fetch it via direct URL — getDocumentById returns null.
+// able to fetch it via direct URL, getDocumentById returns null.
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -39,7 +39,7 @@ export async function GET(
 
     // Caso #1: archivo no existe en el bucket. Esto pasa con docs de seed
     // (storageKey empieza con "seed/") cuyo metadata está en la DB pero los
-    // bytes nunca se subieron — porque seed solo crea filas, no archivos.
+    // bytes nunca se subieron, porque seed solo crea filas, no archivos.
     // También pasa si alguien borró el objeto manual desde R2 console.
     if (
       lower.includes("nosuchkey") ||

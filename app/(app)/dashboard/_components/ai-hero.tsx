@@ -1,6 +1,6 @@
 "use client";
 
-// Asistente en el dashboard — franja discreta.
+// Asistente en el dashboard, franja discreta.
 //
 // Antes esto era un bloque navy a pantalla completa con gradiente, grain
 // y monograma. El handoff lo prohíbe explícitamente: "el asistente es
@@ -40,7 +40,7 @@ export function AiHero({
         </>
       ) : (
         <>
-          El asistente está disponible dentro de cada expediente — abrilo con{" "}
+          El asistente está disponible dentro de cada expediente, abrilo con{" "}
           <kbd className="tabular border border-border px-1 py-px text-[11px] font-medium text-muted-foreground">
             {mod}
           </kbd>{" "}

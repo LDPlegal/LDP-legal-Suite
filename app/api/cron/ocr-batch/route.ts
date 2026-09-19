@@ -1,4 +1,4 @@
-// OCR batch worker — disparado por Vercel Cron (vercel.json).
+// OCR batch worker, disparado por Vercel Cron (vercel.json).
 //
 // Procesa un lote de documentos cuyo OCR no se pudo correr al momento de
 // subir (status='skipped'). Tipicamente: archivos entre 10 y 25 MB que
@@ -10,7 +10,7 @@
 // inyecta automáticamente cuando agregás CRON_SECRET en env vars.
 //
 // EXCEPCIÓN documentada: importamos `adminDb` (BYPASS RLS) directamente.
-// Esto está OK porque el cron es un caller SYSTEM — no hay user session ni
+// Esto está OK porque el cron es un caller SYSTEM, no hay user session ni
 // firm context. La auth se hace via secret compartido, no via session.
 // El cron tampoco lee data ajena: solo procesa docs que el propio sistema
 // dejó marcados como 'skipped'.
@@ -54,7 +54,7 @@ async function handler(req: Request): Promise<Response> {
   // status='skipped' + size razonable + no soft-deleted, más recientes primero.
   // Traemos uploadedBy porque el OCR module necesita un userId REAL para
   // atribuir el costo de Claude Vision en ai_usage (FK a users.id). Pasar
-  // el firmId como userId — como hacía la versión anterior — rompía el
+  // el firmId como userId, como hacía la versión anterior, rompía el
   // insert de tracking (FK violation, swallowed pero perdía el registro
   // de costo). Ver fix abajo: resolveUserId().
   const candidates = await adminDb
@@ -110,7 +110,7 @@ async function handler(req: Request): Promise<Response> {
 
   for (const doc of candidates) {
     try {
-      // Si excede el cap interno del OCR provider, no descargamos —
+      // Si excede el cap interno del OCR provider, no descargamos,
       // ahorramos memoria y bandwidth.
       if (doc.sizeBytes > OCR_MAX_BYTES_CLAUDE) {
         // Lo dejamos en skipped pero actualizamos updated_at para que
@@ -124,7 +124,7 @@ async function handler(req: Request): Promise<Response> {
       }
 
       // Resolver un userId REAL del firm para atribución de costo correcta.
-      // Si el firm no tiene ningún usuario (caso raro), userId queda null —
+      // Si el firm no tiene ningún usuario (caso raro), userId queda null,
       // el OCR module skipea Claude Vision (necesita user para tracking) y
       // los PDFs con capa de texto / DOCX se procesan igual sin costo IA.
       const realUserId = await resolveUserId(doc.firmId, doc.uploadedBy);
@@ -157,7 +157,7 @@ async function handler(req: Request): Promise<Response> {
         stillSkipped += 1;
       } else {
         // result.status === "failed". Distinguir el caso "firma sin
-        // presupuesto IA" — ese NO es un fallo permanente del doc; cuando
+        // presupuesto IA", ese NO es un fallo permanente del doc; cuando
         // el admin aumente el límite o resetee el mes, el doc debe poder
         // reintentarse. Por eso lo dejamos en 'skipped', no 'failed'.
         const reason = "reason" in result ? result.reason : "";
@@ -181,7 +181,7 @@ async function handler(req: Request): Promise<Response> {
         .update(documents)
         .set({ ocrStatus: "failed", updatedAt: new Date() })
         .where(eq(documents.id, doc.id))
-        .catch(() => {}); // no escalar — el cron sigue
+        .catch(() => {}); // no escalar, el cron sigue
     }
   }
 

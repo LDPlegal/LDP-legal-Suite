@@ -195,7 +195,7 @@ function RateDrawer({
                 defaultValue=""
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">— Todos los usuarios —</option>
+                <option value="">- Todos los usuarios -</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -210,7 +210,7 @@ function RateDrawer({
                 defaultValue=""
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">— Todas las materias —</option>
+                <option value="">- Todas las materias -</option>
                 {Object.entries(MATTER_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
@@ -225,7 +225,7 @@ function RateDrawer({
                 defaultValue=""
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">— Todos los clientes —</option>
+                <option value="">- Todos los clientes -</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.displayName}

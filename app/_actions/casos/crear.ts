@@ -35,7 +35,7 @@ export async function crearCasoAction(
         assignments = j as typeof assignments;
       }
     } catch {
-      // ignore — schema validation will catch malformed assignments
+      // ignore, schema validation will catch malformed assignments
     }
   }
 
@@ -48,7 +48,7 @@ export async function crearCasoAction(
       const j = JSON.parse(rawFees) as unknown;
       if (Array.isArray(j)) fees = j;
     } catch {
-      // ignore — schema validation catches malformed fees
+      // ignore, schema validation catches malformed fees
     }
   }
 
@@ -109,7 +109,7 @@ export async function crearCasoAction(
     }
     throw err;
   }
-  // Optionally apply a matter template — fire after createCase succeeded so
+  // Optionally apply a matter template, fire after createCase succeeded so
   // we don't leave dangling tasks if the case insert failed. Errors here
   // don't roll back the case; the partner can re-apply manually if needed.
   const rawTemplate = formData.get("templateId");
@@ -123,7 +123,7 @@ export async function crearCasoAction(
         created.id,
       );
     } catch {
-      // Swallow — the case exists; the user can still manage tasks/events
+      // Swallow, the case exists; the user can still manage tasks/events
       // by hand. We don't want template failures to block case creation.
     }
   }
@@ -136,7 +136,7 @@ export async function crearCasoAction(
       userId: a.userId,
       type: "case_assigned",
       title: `Te asignaron al caso ${created.code}`,
-      body: `${data.title} — rol: ${a.roleInCase}.`,
+      body: `${data.title}, rol: ${a.roleInCase}.`,
       href: `/casos/${created.id}`,
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-// Previsualizador in-app de documentos — abre un Sheet lateral con el
+// Previsualizador in-app de documentos, abre un Sheet lateral con el
 // archivo renderizado según el tipo:
 //   - PDF: iframe nativo del browser (zoom, scroll, paginación)
 //   - Imagen: <img> ajustable al contenedor
@@ -72,7 +72,7 @@ export function DocumentPreviewDrawer({
   const [formatting, setFormatting] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   // Si el formateo automático falla (ej. IA caída), NO reintentamos solos ni
-  // molestamos con toasts — mostramos el texto plano. El botón manual sí
+  // molestamos con toasts, mostramos el texto plano. El botón manual sí
   // muestra el error para que el usuario sepa qué pasó.
   const [autoFailed, setAutoFailed] = useState(false);
 
@@ -147,12 +147,12 @@ export function DocumentPreviewDrawer({
           </SheetTitle>
           <SheetDescription>
             {isPdf
-              ? "Vista previa nativa del PDF — usá los controles del visor para zoom y navegación."
+              ? "Vista previa nativa del PDF, usá los controles del visor para zoom y navegación."
               : isImage
                 ? "Vista previa de la imagen."
                 : isTextBased
                   ? "Texto extraído del documento (OCR)."
-                  : "Este tipo de archivo no se puede previsualizar — descargalo para verlo."}
+                  : "Este tipo de archivo no se puede previsualizar, descargalo para verlo."}
           </SheetDescription>
         </SheetHeader>
 
@@ -223,7 +223,7 @@ export function DocumentPreviewDrawer({
                         <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
                           <p className="text-xs text-muted-foreground">
                             {autoFailed
-                              ? "La IA no está disponible en este momento — mostrando el texto original."
+                              ? "La IA no está disponible en este momento, mostrando el texto original."
                               : "El texto se ve plano. La IA puede darle formato legible sin cambiar el contenido."}
                           </p>
                           <Button

@@ -77,7 +77,7 @@ export function Editor({
   const [templateId, setTemplateId] = useState<string>(TEMPLATES[0]?.id ?? "p1");
   const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0];
 
-  // values por template — se reinicia cuando cambia de template
+  // values por template, se reinicia cuando cambia de template
   const [valuesByTemplate, setValuesByTemplate] = useState<
     Record<string, Record<string, string | number>>
   >(() => {
@@ -486,7 +486,7 @@ function PreviewFrame({
     const el = frameRef.current;
     if (!el) return;
     const measure = () => {
-      // El contenedor tiene padding p-6 (24px por lado) — descontamos 48px.
+      // El contenedor tiene padding p-6 (24px por lado), descontamos 48px.
       const inner = Math.max(0, el.clientWidth - 48);
       if (inner > 0) setAvailWidth(inner);
     };

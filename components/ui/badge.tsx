@@ -2,7 +2,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Badges planos — 11px, peso 600, tracking .055em, mayúsculas, sin radio.
+// Badges planos, 11px, peso 600, tracking .055em, mayúsculas, sin radio.
 // Neutro por defecto; rojo solo para alerta real (vencida, audiencia);
 // marino sólido para estados de sistema (ABIERTO).
 const badgeVariants = cva(

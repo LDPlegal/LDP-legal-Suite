@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Button system — plano. Sin gradientes, sin sombras, sin radio en el CTA
+// Button system, plano. Sin gradientes, sin sombras, sin radio en el CTA
 // marino. Solo transiciones de color de 140ms.
 //   default     → CTA marino #0B2239 (radio 0)
 //   action      → CTA azul de acción #0F4C81 (radio 0)

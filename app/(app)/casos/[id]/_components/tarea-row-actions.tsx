@@ -64,7 +64,7 @@ export function TareaRowActions({
       <ConfirmButton
         action={eliminarTareaAction}
         title="¿Eliminar esta tarea?"
-        description={`"${task.title}" — esta acción es reversible (queda archivada).`}
+        description={`"${task.title}", esta acción es reversible (queda archivada).`}
         confirmLabel="Eliminar"
         trigger={
           <IconButton

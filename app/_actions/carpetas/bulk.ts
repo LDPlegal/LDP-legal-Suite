@@ -27,7 +27,7 @@ import {
 
 const IdArray = z.array(z.string().uuid()).max(500);
 
-// — Mover bulk —
+// Mover bulk
 const MoverSchema = z.object({
   documentIds: IdArray,
   folderIds: IdArray,
@@ -87,7 +87,7 @@ export async function moverItemsBulkAction(input: {
   }
 }
 
-// — Eliminar bulk —
+// Eliminar bulk
 const EliminarSchema = z.object({
   documentIds: IdArray,
   folderIds: IdArray,
@@ -137,7 +137,7 @@ export async function eliminarItemsBulkAction(input: {
   }
 }
 
-// — Compartir bulk (solo docs; las carpetas tienen su propia cascada) —
+// Compartir bulk (solo docs; las carpetas tienen su propia cascada)
 const CompartirSchema = z.object({
   documentIds: IdArray,
   shared: z.boolean(),

@@ -76,7 +76,7 @@ export function TiempoRowActions({
       </IconButton>
       <IconButton
         className="h-8 w-8"
-        label={locked ? "Tiempo ya facturado — no se puede editar" : "Editar tiempo"}
+        label={locked ? "Tiempo ya facturado, no se puede editar" : "Editar tiempo"}
         onClick={() => setEditOpen(true)}
         disabled={locked}
       >
@@ -110,7 +110,7 @@ export function TiempoRowActions({
           </SheetHeader>
           <SheetBody className="space-y-3 text-sm">
             <DetailRow label="Quién">
-              {entry.userName ?? <span className="text-muted-foreground">—</span>}
+              {entry.userName ?? <span className="text-muted-foreground">-</span>}
             </DetailRow>
             <DetailRow label="Inicio">
               {formatInFirmTz(entry.startedAt, undefined, "dd/MM/yyyy HH:mm")}

@@ -74,7 +74,7 @@ export default async function PortalDocumentosPage() {
                           {d.caseCode}
                         </Link>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground tabular-nums">

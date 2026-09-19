@@ -6,7 +6,7 @@ import { ClienteSchema } from "@/lib/schemas/cliente";
 import { createClient } from "@/lib/db/queries/clients";
 
 // Importante: la action ya NO redirige. Retorna el cliente creado para que el
-// caller decida — el caller "natural" (Sheet en /clientes) navega a /clientes/<id>;
+// caller decida, el caller "natural" (Sheet en /clientes) navega a /clientes/<id>;
 // el caller "embedded" (creación inline desde caso form drawer) usa el cliente
 // para popular su dropdown sin perder contexto.
 export type ClienteFormState =

@@ -37,7 +37,7 @@ export type HearingListRow = {
 
 // Audiencias del caso (events con event_type='audiencia') + datos del
 // reporte si existe + datos del último envío. Una sola consulta sería
-// más eficiente pero esto se llama una vez por render — claridad gana.
+// más eficiente pero esto se llama una vez por render, claridad gana.
 export async function listHearingsForCase(
   firmId: string,
   userId: string,
@@ -220,7 +220,7 @@ export async function upsertHearingReport(
 }
 
 // Soft delete del reporte. El UNIQUE index sobre event_id incluye
-// WHERE deleted_at IS NULL — al borrar, libera el "slot" así se puede crear
+// WHERE deleted_at IS NULL, al borrar, libera el "slot" así se puede crear
 // un nuevo reporte para el mismo evento si hace falta.
 export async function softDeleteHearingReport(
   firmId: string,

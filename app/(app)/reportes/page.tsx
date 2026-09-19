@@ -206,7 +206,7 @@ export default async function ReportesPage() {
                       {billedDeltaPct.toFixed(0)}%
                     </span>
                   ) : (
-                    "—"
+                    "-"
                   )}{" "}
                   vs mes anterior ({formatMoney(prevBilled)})
                 </p>
@@ -226,7 +226,7 @@ export default async function ReportesPage() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {fmtHours(wip.totalSeconds)} facturables registradas, aún no
-                  facturadas — dinero por cobrar.
+                  facturadas, dinero por cobrar.
                 </p>
               </CardContent>
             </Card>
@@ -455,7 +455,7 @@ export default async function ReportesPage() {
                         <TableCell className="text-right text-xs text-muted-foreground">
                           {totalAging > 0
                             ? `${((r.total / totalAging) * 100).toFixed(1)}%`
-                            : "—"}
+                            : "-"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -508,7 +508,7 @@ export default async function ReportesPage() {
                           {fmtHours(u.billable_seconds)}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {u.total_seconds > 0 ? `${realization.toFixed(0)}%` : "—"}
+                          {u.total_seconds > 0 ? `${realization.toFixed(0)}%` : "-"}
                         </TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground">
                           {u.entry_count}
@@ -590,7 +590,7 @@ export default async function ReportesPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div>
-                <p className="font-medium">607 — Ventas con NCF del mes</p>
+                <p className="font-medium">607, Ventas con NCF del mes</p>
                 <p className="text-xs text-muted-foreground">
                   Archivo pipe-delimited con todas las facturas emitidas con NCF
                   durante el mes actual. Súbelo a la oficina virtual DGII.
@@ -723,7 +723,7 @@ export default async function ReportesPage() {
                     ) : (
                       aiStats.byUser.map((r) => (
                         <TableRow key={r.user_id ?? "sin-usuario"}>
-                          <TableCell>{r.user_name ?? "—"}</TableCell>
+                          <TableCell>{r.user_name ?? "-"}</TableCell>
                           <TableCell className="text-right font-mono tabular-nums">
                             {r.call_count}
                           </TableCell>
@@ -786,11 +786,11 @@ export default async function ReportesPage() {
                             {d.case_code ? (
                               <span className="font-mono">{d.case_code}</span>
                             ) : (
-                              <span className="text-muted-foreground">—</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
                           <TableCell className="text-xs">
-                            {d.uploader_name ?? "—"}
+                            {d.uploader_name ?? "-"}
                           </TableCell>
                           <TableCell>
                             {d.review_status === "approved" ? (
@@ -800,7 +800,7 @@ export default async function ReportesPage() {
                             ) : d.review_status === "pending" ? (
                               <Badge variant="warning">Pendiente revisión</Badge>
                             ) : (
-                              <Badge variant="secondary">—</Badge>
+                              <Badge variant="secondary">-</Badge>
                             )}
                           </TableCell>
                         </TableRow>
@@ -847,7 +847,7 @@ export default async function ReportesPage() {
                           <TableCell title={e.original_prompt ?? undefined}>
                             {e.title}
                           </TableCell>
-                          <TableCell className="text-xs">{e.event_type ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{e.event_type ?? "-"}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">
                             {new Date(e.start_at).toLocaleString("es-DO", {
                               day: "2-digit",
@@ -865,11 +865,11 @@ export default async function ReportesPage() {
                                 {e.case_code}
                               </Link>
                             ) : (
-                              <span className="text-muted-foreground">—</span>
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
                           <TableCell className="text-xs">
-                            {e.creator_name ?? "—"}
+                            {e.creator_name ?? "-"}
                           </TableCell>
                           <TableCell>
                             {e.deleted_at ? (

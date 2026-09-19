@@ -1,6 +1,6 @@
 // Extracción de texto de archivos Word (.docx).
 //
-// mammoth.js es el approach standard — devuelve el texto plano del
+// mammoth.js es el approach standard, devuelve el texto plano del
 // documento sin formato (mejor para OCR/búsqueda). Si necesitamos HTML
 // formateado en el futuro, mammoth también soporta extractRawText vs
 // convertToHtml.
@@ -22,7 +22,7 @@ export async function extractDocxText(bytes: Uint8Array): Promise<DocxResult> {
     if (text.length < 5) {
       return { status: "skipped", reason: "El documento Word no contiene texto extraíble." };
     }
-    // mammoth puede emitir warnings (ej. estilos no soportados) — los
+    // mammoth puede emitir warnings (ej. estilos no soportados), los
     // logueamos pero no fallan la extracción.
     if (result.messages && result.messages.length > 0) {
       console.log(

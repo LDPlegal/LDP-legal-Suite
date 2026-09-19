@@ -31,7 +31,7 @@ function isoLocal(d: Date) {
 }
 
 const EVENT_TYPE_OPTIONS = [
-  { value: "", label: "— Sin tipo —" },
+  { value: "", label: "- Sin tipo -" },
   { value: "audiencia", label: "Audiencia" },
   { value: "plazo_procesal", label: "Plazo procesal" },
   { value: "reunion_cliente", label: "Reunión con cliente" },
@@ -174,7 +174,7 @@ export function EventoFormDrawer({
                   <option value="">Sin caso</option>
                   {casos.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.code} — {c.title}
+                      {c.code} · {c.title}
                     </option>
                   ))}
                 </select>

@@ -65,7 +65,7 @@ export function ReprocessOneButton({ docId }: { docId: string }) {
 export function ReprocessAllButton() {
   const [pending, start] = useTransition();
   const router = useRouter();
-  // Acumulado entre tandas — si el user hace click N veces hasta vaciar.
+  // Acumulado entre tandas, si el user hace click N veces hasta vaciar.
   const [stats, setStats] = useState<{ done: number; skipped: number; failed: number } | null>(
     null,
   );
@@ -98,7 +98,7 @@ export function ReprocessAllButton() {
       if (r.skipped > 0) parts.push(`${r.skipped} omitidos`);
       if (r.failed > 0) parts.push(`${r.failed} fallaron`);
       const remMsg = r.remaining > 0
-        ? `Quedan ${r.remaining} pendientes — click otra vez para continuar.`
+        ? `Quedan ${r.remaining} pendientes, click otra vez para continuar.`
         : "Todos los pendientes procesados.";
 
       toast.success(`Procesados ${r.processed} de este lote: ${parts.join(", ")}`, {

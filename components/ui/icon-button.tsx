@@ -1,6 +1,6 @@
 "use client";
 
-// IconButton — botón de icono con tooltip rico de Radix.
+// IconButton, botón de icono con tooltip rico de Radix.
 //
 // Por qué este wrapper existe:
 //   - El atributo `title` nativo del browser tarda ~1s en aparecer, tiene
@@ -69,10 +69,10 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 );
 
 /** Envoltorio "puro" para casos donde necesitás un trigger custom (un <Link>,
- *  un input dentro de un form, etc.) — agrega el tooltip alrededor de un child
+ *  un input dentro de un form, etc.), agrega el tooltip alrededor de un child
  *  arbitrario.
  *
- *  IMPORTANTE — composición con otros Trigger (Sheet/Dialog/DropdownMenu):
+ *  IMPORTANTE, composición con otros Trigger (Sheet/Dialog/DropdownMenu):
  *  este componente es `forwardRef` y REENVÍA todas las props que reciba
  *  (`...rest`) + el `ref` al `TooltipTrigger` interno. Por eso, cuando se usa
  *  como hijo de `<XTrigger asChild><WithTooltip>…</WithTooltip></XTrigger>`, el

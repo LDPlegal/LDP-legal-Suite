@@ -10,7 +10,7 @@ export function Header({
 }: {
   user: { name: string; email: string; role: string };
 }) {
-  // Topbar de 56px — superficie blanca plana, borde inferior #DFE0DC.
+  // Topbar de 56px, superficie blanca plana, borde inferior #DFE0DC.
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-card px-3 md:gap-3 md:px-5">
       <MobileMenuButton />

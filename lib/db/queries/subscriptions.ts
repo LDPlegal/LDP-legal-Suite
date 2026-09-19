@@ -69,7 +69,7 @@ export async function softDeleteSubscription(
 }
 
 // Fetch the URL, parse the ICS, and upsert events. The unique index
-// (external_subscription_id, external_uid) makes the upsert idempotent —
+// (external_subscription_id, external_uid) makes the upsert idempotent,
 // repeated syncs don't duplicate, they just update fields.
 //
 // On error we record lastError and bail without touching events; on success
@@ -140,7 +140,7 @@ export async function syncSubscription(
   // Upsert all parsed events in one transaction so a partial failure rolls
   // back. The unique partial index on (external_subscription_id, external_uid)
   // gives us idempotency, but Drizzle's onConflictDoUpdate doesn't always
-  // play well with partial indexes — so we look up + branch by hand. It's
+  // play well with partial indexes, so we look up + branch by hand. It's
   // O(n) extra round-trips per sync, which is fine for typical 50-200 event
   // feeds.
   await withFirm(firmId, userId, async (tx) => {
@@ -192,7 +192,7 @@ export async function syncSubscription(
 
 // Refuses URLs whose hostname is a literal local/private/loopback address
 // or a name that maps to one (only the well-known ones). Does NOT resolve
-// DNS — a malicious public name pointing at 127.0.0.1 still gets through
+// DNS, a malicious public name pointing at 127.0.0.1 still gets through
 // this. For Fase 4 the threat model is "user accidentally pastes intranet
 // URL", not "user actively attacks our infra"; if/when we widen that, add
 // dns.lookup() + IP-range check here.

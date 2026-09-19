@@ -2,7 +2,7 @@
 //
 // Regla de producto del handoff: el asistente es SIEMPRE una franja
 // discreta al pie del contenido, nunca un panel protagonista. Una frase
-// y un link — y nunca propone acciones irreversibles sin aprobación.
+// y un link, y nunca propone acciones irreversibles sin aprobación.
 //
 // Variante `warn` (fondo oro) cuando advierte de algo que el usuario
 // debería revisar; por defecto es neutra sobre superficie blanca.

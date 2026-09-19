@@ -2,7 +2,7 @@
 
 // Devuelve el texto OCR de un documento para mostrarlo en el preview drawer.
 // No incluimos el texto en el listado de docs porque puede ser pesado (un
-// PDF largo extraído puede ser ~50KB de texto) — lo cargamos on-demand
+// PDF largo extraído puede ser ~50KB de texto), lo cargamos on-demand
 // cuando el user abre el preview.
 
 import { requireUser } from "@/lib/auth/session";

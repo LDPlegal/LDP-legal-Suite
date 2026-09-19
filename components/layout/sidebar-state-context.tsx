@@ -32,7 +32,7 @@ export function SidebarStateProvider({ children }: { children: ReactNode }) {
 export function useSidebarState(): SidebarStateValue {
   const ctx = useContext(SidebarStateContext);
   if (!ctx) {
-    // Fallback no-op si el provider no envuelve — útil para evitar crashes
+    // Fallback no-op si el provider no envuelve, útil para evitar crashes
     // si un componente del header se renderiza fuera del app layout.
     return {
       mobileOpen: false,

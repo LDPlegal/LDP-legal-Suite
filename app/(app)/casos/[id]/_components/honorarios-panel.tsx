@@ -1,6 +1,6 @@
 "use client";
 
-// Panel de honorarios del caso en el Resumen — lista + agregar/editar/eliminar
+// Panel de honorarios del caso en el Resumen, lista + agregar/editar/eliminar
 // después de creado el caso (antes quedaban congelados al crear).
 // Solo admin/partner (canEdit) ven los controles; el resto ve la lista.
 
@@ -86,7 +86,7 @@ export function HonorariosPanel({
                   <ConfirmButton
                     action={eliminarHonorarioAction}
                     title="¿Eliminar este honorario?"
-                    description={`${CASE_FEE_TYPE_LABEL[h.feeType]} — ${formatFeeAmounts(h.amountUsd, h.amountDop)}. Las facturas ya emitidas no cambian.`}
+                    description={`${CASE_FEE_TYPE_LABEL[h.feeType]}, ${formatFeeAmounts(h.amountUsd, h.amountDop)}. Las facturas ya emitidas no cambian.`}
                     confirmLabel="Eliminar"
                     trigger={
                       <IconButton

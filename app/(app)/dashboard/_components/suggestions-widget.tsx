@@ -1,6 +1,6 @@
 "use client";
 
-// F7 bloque 4 — Widget de sugerencias proactivas IA para el dashboard.
+// F7 bloque 4, Widget de sugerencias proactivas IA para el dashboard.
 //
 // Muestra hasta 5 sugerencias pending del usuario actual. Cada tarjeta
 // permite:
@@ -148,7 +148,7 @@ export function SuggestionsWidget({ initial }: { initial: Suggestion[] }) {
                         Ir <ArrowRight className="h-3 w-3" />
                       </Link>
                     ) : null}
-                    <WithTooltip label="Marca esta sugerencia como útil — la IA aprende qué priorizar">
+                    <WithTooltip label="Marca esta sugerencia como útil, la IA aprende qué priorizar">
                       <button
                         type="button"
                         onClick={() => onFeedback(s.id, "useful")}

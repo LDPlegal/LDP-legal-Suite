@@ -133,7 +133,7 @@ function TemplateRowItem({
           <ConfirmButton
             action={eliminarTemplateAction}
             title="¿Eliminar esta plantilla?"
-            description={`"${template.name}" — los casos ya creados con esta plantilla no se afectan.`}
+            description={`"${template.name}", los casos ya creados con esta plantilla no se afectan.`}
             confirmLabel="Eliminar"
             trigger={
               <Button

@@ -1,6 +1,6 @@
 "use client";
 
-// F7 bloque 4 — Panel de presupuesto IA.
+// F7 bloque 4, Panel de presupuesto IA.
 //
 // Muestra el gasto del mes en curso vs el techo configurado, con visualización
 // de los umbrales (70/90/100%) y un toggle para hard-cap. Solo admins pueden

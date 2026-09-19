@@ -2,7 +2,7 @@
 
 // Animated counter: cuenta de 0 al valor target con easing suave en mount.
 // Usado en KPIs del dashboard para que los números "lleguen" en vez de
-// aparecer de golpe — un pequeño detalle que sube mucho la sensación de
+// aparecer de golpe, un pequeño detalle que sube mucho la sensación de
 // "vivo" sin ser excesivo.
 
 import { useEffect, useState } from "react";

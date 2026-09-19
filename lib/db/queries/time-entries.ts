@@ -131,7 +131,7 @@ export async function updateTimeEntry(
       .where(
         and(
           eq(timeEntries.id, entryId),
-          // No editar tiempos ya facturados — la factura los congela.
+          // No editar tiempos ya facturados, la factura los congela.
           ne(timeEntries.status, "invoiced"),
           isNull(timeEntries.deletedAt),
         ),

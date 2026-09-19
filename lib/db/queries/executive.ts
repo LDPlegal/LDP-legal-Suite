@@ -6,13 +6,13 @@
 //   - ¿Quiénes son mis mejores clientes por facturación?
 //
 // Todas pasan por withFirm (RLS). SQL crudo via tx.execute para los
-// agregados — mismo patron que lib/db/queries/audit.ts.
+// agregados, mismo patron que lib/db/queries/audit.ts.
 
 import { sql } from "drizzle-orm";
 import { withFirm } from "../with-firm";
 
 // =============================================================================
-// WIP no facturado — trabajo hecho que aun no se cobro.
+// WIP no facturado, trabajo hecho que aun no se cobro.
 // =============================================================================
 // Tiempos billable que NO estan en una factura (status != invoiced),
 // valorizados por el rate fijado al registrar el tiempo (hourly_rate_snapshot)
@@ -101,7 +101,7 @@ export async function unbilledWipReport(
 }
 
 // =============================================================================
-// Casos estancados — abiertos sin actividad reciente.
+// Casos estancados, abiertos sin actividad reciente.
 // =============================================================================
 // "Actividad" = la fecha mas reciente entre: updated_at del caso, y el ultimo
 // audit_log del caso. Si esa fecha es anterior al umbral (default 30 dias),
@@ -173,7 +173,7 @@ export async function stalledCasesReport(
 // Top clientes por facturación (revenue).
 // =============================================================================
 // Suma de invoices.total (no void) por cliente en el rango. Muestra quien
-// genera mas ingresos — para priorizar relaciones.
+// genera mas ingresos, para priorizar relaciones.
 
 export type TopClient = {
   clientId: string;

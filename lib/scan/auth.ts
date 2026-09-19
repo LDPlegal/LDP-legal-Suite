@@ -13,7 +13,7 @@ import { timingSafeEqual } from "node:crypto";
 /**
  * Constant-time check of the Bearer token in the Authorization header.
  *
- * We compare in constant time to avoid timing side channels — a naive
+ * We compare in constant time to avoid timing side channels, a naive
  * `provided === expected` can leak bytes of the token by measuring response
  * time. timingSafeEqual requires equal-length inputs; we short-circuit on
  * length mismatch (this only leaks length, not bytes).
@@ -54,7 +54,7 @@ export function getRemoteIdentifier(req: Request): string {
 }
 
 /**
- * Roles considered "staff" — the only ones a scan worker can resolve and
+ * Roles considered "staff", the only ones a scan worker can resolve and
  * ingest documents on behalf of. Portal-cliente users (role='client') are
  * excluded by design: a scan worker should never act as a client receiving
  * documents.

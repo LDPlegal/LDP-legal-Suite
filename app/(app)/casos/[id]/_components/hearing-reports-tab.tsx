@@ -209,7 +209,7 @@ function HearingCard({
           <ConfirmButton
             action={eliminarEventoAction}
             title="¿Eliminar esta audiencia?"
-            description={`"${h.eventTitle}" — se archiva y desaparece del calendario. Si tiene reporte asociado, también se dejará de mostrar.`}
+            description={`"${h.eventTitle}", se archiva y desaparece del calendario. Si tiene reporte asociado, también se dejará de mostrar.`}
             confirmLabel="Eliminar"
             trigger={
               <IconButton
@@ -296,7 +296,7 @@ function ReportDrawer({
   const readOnly = mode === "view";
   const router = useRouter();
   const [title, setTitle] = useState(
-    hearing.reportTitle ?? `Reporte de audiencia — ${hearing.eventTitle}`,
+    hearing.reportTitle ?? `Reporte de audiencia, ${hearing.eventTitle}`,
   );
   const [content, setContent] = useState<TiptapDoc>(EMPTY_DOC);
   const [loadingContent, setLoadingContent] = useState(!!hearing.reportId);
@@ -344,7 +344,7 @@ function ReportDrawer({
         const r = await guardarReporteAudienciaAction({
           caseId,
           eventId: hearing.eventId,
-          title: title.trim() || `Reporte de audiencia — ${hearing.eventTitle}`,
+          title: title.trim() || `Reporte de audiencia, ${hearing.eventTitle}`,
           contentJson: content,
         });
         if (r.ok) {
@@ -496,7 +496,7 @@ function ReportDrawer({
               </div>
               <p className="text-[11px] text-muted-foreground">
                 {recipients.length === 0
-                  ? "Ninguno seleccionado — podés guardar sin enviar."
+                  ? "Ninguno seleccionado, podés guardar sin enviar."
                   : `${recipients.length} ${recipients.length === 1 ? "destinatario" : "destinatarios"} seleccionado(s).`}
               </p>
             </div>

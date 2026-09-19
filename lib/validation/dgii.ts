@@ -8,7 +8,7 @@
 // over the first 10. The DGII spec multiplies each digit by [1,2,1,2,...]
 // and sums the digits of two-digit products.
 //
-// Both functions accept input with or without dashes / spaces — only
+// Both functions accept input with or without dashes / spaces, only
 // digits matter for the checksum. They return true for valid, false for
 // any malformation or wrong check digit.
 

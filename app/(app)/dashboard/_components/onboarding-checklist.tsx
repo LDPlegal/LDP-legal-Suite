@@ -6,7 +6,7 @@
 // caso) y el usuario no lo descartó. Se auto-oculta cuando coreDone, así
 // que un firm establecido nunca lo ve.
 //
-// El dismiss se guarda en localStorage (no en DB) — es una preferencia de
+// El dismiss se guarda en localStorage (no en DB), es una preferencia de
 // UI puramente local, no hace falta persistirla cross-device.
 
 import { useEffect, useState } from "react";
@@ -56,7 +56,7 @@ export function OnboardingChecklist({
     try {
       setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
     } catch {
-      // localStorage no disponible (modo privado raro) — mostramos igual.
+      // localStorage no disponible (modo privado raro), mostramos igual.
     }
   }, []);
 
@@ -82,7 +82,7 @@ export function OnboardingChecklist({
     {
       key: "client",
       label: "Registrá tu primer cliente",
-      description: "Persona física o jurídica — la base de todo caso.",
+      description: "Persona física o jurídica, la base de todo caso.",
       href: "/clientes",
       cta: "Crear cliente",
       icon: Users,
@@ -100,7 +100,7 @@ export function OnboardingChecklist({
     {
       key: "document",
       label: "Subí tu primer documento",
-      description: "Contratos, sentencias, pruebas — con OCR y búsqueda.",
+      description: "Contratos, sentencias, pruebas, con OCR y búsqueda.",
       href: "/documentos",
       cta: "Subir documento",
       icon: FileText,
@@ -129,7 +129,7 @@ export function OnboardingChecklist({
   // terminó lo esencial.
   if (!mounted || dismissed || allRequiredDone) return null;
 
-  // Primer paso pendiente — lo destacamos como "siguiente".
+  // Primer paso pendiente, lo destacamos como "siguiente".
   const nextStep = steps.find((s) => !s.done);
 
   return (

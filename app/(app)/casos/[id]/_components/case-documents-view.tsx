@@ -30,15 +30,15 @@ export function CaseDocumentsView({
   actions,
   folderView,
 }: {
-  /** Todos los docs de equipo del caso — para la búsqueda global. */
+  /** Todos los docs de equipo del caso, para la búsqueda global. */
   teamDocs: DocumentListRow[];
   caseId: string;
   aiEnabled?: boolean;
   currentUserId?: string;
-  /** Botones (subir archivo / nueva carpeta / subir carpeta) — van a la
+  /** Botones (subir archivo / nueva carpeta / subir carpeta), van a la
    *  derecha del buscador, en una sola fila. */
   actions: React.ReactNode;
-  /** Vista por carpetas — se muestra cuando el buscador está vacío. */
+  /** Vista por carpetas, se muestra cuando el buscador está vacío. */
   folderView: React.ReactNode;
 }) {
   const [query, setQuery] = useState("");

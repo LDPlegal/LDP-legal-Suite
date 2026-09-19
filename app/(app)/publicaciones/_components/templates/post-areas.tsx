@@ -1,6 +1,6 @@
 "use client";
 
-// Post 02 — Áreas de práctica (1080×1350).
+// Post 02, Áreas de práctica (1080×1350).
 //
 // Foto de fondo + frost card central con intro en serif arriba, separador
 // dorado, y 4 áreas listadas con guion largo. Estilo "carta de servicios".

@@ -53,7 +53,7 @@ export async function checkRateLimit(opts: {
 
   const row = result.rows[0] as { count: number; window_start: Date } | undefined;
   if (!row) {
-    // Should be impossible — INSERT…RETURNING always emits a row. Fail open
+    // Should be impossible, INSERT…RETURNING always emits a row. Fail open
     // (allow request) rather than crash.
     return {
       ok: true,

@@ -161,7 +161,7 @@ export async function deletePresetAction(input: {
   return { ok: true };
 }
 
-/** Server-only — devuelve presets activos del firm. */
+/** Server-only, devuelve presets activos del firm. */
 export async function listPresetsForFirm(
   firmId: string,
 ): Promise<MarketingPreset[]> {

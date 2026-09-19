@@ -41,7 +41,7 @@ export function friendlyAiError(err: unknown): AiProviderError {
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
 
-  // Org deshabilitada — SOLO el mensaje textual exacto de Anthropic. No matchear
+  // Org deshabilitada, SOLO el mensaje textual exacto de Anthropic. No matchear
   // "account" a secas: es demasiado amplio y disfrazaba errores no relacionados
   // (p. ej. saldo insuficiente, modelo inválido) como "cuenta deshabilitada".
   if (lower.includes("organization has been disabled")) {
@@ -49,7 +49,7 @@ export function friendlyAiError(err: unknown): AiProviderError {
       "La organización de Anthropic está deshabilitada. Revisá el estado de la cuenta en console.anthropic.com → Settings.",
     );
   }
-  // Saldo insuficiente — la causa #1 cuando "billing se ve bien" pero igual falla:
+  // Saldo insuficiente, la causa #1 cuando "billing se ve bien" pero igual falla:
   // el método de pago está OK pero no hay créditos cargados.
   if (lower.includes("credit balance") || lower.includes("insufficient")) {
     return new AiProviderError(
@@ -295,7 +295,7 @@ export async function runPrompt(
 
   const inputTokens = response.usage.input_tokens;
   const outputTokens = response.usage.output_tokens;
-  // El SDK tipa cache_*_input_tokens como opcional — pueden no venir si el
+  // El SDK tipa cache_*_input_tokens como opcional, pueden no venir si el
   // cache no aplicó. Aceptamos 0 como default.
   const usageAny = response.usage as unknown as {
     cache_read_input_tokens?: number;

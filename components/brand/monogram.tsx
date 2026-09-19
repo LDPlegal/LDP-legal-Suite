@@ -1,4 +1,4 @@
-// Monograma "LDP" — versión SVG inspirada en el sello tipográfico de
+// Monograma "LDP", versión SVG inspirada en el sello tipográfico de
 // la firma. Se usa como elemento decorativo en hero blocks, watermark
 // sutil en cards, etc.
 
@@ -18,7 +18,7 @@ export function LdpMonogram({
       className={cn("fill-none stroke-current", className)}
       aria-hidden
     >
-      {/* Círculo exterior — sello clásico */}
+      {/* Círculo exterior, sello clásico */}
       <circle
         cx="60"
         cy="60"

@@ -58,7 +58,7 @@ export async function summarizeCase(
     [{ role: "user", content: promptText }],
     {
       systemAddendum:
-        "El usuario te pasa el contexto completo de un caso. Devuelve un resumen ejecutivo en español, en formato Markdown, con las siguientes secciones cuando aplique: **Hechos y partes**, **Estado actual**, **Próximos pasos / pendientes**, **Riesgos o señales de alerta**, **Métricas** (horas registradas, gastos, facturado). Sé conciso — máximo 400 palabras. Solo usa información del contexto; si una sección no tiene datos, di 'Sin información disponible' en vez de inventar.",
+        "El usuario te pasa el contexto completo de un caso. Devuelve un resumen ejecutivo en español, en formato Markdown, con las siguientes secciones cuando aplique: **Hechos y partes**, **Estado actual**, **Próximos pasos / pendientes**, **Riesgos o señales de alerta**, **Métricas** (horas registradas, gastos, facturado). Sé conciso, máximo 400 palabras. Solo usa información del contexto; si una sección no tiene datos, di 'Sin información disponible' en vez de inventar.",
       maxTokens: 1500,
       temperature: 0.3,
       tracking: { firmId, userId, feature: "case_summary" },
@@ -243,7 +243,7 @@ export function buildPrompt(ctx: CaseContext): string {
       year: "numeric",
     });
 
-  lines.push(`# Caso ${ctx.case.code} — ${ctx.case.title}`);
+  lines.push(`# Caso ${ctx.case.code}, ${ctx.case.title}`);
   lines.push(`**Cliente:** ${ctx.client.displayName}${ctx.client.legalName && ctx.client.legalName !== ctx.client.displayName ? ` (${ctx.client.legalName})` : ""}`);
   lines.push(`**Materia:** ${ctx.case.matterType} · **Estado:** ${ctx.case.status}`);
   if (ctx.case.leadLawyerName) lines.push(`**Líder:** ${ctx.case.leadLawyerName}`);
@@ -276,7 +276,7 @@ export function buildPrompt(ctx: CaseContext): string {
     lines.push(`\n## Notas internas (${ctx.notes.length})`);
     for (const n of ctx.notes) {
       lines.push(
-        `### ${n.title ?? "(sin título)"} — ${fmtDate(n.createdAt)}${n.authorName ? ` — ${n.authorName}` : ""}\n${n.text}`,
+        `### ${n.title ?? "(sin título)"}, ${fmtDate(n.createdAt)}${n.authorName ? `, ${n.authorName}` : ""}\n${n.text}`,
       );
     }
   }
@@ -304,7 +304,7 @@ export function buildPrompt(ctx: CaseContext): string {
     lines.push(`\n## Gastos (${ctx.expenses.length})`);
     for (const e of ctx.expenses.slice(0, 20)) {
       lines.push(
-        `- ${fmtDate(e.incurredOn)}: ${e.description} — ${e.currency} ${Number(e.amount).toFixed(2)}`,
+        `- ${fmtDate(e.incurredOn)}: ${e.description}, ${e.currency} ${Number(e.amount).toFixed(2)}`,
       );
     }
   }

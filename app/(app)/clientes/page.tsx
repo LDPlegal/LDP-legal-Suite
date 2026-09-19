@@ -149,8 +149,8 @@ export default async function ClientesPage({ searchParams }: { searchParams: SP 
                     ) : null}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{TYPE_LABEL[c.type]}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{c.taxId ?? "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.email ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">{c.taxId ?? "-"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{c.email ?? "-"}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[c.status]}>{STATUS_LABEL[c.status]}</Badge>
                   </TableCell>

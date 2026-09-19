@@ -6,7 +6,7 @@
 // Activo en #0B2239 con label de 10.5px peso 600; inactivo en #9C9D96.
 // "Más" abre el drawer lateral, que ya contiene la navegación completa.
 //
-// Solo se muestra por debajo de md — en desktop la navegación vive en la
+// Solo se muestra por debajo de md, en desktop la navegación vive en la
 // sidebar.
 
 import Link from "next/link";
@@ -46,7 +46,7 @@ export function MobileTabBar() {
             href={d.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              // Área táctil mínima de 44px — acá es toda la altura.
+              // Área táctil mínima de 44px, acá es toda la altura.
               "flex flex-1 flex-col items-center justify-center gap-1 pt-1 transition-colors",
               active ? "text-[#0B2239]" : "text-faint",
             )}

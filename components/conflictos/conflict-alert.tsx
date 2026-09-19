@@ -4,7 +4,7 @@
 // party's tax_id (cliente form drawer, caso form drawer). It debounces the
 // user's input and calls checkConflictsAction; if the firm already has that
 // party as a client or as a counterparty in another case, it renders a
-// non-blocking warning banner so the user can take an informed decision —
+// non-blocking warning banner so the user can take an informed decision,
 // the form still submits normally on user confirmation.
 
 import { AlertTriangle, ExternalLink, Info } from "lucide-react";
@@ -36,7 +36,7 @@ export function ConflictAlert({
   useEffect(() => {
     const t = (taxId ?? "").trim();
     const n = (name ?? "").trim();
-    // Don't even fire for very short input — avoids noise while typing.
+    // Don't even fire for very short input, avoids noise while typing.
     if (t.length < 5 && n.length < 4) {
       setReport({ hits: [], blocking: false });
       return;
@@ -92,7 +92,7 @@ export function ConflictAlert({
           <p className="font-medium">
             {isStrong
               ? "Posible conflicto de interés"
-              : "Coincidencias por nombre — revisa antes de continuar"}
+              : "Coincidencias por nombre, revisa antes de continuar"}
           </p>
           <ul className="space-y-1.5">
             {report.hits.map((h) => (

@@ -1,5 +1,5 @@
 // Minimal RFC 5545 parser sufficient for ingesting external calendars.
-// We DON'T support recurrence (RRULE), VTIMEZONE, alarms, or attachments —
+// We DON'T support recurrence (RRULE), VTIMEZONE, alarms, or attachments,
 // those are out of scope for Fase 4.3. If a feed contains them, we ignore
 // the unsupported properties and keep the simple events.
 //
@@ -58,7 +58,7 @@ function unescapeIcs(s: string): string {
     .replace(/\\\\/g, "\\");
 }
 
-// Parse "20260513T140000Z" (UTC), "20260513T140000" (floating local —
+// Parse "20260513T140000Z" (UTC), "20260513T140000" (floating local,
 // treated as UTC; users can fix tzs from the UI), or "20260513" (all-day).
 function parseIcsDate(value: string): { date: Date; allDay: boolean } | null {
   const v = value.trim();

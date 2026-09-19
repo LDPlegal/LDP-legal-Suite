@@ -5,7 +5,7 @@
 //
 // Why two steps (chat → tool resolve) instead of one: the streaming /
 // confirmation UX. The chat can show the user "I'm about to generate
-// this acta — confirm?" before we actually spend the .docx generation
+// this acta, confirm?" before we actually spend the .docx generation
 // + storage write. The user clicks the "Generar" button on the tool card
 // in the chat, which calls this action.
 
@@ -52,7 +52,7 @@ export async function generateDocFromChatAction(input: {
   const caso = await getCaseById(user.firmId, user.userId, parsed.data.caseId);
   if (!caso) return { ok: false, error: "Caso no encontrado o sin acceso." };
 
-  // Resolve which skills applied (for audit trail) — same set we sent to
+  // Resolve which skills applied (for audit trail), same set we sent to
   // the LLM when it produced the body.
   let appliedSkillIds: string[] = [];
   try {
@@ -62,7 +62,7 @@ export async function generateDocFromChatAction(input: {
     });
     appliedSkillIds = skills.map((s) => s.meta.id);
   } catch {
-    // Fall through — skill resolution failure shouldn't block the doc.
+    // Fall through, skill resolution failure shouldn't block the doc.
   }
 
   // Render docx.

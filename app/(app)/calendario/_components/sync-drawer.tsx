@@ -207,7 +207,7 @@ function SubscriptionForm({ onCreated }: { onCreated: () => void }) {
   const [pending, setPending] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
-  // Guard sincrónico contra doble-submit. useState es async — entre clicks
+  // Guard sincrónico contra doble-submit. useState es async, entre clicks
   // rapidos el server recibe N requests. useRef bloquea al primer submit.
   const submittingRef = useRef(false);
 
@@ -294,7 +294,7 @@ function SubscriptionRow({
   }
 
   async function remove() {
-    // Native confirm — el contexto está dentro de un drawer y queremos
+    // Native confirm, el contexto está dentro de un drawer y queremos
     // mantener la UX simple sin meter otro modal anidado encima.
     if (!confirm(`¿Eliminar la suscripción "${sub.name}"? Los eventos importados se conservan.`)) {
       return;

@@ -9,7 +9,7 @@
 //     accounts/verifications without a firm_id context)
 //   - lib/auth/signup.ts (the bootstrap moment: creating the first firm + its
 //     admin user, where `withFirm` cannot apply because the firm does not
-//     exist yet — see § 9.1 of the maestro and Trampa #6 of the BRIEF).
+//     exist yet, see § 9.1 of the maestro and Trampa #6 of the BRIEF).
 //
 // Documented in DECISIONS.md.
 
@@ -20,7 +20,7 @@ import * as schema from "./schema";
 const url = process.env.DATABASE_MIGRATE_URL;
 if (!url) {
   throw new Error(
-    "DATABASE_MIGRATE_URL is required (admin connection — owner/superuser, BYPASSES RLS).",
+    "DATABASE_MIGRATE_URL is required (admin connection, owner/superuser, BYPASSES RLS).",
   );
 }
 

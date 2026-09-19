@@ -40,12 +40,12 @@ export async function notify(input: NotificationInput): Promise<void> {
       href: input.href ?? null,
     });
   } catch {
-    // Swallow — notifications are best-effort.
+    // Swallow, notifications are best-effort.
   }
 
   // Email opt-in: si el kind es "emailable" y el usuario lo activó, mandamos
   // correo. Lo corremos en after() para que el envío COMPLETE después de la
-  // respuesta — un floating promise (void) se mata cuando la lambda de Vercel
+  // respuesta, un floating promise (void) se mata cuando la lambda de Vercel
   // termina, así que el fetch a Graph nunca llegaba a completarse.
   try {
     after(async () => {
@@ -82,7 +82,7 @@ export async function notify(input: NotificationInput): Promise<void> {
 
 async function maybeSendNotificationEmail(input: NotificationInput): Promise<void> {
   if (!isEmailableKind(input.type)) {
-    console.log(`[notify] kind '${input.type}' no es emailable — sin correo.`);
+    console.log(`[notify] kind '${input.type}' no es emailable, sin correo.`);
     return;
   }
 
@@ -99,7 +99,7 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
     .limit(1);
   if (pref.length === 0) {
     console.log(
-      `[notify] user ${input.userId} no activó email para '${input.type}' — sin correo.`,
+      `[notify] user ${input.userId} no activó email para '${input.type}', sin correo.`,
     );
     return;
   }
@@ -110,7 +110,7 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
     .where(eq(users.id, input.userId))
     .limit(1);
   if (!u?.email) {
-    console.log(`[notify] user ${input.userId} sin email — sin correo.`);
+    console.log(`[notify] user ${input.userId} sin email, sin correo.`);
     return;
   }
 
@@ -142,7 +142,7 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
         to: [{ email: u.email, name: u.name ?? undefined }],
         subject,
         bodyHtml: html,
-        // No guardamos cada notificación en "Enviados" del emisor — sería
+        // No guardamos cada notificación en "Enviados" del emisor, sería
         // ruido en su Outlook.
         saveToSentItems: false,
       });
@@ -159,7 +159,7 @@ async function maybeSendNotificationEmail(input: NotificationInput): Promise<voi
     }
   } else {
     console.log(
-      `[notify] firm ${input.firmId} sin cuenta M365 emisora — uso fallback.`,
+      `[notify] firm ${input.firmId} sin cuenta M365 emisora, uso fallback.`,
     );
   }
 
@@ -209,7 +209,7 @@ export async function sendTestNotificationEmail(
     }
   }
 
-  // Sin emisor M365 — intentamos el proveedor genérico (Resend/console).
+  // Sin emisor M365, intentamos el proveedor genérico (Resend/console).
   try {
     await sendEmail({ to: u.email, subject, html });
     return { ok: true, via: "fallback", to: u.email };

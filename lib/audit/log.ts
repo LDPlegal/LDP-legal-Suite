@@ -27,7 +27,7 @@ export type LogAuditInput = {
   entityId: string;
   // When the entity belongs to a case (invoice/time/expense/document/note/
   // task/event), set caseId so the case detail's Bitácora tab can list all
-  // related events together — not just events whose entity_type='case'.
+  // related events together, not just events whose entity_type='case'.
   caseId?: string;
   action: AuditAction;
   summary?: string;

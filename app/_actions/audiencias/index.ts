@@ -246,7 +246,7 @@ export async function enviarReporteAudienciaAction(input: {
     });
   } catch {}
 
-  // Errores parciales no rompen la respuesta — el user ve cuántos llegaron,
+  // Errores parciales no rompen la respuesta, el user ve cuántos llegaron,
   // pero dejamos rastro en Eventos del sistema para que alguien revise a
   // qué destinatarios NO les llegó el reporte.
   if (errors.length > 0) {

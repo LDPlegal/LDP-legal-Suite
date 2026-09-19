@@ -35,7 +35,7 @@ export async function moverCarpetaAction(input: {
     if (!result.ok) return { ok: false, error: result.error ?? "No se pudo mover." };
 
     revalidatePath("/documentos");
-    // Para case/client lo revalidamos también — fuel for the SSR cache.
+    // Para case/client lo revalidamos también, fuel for the SSR cache.
     revalidatePath("/casos", "layout");
     revalidatePath("/clientes", "layout");
     return { ok: true };

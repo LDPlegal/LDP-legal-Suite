@@ -1,7 +1,7 @@
 "use server";
 
 // CRUD de honorarios del caso DESPUÉS de creado (antes solo se podían definir
-// al crear el caso y quedaban congelados — Gabriel necesita editarlos).
+// al crear el caso y quedaban congelados, Gabriel necesita editarlos).
 // Solo admin/partner/tester (hasAdminPowers): los honorarios son facturación.
 
 import { revalidatePath } from "next/cache";
@@ -106,7 +106,7 @@ export async function editarHonorarioAction(
   return { ok: true };
 }
 
-// ConfirmButton manda FormData directo (sin useActionState) — firma simple.
+// ConfirmButton manda FormData directo (sin useActionState), firma simple.
 export async function eliminarHonorarioAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   if (!hasAdminPowers(user.role)) return;

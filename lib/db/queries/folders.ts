@@ -4,7 +4,7 @@
 // (regla del proyecto, ver DECISIONS 9.1).
 //
 // Cuando movemos una carpeta o creamos una sub-carpeta, recalculamos el `path`
-// materializado (formato "/Demandas/2026/Caso-X") en SQL — útil para
+// materializado (formato "/Demandas/2026/Caso-X") en SQL, útil para
 // breadcrumbs sin recursión y para queries de tipo "todo lo que cuelgue de
 // /Demandas". El recálculo recursivo en update se hace en JS (Drizzle no
 // expone CTE recursivas de forma trivial); el árbol de carpetas en una firma
@@ -183,7 +183,7 @@ export async function getFolderBreadcrumb(
   return withFirm(firmId, userId, async (tx) => {
     const chain: Folder[] = [];
     let currentId: string | null = folderId;
-    // Hard cap defensivo — el árbol no debería pasar de ~50 niveles.
+    // Hard cap defensivo, el árbol no debería pasar de ~50 niveles.
     for (let i = 0; i < 100 && currentId !== null; i++) {
       const rows: Folder[] = await tx
         .select()
@@ -230,7 +230,7 @@ export async function createFolder(
         .limit(1);
       const parent = parentRows[0];
       if (!parent) throw new Error("Carpeta padre no encontrada.");
-      // Path heredado del parent — concatenamos su path + nombre del parent
+      // Path heredado del parent, concatenamos su path + nombre del parent
       // (path del parent es el camino HASTA el parent, no incluyéndolo).
       parentPath = parent.path === "/" ? `/${parent.name}` : `${parent.path}/${parent.name}`;
       caseId = parent.caseId;
@@ -407,9 +407,9 @@ export async function softDeleteFolder(
     //
     // BUG anterior: usaba `WHERE path LIKE '%' OR parent_folder_id = …`
     // donde `LIKE '%'` matchea TODO. Eso nulleaba folder_id de TODOS los
-    // docs del firm — catastrófico.
+    // docs del firm, catastrófico.
     //
-    // Fix: mismo CTE del paso 1 (sin filtrar deleted_at — los folders
+    // Fix: mismo CTE del paso 1 (sin filtrar deleted_at, los folders
     // recién marcados aún están en la tabla, los encontramos igual).
     if (deleteDocuments) {
       await tx.execute(sql`
@@ -451,7 +451,7 @@ export async function softDeleteFolder(
  * Mueve un documento a una carpeta. folder=null lo deja en la raíz.
  *
  * Regla (migración 0035): un documento que pertenece a un CASO no puede
- * moverse a una carpeta PERSONAL — se detacharía del equipo del caso y
+ * moverse a una carpeta PERSONAL, se detacharía del equipo del caso y
  * quedaría oculto para el resto. Si alguien quiere una versión privada, que
  * suba una copia a su carpeta personal. Documentos sueltos (sin caso) sí
  * pueden ir a carpetas personales.
@@ -718,7 +718,7 @@ export async function listDeletedFolders(
 
 /**
  * Restaura una carpeta soft-deleted. NO restaura los docs que estaban
- * adentro — si el user quiere los docs también, tiene que restaurarlos
+ * adentro, si el user quiere los docs también, tiene que restaurarlos
  * uno por uno desde la papelera.
  */
 export async function restoreFolder(

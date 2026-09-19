@@ -59,7 +59,7 @@ export async function GET(
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      // Cache 5 min — most clients respect this and back off, reducing load.
+      // Cache 5 min, most clients respect this and back off, reducing load.
       "Cache-Control": "public, max-age=300",
     },
   });

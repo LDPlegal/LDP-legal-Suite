@@ -1,6 +1,6 @@
 "use client";
 
-// Botón hamburger del header — solo visible en móvil. Toggle del drawer
+// Botón hamburger del header, solo visible en móvil. Toggle del drawer
 // sidebar via SidebarStateContext.
 
 import { Menu } from "lucide-react";

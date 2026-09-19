@@ -5,7 +5,7 @@
 // alignment, ALL-CAPS+bold for role designations, etc.).
 //
 // We use docx (the JS lib) instead of running a Python service so the
-// generation happens in the same Vercel function as the AI call — fewer
+// generation happens in the same Vercel function as the AI call, fewer
 // moving parts, no extra deployment.
 //
 // The Markdown contract with Claude (declared in the system prompt):
@@ -78,7 +78,7 @@ export async function renderMarkdownToDocx(input: {
 }
 
 // =============================================================================
-// Markdown parsing — narrow but sufficient for LDP-generated bodies.
+// Markdown parsing, narrow but sufficient for LDP-generated bodies.
 // =============================================================================
 
 function parseBody(body: string): Paragraph[] {
@@ -105,12 +105,12 @@ function parseBody(body: string): Paragraph[] {
       continue;
     }
 
-    // Bullets with en-dash (LDP convention) — match both "- " and "– "
-    if (/^[–-]\s+/.test(line)) {
-      const content = line.replace(/^[–-]\s+/, "");
+    // Bullets with en-dash (LDP convention), match both "- " and "- "
+    if (/^[--]\s+/.test(line)) {
+      const content = line.replace(/^[--]\s+/, "");
       paragraphs.push(
         new Paragraph({
-          children: [new TextRun({ text: "– ", font: CHARTER }), ...renderInlineRuns(content)],
+          children: [new TextRun({ text: "- ", font: CHARTER }), ...renderInlineRuns(content)],
           alignment: AlignmentType.JUSTIFIED,
           indent: { left: convertInchesToTwip(0.25) },
         }),
@@ -146,7 +146,7 @@ function makeHeading(text: string, level: typeof HeadingLevel[keyof typeof Headi
 }
 
 // Resolve **bold** and *italic* and [DATO PENDIENTE: x] within a line into
-// docx TextRun blocks. Conservative parser — only the three patterns above,
+// docx TextRun blocks. Conservative parser, only the three patterns above,
 // in order of specificity.
 function renderInlineRuns(line: string): TextRun[] {
   const runs: TextRun[] = [];
@@ -183,7 +183,7 @@ function renderInlineRuns(line: string): TextRun[] {
         continue;
       }
     }
-    // Plain text run — eat until next special marker or end.
+    // Plain text run, eat until next special marker or end.
     let next = line.length;
     for (const marker of ["**", "*", "[DATO PENDIENTE"]) {
       const idx = line.indexOf(marker, i);

@@ -24,7 +24,7 @@ import {
 
 const FEE_TYPES: CaseFeeType[] = ["flat_fee", "retainer", "success_fee", "other"];
 
-/** Estado interno por fila — incluye el modo seleccionado para que la UI
+/** Estado interno por fila, incluye el modo seleccionado para que la UI
  *  recuerde si el user eligió "Ambos" aunque solo haya cargado un monto.
  *  Al serializar al server, solo mandamos amountUsd / amountDop según el modo. */
 type Row = {
@@ -122,7 +122,7 @@ export function CaseFeesInput({
                   className="col-span-5 h-9"
                 />
 
-                {/* Moneda — modo */}
+                {/* Moneda, modo */}
                 <select
                   aria-label="Moneda"
                   value={r.currencyMode}
@@ -151,7 +151,7 @@ export function CaseFeesInput({
                 </button>
               </div>
 
-              {/* Montos — uno o dos según el modo */}
+              {/* Montos, uno o dos según el modo */}
               <div className="mt-2 grid grid-cols-12 gap-2">
                 {r.currencyMode !== "DOP" ? (
                   <div
@@ -207,7 +207,7 @@ export function CaseFeesInput({
       ) : null}
 
       {/* Hidden input que el form submit pasa al server. Mandamos solo los
-          montos relevantes según el modo — el modo en sí no se guarda. */}
+          montos relevantes según el modo, el modo en sí no se guarda. */}
       <input
         type="hidden"
         name="fees"

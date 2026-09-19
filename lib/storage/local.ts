@@ -20,7 +20,7 @@ function getSigningSecret(): string {
   const s = process.env.BETTER_AUTH_SECRET;
   if (!s) {
     throw new Error(
-      "BETTER_AUTH_SECRET no está set — necesario para firmar uploads locales.",
+      "BETTER_AUTH_SECRET no está set, necesario para firmar uploads locales.",
     );
   }
   return s;

@@ -11,7 +11,7 @@
 // referencian como `storageKey` en la DB. El driver traduce un key a path
 // absoluto del filesystem o a un object identifier en S3.
 //
-// NUEVO (Fase 7 — direct upload): presignedPut() devuelve una URL que el
+// NUEVO (Fase 7, direct upload): presignedPut() devuelve una URL que el
 // browser puede usar para PUT directo, evitando bodySizeLimit de Vercel.
 //   - S3Storage: URL real de S3 firmada con SigV4.
 //   - LocalStorage: URL a un endpoint interno con HMAC para verificar que
@@ -25,7 +25,7 @@ export type PresignedPut = {
   uploadUrl: string;
   /** Headers obligatorios que el browser debe enviar (típicamente Content-Type). */
   requiredHeaders: Record<string, string>;
-  /** Cuándo expira el URL — el cliente debe completar antes. */
+  /** Cuándo expira el URL, el cliente debe completar antes. */
   expiresAt: Date;
 };
 
@@ -40,7 +40,7 @@ export interface StorageProvider {
    * direct-upload realmente subió lo que el cliente declaró.
    */
   head(key: string): Promise<{ sizeBytes: number } | null>;
-  /** Borra `key`. Idempotente — keys faltantes no tiran. */
+  /** Borra `key`. Idempotente, keys faltantes no tiran. */
   remove(key: string): Promise<void>;
   /**
    * Genera un URL para PUT directo desde el browser. Evita que el archivo

@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 
-// Layout de autenticación — handoff 3b.
+// Layout de autenticación, handoff 3b.
 //
 // Grid 600px / 1fr: izquierda marino #0B2239 con el monograma arriba y la
 // foto de los socios ocupando TODO el espacio restante (flex-1, como en el
-// diseño), fundida hacia arriba con máscara — no con una capa encima.
+// diseño), fundida hacia arriba con máscara, no con una capa encima.
 //
 // El panel solo aparece desde lg (1024px). Con `md` el panel de 600px fijos
 // dejaba el formulario en ~200px y era inusable entre 768 y 1024px.

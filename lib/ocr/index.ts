@@ -1,4 +1,4 @@
-// OCR provider — pipeline unificado con detección por magic bytes y
+// OCR provider, pipeline unificado con detección por magic bytes y
 // fallback inteligente.
 //
 // Flujo:
@@ -11,7 +11,7 @@
 //        (procesa PDF escaneado, manuscrito, etc).
 //      - DOCX: mammoth.js (gratis, extrae texto literal).
 //      - DOC legacy: skipped con mensaje (no podemos extraer .doc viejo
-//        sin antiword/textutil — el user puede re-exportar a docx).
+//        sin antiword/textutil, el user puede re-exportar a docx).
 //      - Imágenes: Tesseract.js primero (gratis, local). Si confidence
 //        baja o falla → Claude Vision.
 //      - Otros: skipped con mensaje claro.
@@ -25,7 +25,7 @@ export type OcrResult =
 
 export interface OcrProvider {
   /** Procesa un archivo y devuelve su texto. El provider hace su propia
-   *  detección de tipo por magic bytes — el `mimeType` recibido es solo
+   *  detección de tipo por magic bytes, el `mimeType` recibido es solo
    *  un hint y puede ser "application/octet-stream". */
   recognize(input: {
     mimeType: string;
@@ -40,7 +40,7 @@ export interface OcrProvider {
 let providerSingleton: OcrProvider | null = null;
 
 // Topes:
-//   - 5MB para extracción local (tesseract / pdf-extraction / mammoth) — keep
+//   - 5MB para extracción local (tesseract / pdf-extraction / mammoth), keep
 //     request latency under Vercel limits
 //   - 10MB para Claude Vision fallback (más generoso porque el procesamiento
 //     pasa a la API de Anthropic, no a nuestra lambda)
@@ -51,7 +51,7 @@ export async function getOcr(): Promise<OcrProvider> {
   if (providerSingleton) return providerSingleton;
   const driver = process.env.OCR_DRIVER ?? "smart";
   if (driver === "smart" || driver === "tesseract") {
-    // El driver "tesseract" legacy ahora apunta al smart pipeline —
+    // El driver "tesseract" legacy ahora apunta al smart pipeline,
     // tesseract sigue siendo parte del flujo pero no es el único.
     const { SmartOcr } = await import("./smart");
     providerSingleton = new SmartOcr();

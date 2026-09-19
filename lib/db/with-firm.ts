@@ -1,4 +1,4 @@
-// withFirm(firmId, userId, fn) — the only sanctioned way to run domain queries.
+// withFirm(firmId, userId, fn), the only sanctioned way to run domain queries.
 //
 // Wraps `fn` in a transaction and sets `app.firm_id` + `app.user_id` as
 // LOCAL settings (scoped to the transaction). Postgres RLS policies on every
@@ -6,9 +6,9 @@
 //
 // Two consequences worth knowing (Trampa #5 of the BRIEF):
 //   1. The callback receives `tx` (the transaction handle). Every query in
-//      the callback MUST use `tx` — using the outer `db` runs OUTSIDE the
+//      the callback MUST use `tx`, using the outer `db` runs OUTSIDE the
 //      transaction, the SET LOCAL settings won't apply, and RLS will fail
-//      the query (loudly — by design).
+//      the query (loudly, by design).
 //   2. SET LOCAL ends with the transaction. Two sequential `withFirm` calls
 //      are independent: settings from the first do not leak into the second.
 //

@@ -13,7 +13,7 @@ export type ForgotPasswordState =
   | { ok: false; error: string };
 
 // Ask better-auth to mint a reset token and (in dev) log it. We don't
-// reveal whether the email exists — same response shape either way so the
+// reveal whether the email exists, same response shape either way so the
 // page can't be used to enumerate accounts.
 export async function forgotPasswordAction(
   _prev: ForgotPasswordState | undefined,
@@ -32,7 +32,7 @@ export async function forgotPasswordAction(
       headers: await headers(),
     });
   } catch {
-    // Silently succeed even if better-auth threw — typical when the email
+    // Silently succeed even if better-auth threw, typical when the email
     // doesn't exist. Don't leak that fact.
   }
   return { ok: true };

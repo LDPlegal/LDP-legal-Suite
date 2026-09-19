@@ -53,7 +53,7 @@ export function GoldenLine({
   );
 }
 
-/** Bloque de "extra" — copy adicional que el usuario puede meter en cualquier
+/** Bloque de "extra", copy adicional que el usuario puede meter en cualquier
  *  template. Si está vacío, no renderiza nada (= no afecta visualmente). */
 export function ExtraBlock({
   values,
@@ -122,7 +122,7 @@ export function LdpFooter({ bottom = 36 }: { bottom?: number }) {
   );
 }
 
-/** Background photo + neutral overlay — patrón usado en TODOS los posts */
+/** Background photo + neutral overlay, patrón usado en TODOS los posts */
 export function PhotoBg({
   photo,
   fallback = "linear-gradient(135deg, #0a1f3b 0%, #14304f 50%, #1a3a5f 100%)",

@@ -1,7 +1,7 @@
-// F7 bloque 4 — Worker que genera sugerencias proactivas para la bandeja
+// F7 bloque 4, Worker que genera sugerencias proactivas para la bandeja
 // del dashboard.
 //
-// Reglas implementadas en V1 (deterministas, sin Claude — barato y rápido):
+// Reglas implementadas en V1 (deterministas, sin Claude, barato y rápido):
 //
 //   1. STALE_CASE: caso abierto sin actuaciones nuevas (events, notes,
 //      time_entries, documents) en los últimos N días → sugerir revisar.

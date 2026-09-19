@@ -79,10 +79,10 @@ export function TaskList({
                       {t.caseCode}
                     </Link>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </TableCell>
-                <TableCell className="text-sm">{t.assigneeName ?? "—"}</TableCell>
+                <TableCell className="text-sm">{t.assigneeName ?? "-"}</TableCell>
                 <TableCell>
                   <Badge variant={PRIORITY_VARIANT[t.priority]}>
                     {TASK_PRIORITY_LABEL[t.priority]}
@@ -92,7 +92,7 @@ export function TaskList({
                   <Badge variant={STATUS_VARIANT[t.status]}>{TASK_STATUS_LABEL[t.status]}</Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "—"}
+                  {t.dueAt ? formatInFirmTz(t.dueAt, undefined, "dd/MM/yyyy") : "-"}
                 </TableCell>
                 <TableCell className="text-right">
                   <TaskFormDrawer
@@ -122,7 +122,7 @@ export function TaskList({
                   <ConfirmButton
                     action={eliminarTareaAction}
                     title="¿Eliminar esta tarea?"
-                    description={`"${t.title}" — esta acción es reversible (queda archivada).`}
+                    description={`"${t.title}", esta acción es reversible (queda archivada).`}
                     confirmLabel="Eliminar"
                     trigger={
                       <Button

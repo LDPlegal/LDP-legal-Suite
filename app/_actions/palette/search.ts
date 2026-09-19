@@ -10,7 +10,7 @@ import { cases, documents, invoices, notes } from "@/lib/db/schema";
 // Server-side palette search (BRIEF Trampa: don't load all clients/cases into
 // the browser). Debounce on the client side; this action runs on every change
 // and returns at most 8 of each entity. Per-firm/per-user; RLS guarantees
-// visibility — no leakage even if a future bug skipped the helpers.
+// visibility, no leakage even if a future bug skipped the helpers.
 
 export type PaletteResult = {
   clientes: Array<{ id: string; displayName: string; status: string }>;

@@ -11,7 +11,7 @@ import * as schema from "@/lib/db/schema";
 // DECISIONS.md (decision 9.1, signup exception):
 //   * Better-auth has no firm context during signin/signup, so RLS would
 //     reject every read. Using the admin connection sidesteps that.
-//   * Domain code never touches sessions/accounts/verifications directly —
+//   * Domain code never touches sessions/accounts/verifications directly,
 //     it always goes through better-auth's API or withFirm() on domain
 //     tables. The defense-in-depth RLS policies on those auxiliary tables
 //     prevent accidental cross-firm reads if domain code ever queries them.
@@ -26,7 +26,7 @@ const secret = process.env.BETTER_AUTH_SECRET;
 // En Vercel cada deployment de preview vive en su propia URL (VERCEL_URL /
 // VERCEL_BRANCH_URL), pero BETTER_AUTH_URL está configurada con la de
 // producción para todos los entornos. El cliente postea a
-// window.location.origin — o sea, a la URL del preview — y better-auth
+// window.location.origin, o sea, a la URL del preview, y better-auth
 // compara ese Origin contra trustedOrigins, que por defecto es solo
 // [baseURL]. Resultado: en cualquier preview el login se rechazaba por
 // origen inválido y el usuario volvía a la pantalla de login.
@@ -107,7 +107,7 @@ export const auth = betterAuth({
         defaultValue: "lawyer",
       },
       // Portal Cliente (Fase 4): set on role='client' rows so the portal
-      // layout knows which client's data to scope queries to. Optional —
+      // layout knows which client's data to scope queries to. Optional,
       // staff users have no client_id.
       clientId: {
         type: "string",
@@ -117,7 +117,7 @@ export const auth = betterAuth({
     },
   },
   session: {
-    // Sesión de 24 h con renovación diaria — equilibra UX (no pedir login
+    // Sesión de 24 h con renovación diaria, equilibra UX (no pedir login
     // varias veces al día) y seguridad. El timeout por inactividad real de
     // 30 min que pide la spec se implementa en el cliente (un setTimeout
     // que detecta ausencia de mouse/teclado y dispara signOut), porque
@@ -172,7 +172,7 @@ export const auth = betterAuth({
           // Public signups are only allowed when the firm has no users yet
           // (the first-admin flow from /signup). Any subsequent attempt to
           // create a user via the public endpoint targeting an existing firm
-          // is rejected — preventing privilege escalation by injecting a
+          // is rejected, preventing privilege escalation by injecting a
           // known firmId. To add staff to an existing firm, an admin must
           // call internalAdapter.createUser from a server action (which
           // bypasses this hook because context is null).

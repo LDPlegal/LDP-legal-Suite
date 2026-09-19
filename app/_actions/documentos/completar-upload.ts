@@ -6,7 +6,7 @@
 // Ahora notifica al server: storageKey + metadatos. El server:
 //   1. Crea el record en `documents`.
 //   2. Si el archivo es <= OCR_MAX_BYTES_CLAUDE (10 MB), descarga del storage
-//      y dispara OCR via after() — mismo patrón que upload.ts pre-Fase 7.
+//      y dispara OCR via after(), mismo patrón que upload.ts pre-Fase 7.
 //   3. Para archivos > 10 MB marca ocr_status = "skipped" sin descargar
 //      (no hay sentido en bajar 200 MB a la function solo para tirarlo).
 //
@@ -107,7 +107,7 @@ async function completarUploadInner(
     const real = head.sizeBytes;
     const drift = Math.abs(real - declared);
     if (drift > 1024 && drift > declared * 0.01) {
-      // Limpiamos el objeto huérfano — no quedó ningún record apuntándolo.
+      // Limpiamos el objeto huérfano, no quedó ningún record apuntándolo.
       try {
         await getStorage().remove(data.storageKey);
       } catch {
@@ -122,7 +122,7 @@ async function completarUploadInner(
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[completarUpload] head() falló:", msg);
     // Si el head falla por un problema transitorio del storage, NO bloqueamos
-    // el upload — preferimos registrar el doc (el OCR/preview lo validarán
+    // el upload, preferimos registrar el doc (el OCR/preview lo validarán
     // después). Solo logueamos.
   }
 
@@ -183,7 +183,7 @@ async function completarUploadInner(
   }
 
   // OCR fire-and-forget. Para archivos > OCR_MAX_BYTES_CLAUDE no descargamos
-  // ni intentamos — se marca como skipped directo. Eso evita cargar 200 MB
+  // ni intentamos, se marca como skipped directo. Eso evita cargar 200 MB
   // a memoria de la function solo para tirarlo.
   const userId = user.userId;
   const firmId = user.firmId;

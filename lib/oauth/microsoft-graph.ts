@@ -1,4 +1,4 @@
-// F7+ Bloque 5 — Wrapper de Microsoft Graph API.
+// F7+ Bloque 5, Wrapper de Microsoft Graph API.
 //
 // Maneja:
 //   - Obtener access token válido (auto-refresh si expiró).
@@ -33,7 +33,7 @@ export class MicrosoftGraphError extends Error {
   }
 }
 
-// Low-level fetch. Maneja auth + retry de 401. NO maneja paginación —
+// Low-level fetch. Maneja auth + retry de 401. NO maneja paginación,
 // los helpers de arriba la implementan según el endpoint.
 async function graphFetch(
   userId: string,
@@ -69,7 +69,7 @@ async function graphFetch(
     throw new MicrosoftGraphError(
       429,
       "throttled",
-      `Microsoft Graph throttled — wait ${retryAfter}s`,
+      `Microsoft Graph throttled, wait ${retryAfter}s`,
       retryAfter,
     );
   }
@@ -91,14 +91,14 @@ async function graphFetchJson<T>(
       code = json.error?.code ?? code;
       message = json.error?.message ?? message;
     } catch {
-      // not JSON — keep raw text in message
+      // not JSON, keep raw text in message
       message = text.slice(0, 300) || message;
     }
     throw new MicrosoftGraphError(res.status, code, message);
   }
   // 204 No Content (DELETE, etc.) → null.
   if (res.status === 204) return null as T;
-  // Algunos endpoints 2xx devuelven body VACÍO — el caso clásico es
+  // Algunos endpoints 2xx devuelven body VACÍO, el caso clásico es
   // POST /me/sendMail, que responde 202 Accepted sin contenido. Hacer
   // res.json() sobre un body vacío tira "Unexpected end of JSON input".
   // Leemos como texto y solo parseamos si hay algo.
@@ -107,7 +107,7 @@ async function graphFetchJson<T>(
   try {
     return JSON.parse(text) as T;
   } catch {
-    // Respuesta 2xx que no es JSON — la tratamos como sin contenido.
+    // Respuesta 2xx que no es JSON, la tratamos como sin contenido.
     return null as T;
   }
 }
@@ -265,7 +265,7 @@ export type SendMailInput = {
   subject: string;
   bodyHtml: string;
   // Cuando true, Graph guarda el correo en la carpeta "Sent Items" del
-  // usuario. Default true — los socios necesitan ver lo enviado en Outlook.
+  // usuario. Default true, los socios necesitan ver lo enviado en Outlook.
   saveToSentItems?: boolean;
   /** Adjuntos en línea. Microsoft Graph permite hasta 3MB por adjunto vía
    *  /sendMail (para más, hay que usar upload sessions, no soportado acá). */
@@ -302,14 +302,14 @@ export async function sendMail(
       const size = att.bytes.byteLength;
       if (size > MAX_ATTACHMENT_BYTES) {
         throw new Error(
-          `Adjunto '${att.name}' pesa ${(size / 1024 / 1024).toFixed(1)}MB — el máximo es 3MB. Para archivos grandes, compartilos por OneDrive y pegá el link.`,
+          `Adjunto '${att.name}' pesa ${(size / 1024 / 1024).toFixed(1)}MB, el máximo es 3MB. Para archivos grandes, compartilos por OneDrive y pegá el link.`,
         );
       }
       total += size;
     }
     if (total > MAX_TOTAL_ATTACHMENTS_BYTES) {
       throw new Error(
-        `Los adjuntos suman ${(total / 1024 / 1024).toFixed(1)}MB — el máximo total es 24MB.`,
+        `Los adjuntos suman ${(total / 1024 / 1024).toFixed(1)}MB, el máximo total es 24MB.`,
       );
     }
     message.hasAttachments = true;

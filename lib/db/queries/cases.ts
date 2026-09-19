@@ -59,7 +59,7 @@ export async function listCases(
         ilike(cases.code, term),
         ilike(cases.title, term),
         ilike(cases.counterpartyName, term),
-        // Cliente — join a clients abajo permite buscar por nombre del cliente
+        // Cliente, join a clients abajo permite buscar por nombre del cliente
         // ("Constructora Caribe", "Juan Pérez") en el mismo input.
         ilike(clients.displayName, term),
       );
@@ -110,7 +110,7 @@ export async function listCases(
         .limit(limit)
         .offset(offset),
       // El count tiene que tener el mismo leftJoin a clients que el select
-      // arriba — si no, el filtro `ilike(clients.displayName)` falla porque
+      // arriba, si no, el filtro `ilike(clients.displayName)` falla porque
       // clients no está en el FROM.
       tx
         .select({ count: sql<number>`count(*)::int` })
@@ -217,7 +217,7 @@ async function nextCaseCode(
   return `${year}-${prefix}-${seqPadded}`;
 }
 
-// Errores de dominio de expedientes vinculados — la action los traduce a mensajes de UI.
+// Errores de dominio de expedientes vinculados, la action los traduce a mensajes de UI.
 export class SubcaseError extends Error {
   constructor(
     public readonly reason: "parent_not_found" | "max_depth",
@@ -375,7 +375,7 @@ export async function updateCaseFee(
   });
 }
 
-/** Elimina un honorario. Hard delete: los honorarios no facturan solos —
+/** Elimina un honorario. Hard delete: los honorarios no facturan solos,
  *  el registro histórico de lo cobrado vive en las facturas. */
 export async function deleteCaseFee(
   firmId: string,

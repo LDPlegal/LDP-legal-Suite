@@ -64,14 +64,14 @@ export function DocumentRow({
             }
           />
           {doc.version > 1 ? (
-            <WithTooltip label={`Versión ${doc.version} — versiones anteriores en historial`}>
+            <WithTooltip label={`Versión ${doc.version}, versiones anteriores en historial`}>
               <Badge variant="outline" className="font-mono text-[10px]">
                 v{doc.version}
               </Badge>
             </WithTooltip>
           ) : null}
           {doc.visibility === "private" ? (
-            <WithTooltip label="Privado — solo vos lo ves, el resto del equipo no.">
+            <WithTooltip label="Privado, solo vos lo ves, el resto del equipo no.">
               <Badge variant="secondary" className="gap-1 text-[10px]">
                 <Lock className="h-2.5 w-2.5" />
                 Privado
@@ -90,7 +90,7 @@ export function DocumentRow({
         ) : null}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {doc.uploadedByName ?? "—"}
+        {doc.uploadedByName ?? "-"}
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {new Date(doc.createdAt).toLocaleDateString("es-DO", { dateStyle: "medium" })}

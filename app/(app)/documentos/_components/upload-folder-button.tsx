@@ -2,7 +2,7 @@
 
 // Sube una carpeta del filesystem preservando estructura.
 //
-// Fase 7 — direct upload via presigned URLs (R2/S3 en prod, endpoint local
+// Fase 7, direct upload via presigned URLs (R2/S3 en prod, endpoint local
 // en dev). Antes el browser subía cada archivo via server action (cap 25 MB,
 // chocaba con bodySizeLimit de Vercel). Ahora cada archivo va DIRECTO al
 // storage (cap real: 500 MB).
@@ -186,7 +186,7 @@ export function UploadFolderButton({
       <input
         ref={inputRef}
         type="file"
-        // @ts-expect-error — webkitdirectory no está en los typings de React
+        // @ts-expect-error, webkitdirectory no está en los typings de React
         webkitdirectory="true"
         directory="true"
         multiple

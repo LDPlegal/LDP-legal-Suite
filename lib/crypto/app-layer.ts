@@ -1,4 +1,4 @@
-// F7 bloque 4 — Cifrado a nivel de aplicación para casos "ultra confidenciales".
+// F7 bloque 4, Cifrado a nivel de aplicación para casos "ultra confidenciales".
 //
 // Modelo de amenaza que cubre:
 //   1. El proveedor de storage (Cloudflare R2) es comprometido o sirve un
@@ -154,7 +154,7 @@ export function decryptDocument(input: DecryptInput): Buffer {
     !timingSafeEqual(storedAad, expectedAad)
   ) {
     throw new Error(
-      "AAD mismatch — document does not belong to this firm/document pair.",
+      "AAD mismatch, document does not belong to this firm/document pair.",
     );
   }
 
@@ -174,13 +174,13 @@ export function decryptDocument(input: DecryptInput): Buffer {
   const decipher = createDecipheriv("aes-256-gcm", key, iv);
   decipher.setAAD(storedAad);
   decipher.setAuthTag(tag);
-  // If the tag check fails, `final()` throws — GCM authenticates everything.
+  // If the tag check fails, `final()` throws, GCM authenticates everything.
   const dec1 = decipher.update(body);
   const dec2 = decipher.final();
   return Buffer.concat([dec1, dec2]);
 }
 
-// Smoke test helper — useful in tests and CLI tools to verify the master key
+// Smoke test helper, useful in tests and CLI tools to verify the master key
 // is configured correctly without touching real data.
 export function selfTest(): { ok: true; bytesRoundtrip: number } {
   const sample = Buffer.from("LDP cifrado app-layer OK", "utf8");

@@ -48,7 +48,7 @@ export default async function BibliotecaPage({
       <PageHeader
         eyebrow="Archivo"
         title="Biblioteca"
-        description="Espacio compartido de la firma — leyes, libros, plantillas y material de referencia para todos los miembros."
+        description="Espacio compartido de la firma, leyes, libros, plantillas y material de referencia para todos los miembros."
       >
         <UploadFolderButton parentFolderId={folderId} scope={scope} />
         <DocumentUploadGlobalDrawer
@@ -75,7 +75,7 @@ export default async function BibliotecaPage({
           <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
             <Library className="h-4 w-4 flex-none text-primary" />
             <span>
-              <strong className="font-medium text-foreground">Espacio compartido</strong> —
+              <strong className="font-medium text-foreground">Espacio compartido</strong>,
               visible para toda la firma.
             </span>
           </div>

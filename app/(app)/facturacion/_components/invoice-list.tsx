@@ -198,14 +198,14 @@ export function InvoiceList({ rows }: { rows: InvoiceRow[] }) {
                   ) : null}
                   {r.ncf ? <p className="text-[10px] text-muted-foreground">NCF {r.ncf}</p> : null}
                 </TableCell>
-                <TableCell className="text-sm">{r.clientName ?? "—"}</TableCell>
+                <TableCell className="text-sm">{r.clientName ?? "-"}</TableCell>
                 <TableCell className="font-mono text-[11px]">
                   {r.caseCode ? (
                     <Link href={`/casos/${r.caseId}`} className="hover:underline">
                       {r.caseCode}
                     </Link>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">

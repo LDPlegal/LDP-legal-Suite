@@ -1,6 +1,6 @@
 "use client";
 
-// Post 01 — Presentación (1080×1350).
+// Post 01, Presentación (1080×1350).
 
 import { renderRichText } from "@/lib/marketing/rich-text";
 import {

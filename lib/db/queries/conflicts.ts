@@ -1,6 +1,6 @@
 // lib/db/queries/conflicts.ts
 //
-// Conflict check (§ 9.6) — UI lands in Fase 4 but the underlying columns and
+// Conflict check (§ 9.6), UI lands in Fase 4 but the underlying columns and
 // indexes have been there since Fase 0:
 //   - clients.tax_id  (clients_firm_tax_id_idx)
 //   - cases.counterparty_tax_id  (cases_firm_counterparty_tax_idx)
@@ -24,7 +24,7 @@ export type { ConflictHit, ConflictKind, ConflictReport } from "@/lib/conflictos
 export { CONFLICT_KIND_LABEL } from "@/lib/conflictos/types";
 
 // Normalize a tax id to digits only so "130-12345-6", "13012345-6" and
-// "13012345 6" all match. Returns "" for empty input — callers should treat
+// "13012345 6" all match. Returns "" for empty input, callers should treat
 // empty as "no signal", not "match all".
 export function normalizeTaxId(input: string | null | undefined): string {
   return (input ?? "").replace(/\D+/gu, "");
@@ -60,7 +60,7 @@ export async function checkConflicts(
     // Strong signal: tax_id matches
     // -------------------------------------------------------------------------
     if (taxIdDigits) {
-      // Match against clients.tax_id — uses clients_firm_tax_id_idx.
+      // Match against clients.tax_id, uses clients_firm_tax_id_idx.
       const clientRows = await tx
         .select({
           id: clients.id,
@@ -91,7 +91,7 @@ export async function checkConflicts(
         });
       }
 
-      // Match against cases.counterparty_tax_id — uses cases_firm_counterparty_tax_idx.
+      // Match against cases.counterparty_tax_id, uses cases_firm_counterparty_tax_idx.
       const caseRows = await tx
         .select({
           id: cases.id,
@@ -135,7 +135,7 @@ export async function checkConflicts(
           kind: "counterparty_taxid",
           refId: c.id,
           refType: "case",
-          label: `${c.code} — ${c.title}`,
+          label: `${c.code}, ${c.title}`,
           detail: `Contraparte: ${c.counterpartyName ?? "(sin nombre)"} · estado ${c.status}`,
           involvedLawyers: lawyerByCase.get(c.id) ?? [],
         });
@@ -144,10 +144,10 @@ export async function checkConflicts(
 
     // -------------------------------------------------------------------------
     // Match por nombre: DESACTIVADO por feedback (genera demasiados falsos
-    // positivos — "Juan Pérez" matchea con cualquier Juan o cualquier Pérez).
+    // positivos, "Juan Pérez" matchea con cualquier Juan o cualquier Pérez).
     // El conflict check ahora solo dispara con tax_id que coincida (señal
     // fuerte). Si vuelve a interesar el match por nombre, hay que hacerlo
-    // con un algoritmo más serio (token-set ratio, threshold > 80) — el
+    // con un algoritmo más serio (token-set ratio, threshold > 80), el
     // ILIKE substring que tenía antes era ruido puro.
     // -------------------------------------------------------------------------
 

@@ -39,7 +39,7 @@ export function CaseFolderBrowser({
   const scope: FolderScope = { kind: "case", caseId };
 
   // Los botones de subir/carpeta ahora viven en el header del tab (junto al
-  // buscador), no acá — se pasan desde page.tsx a CaseDocumentsView.
+  // buscador), no acá, se pasan desde page.tsx a CaseDocumentsView.
   return (
     <div className="space-y-4">
       <FolderBrowser

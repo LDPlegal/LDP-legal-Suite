@@ -1,6 +1,6 @@
 "use client";
 
-// Story 01 — Presentación (1080×1920). Versión vertical.
+// Story 01, Presentación (1080×1920). Versión vertical.
 
 import { renderRichText } from "@/lib/marketing/rich-text";
 import {
@@ -29,7 +29,7 @@ export function StoryPresentacion({ values }: Props) {
 
   return (
     <PhotoBg photo={photo}>
-      {/* Wordmark superior — más generoso por la altura extra */}
+      {/* Wordmark superior, más generoso por la altura extra */}
       <div className="absolute left-0 right-0 flex flex-col items-center" style={{ paddingTop: 200 }}>
         <div
           style={{

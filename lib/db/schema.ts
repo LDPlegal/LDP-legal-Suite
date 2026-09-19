@@ -93,7 +93,7 @@ export const caseAssignmentRoleEnum = pgEnum("case_assignment_role", [
 ]);
 
 // =============================================================================
-// firms — root tenant entity
+// firms, root tenant entity
 // =============================================================================
 
 export const firms = pgTable(
@@ -117,7 +117,7 @@ export const firms = pgTable(
 );
 
 // =============================================================================
-// users — domain users + better-auth user mapping
+// users, domain users + better-auth user mapping
 // =============================================================================
 // Naming note: better-auth defaults to a "user" table; we configure better-auth
 // to use our domain "users" table via the modelName option. password_hash lives
@@ -137,7 +137,7 @@ export const users = pgTable(
     role: userRoleEnum("role").notNull().default("lawyer"),
     hourlyRate: decimal("hourly_rate", { precision: 12, scale: 2 }),
     image: text("image"), // avatar (better-auth uses `image` by convention)
-    // iCal subscription token (Fase 4.3) — opaque random string used by
+    // iCal subscription token (Fase 4.3), opaque random string used by
     // Outlook/Google to subscribe to /api/calendario/feed/<token>.ics. Null
     // until the user opts in; can be rotated with regenerate.
     icalToken: text("ical_token"),
@@ -177,7 +177,7 @@ export const users = pgTable(
   },
   (t) => [
     index("users_firm_id_idx").on(t.firmId),
-    // Compound unique (firm_id, email) — same email may exist across firms,
+    // Compound unique (firm_id, email), same email may exist across firms,
     // partial on deleted_at IS NULL so soft-deleted users free their email.
     uniqueIndex("users_firm_email_unique")
       .on(t.firmId, t.email)
@@ -196,7 +196,7 @@ export const users = pgTable(
 // better-auth auxiliary tables: sessions, accounts, verifications
 // =============================================================================
 // These are managed by better-auth. They reference `users.id` but have no
-// `firm_id` of their own — RLS for these tables joins via users (see RLS
+// `firm_id` of their own, RLS for these tables joins via users (see RLS
 // migration). Only better-auth touches them; never query directly from
 // domain code. better-auth uses the admin connection (DATABASE_MIGRATE_URL)
 // to bypass RLS during signin/signup, which is documented in DECISIONS.md.
@@ -271,7 +271,7 @@ export const clients = pgTable(
     phone: text("phone"),
     address: text("address"),
     billingAddress: text("billing_address"),
-    // Registro Mercantil (RM) — número del registro en la Cámara de Comercio
+    // Registro Mercantil (RM), número del registro en la Cámara de Comercio
     // y Producción correspondiente. Opcional; sólo aplica a personas
     // jurídicas (type='corporate') pero no se restringe en schema porque
     // un cliente podría reclasificar y queremos preservar el histórico.
@@ -303,7 +303,7 @@ export const cases = pgTable(
       .references(() => firms.id, { onDelete: "cascade" }),
     code: text("code").notNull(), // e.g. "2026-CIV-014"
     title: text("title").notNull(),
-    // Expedientes vinculados: un caso puede colgar de otro (máx. 1 nivel — un expediente vinculado no
+    // Expedientes vinculados: un caso puede colgar de otro (máx. 1 nivel, un expediente vinculado no
     // puede tener hijos; se valida en createCase). El código del hijo se
     // deriva del padre: "2026-CIV-014-01".
     parentCaseId: uuid("parent_case_id").references((): AnyPgColumn => cases.id, {
@@ -323,7 +323,7 @@ export const cases = pgTable(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     leadLawyerId: uuid("lead_lawyer_id").references(() => users.id, { onDelete: "set null" }),
     billingMode: billingModeEnum("billing_mode").notNull().default("hourly"),
-    // DEPRECATED — los honorarios ahora viven en la tabla case_fees con
+    // DEPRECATED, los honorarios ahora viven en la tabla case_fees con
     // soporte multi-moneda. Estas columnas quedan por compat con código que
     // pueda leerlas, pero el código nuevo NO debe escribir acá. Se dropearán
     // en una migración posterior cuando confirmemos que nada las usa.
@@ -354,7 +354,7 @@ export const cases = pgTable(
     index("cases_firm_client_idx").on(t.firmId, t.clientId),
     index("cases_firm_status_idx").on(t.firmId, t.status),
     index("cases_firm_lead_idx").on(t.firmId, t.leadLawyerId),
-    // Conflict-check support (§ 9.6) — UI ships in Fase 4, but the index is
+    // Conflict-check support (§ 9.6), UI ships in Fase 4, but the index is
     // here from day 1 so historical data is queryable when that ships.
     index("cases_firm_counterparty_tax_idx").on(t.firmId, t.counterpartyTaxId),
     index("cases_parent_case_idx")
@@ -364,7 +364,7 @@ export const cases = pgTable(
 );
 
 // =============================================================================
-// case_assignments — source of truth for case-level authorization (§ 9.2)
+// case_assignments, source of truth for case-level authorization (§ 9.2)
 // =============================================================================
 
 export const caseAssignments = pgTable(
@@ -387,7 +387,7 @@ export const caseAssignments = pgTable(
 );
 
 // =============================================================================
-// case_fees — honorarios del caso (multi-honorarios + multi-moneda)
+// case_fees, honorarios del caso (multi-honorarios + multi-moneda)
 // =============================================================================
 // Cada caso puede tener N honorarios. Cada uno tiene su tipo, descripción
 // libre, monto y moneda. Permite mezclar: una tarifa plana en DOP + una
@@ -405,10 +405,10 @@ export const caseFees = pgTable(
       .references(() => cases.id, { onDelete: "cascade" }),
     feeType: caseFeeTypeEnum("fee_type").notNull(),
     description: text("description"),
-    /** Monto en dólares. Nullable — puede ser solo en pesos.
+    /** Monto en dólares. Nullable, puede ser solo en pesos.
      *  CHECK constraint a nivel DB: amount_usd o amount_dop debe ser != NULL. */
     amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }),
-    /** Monto en pesos dominicanos. Nullable — puede ser solo en dólares. */
+    /** Monto en pesos dominicanos. Nullable, puede ser solo en dólares. */
     amountDop: decimal("amount_dop", { precision: 14, scale: 2 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -423,7 +423,7 @@ export type CaseFee = typeof caseFees.$inferSelect;
 export type NewCaseFee = typeof caseFees.$inferInsert;
 
 // =============================================================================
-// case_counters — race-safe sequential generator for case codes (Trampa #7)
+// case_counters, race-safe sequential generator for case codes (Trampa #7)
 // =============================================================================
 // Atomic INSERT ... ON CONFLICT ... DO UPDATE ... RETURNING last_seq is the
 // pattern that makes code generation safe under concurrent inserts.
@@ -527,7 +527,7 @@ export const caseAssignmentsRelations = relations(caseAssignments, ({ one }) => 
 }));
 
 // =============================================================================
-// Inferred types — use these in app code, not raw inserts.
+// Inferred types, use these in app code, not raw inserts.
 // =============================================================================
 
 export type Firm = typeof firms.$inferSelect;
@@ -549,7 +549,7 @@ export type Session = typeof sessions.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 
 // =============================================================================
-// FASE 1 — Tiempos · Tareas · Calendario · Gastos
+// FASE 1, Tiempos · Tareas · Calendario · Gastos
 // =============================================================================
 
 // ----- Enums ---------------------------------------------------------------
@@ -581,11 +581,11 @@ export const expenseStatusEnum = pgEnum("expense_status", [
 ]);
 
 // =============================================================================
-// active_timers — server-side persistent timer (§ 9.4)
+// active_timers, server-side persistent timer (§ 9.4)
 // =============================================================================
 // One timer max per user (PK on user_id). Heartbeat updates last_heartbeat_at;
 // if it falls > 15min behind we treat the timer as stale and offer the user
-// to recover or discard. Opening a new tab queries this table — same timer
+// to recover or discard. Opening a new tab queries this table, same timer
 // appears, no duplication.
 // =============================================================================
 
@@ -614,13 +614,13 @@ export const activeTimers = pgTable(
 );
 
 // =============================================================================
-// time_entries — billable / non-billable time logged against a case
+// time_entries, billable / non-billable time logged against a case
 // =============================================================================
 // duration_seconds is computed at write time from started_at / ended_at and
 // stored explicitly so reports don't recompute on every read.
 // hourly_rate_snapshot freezes the rate at billing time; if the user's rate
 // changes later, already-approved entries don't re-price.
-// invoice_id is uuid (no FK yet) — Fase 2 will add the FK to invoices table.
+// invoice_id is uuid (no FK yet), Fase 2 will add the FK to invoices table.
 // =============================================================================
 
 export const timeEntries = pgTable(
@@ -660,7 +660,7 @@ export const timeEntries = pgTable(
 );
 
 // =============================================================================
-// tasks — case-scoped or firm-wide
+// tasks, case-scoped or firm-wide
 // =============================================================================
 // case_id is nullable: a task with case_id NULL is a firm-wide task (e.g.,
 // internal admin work). When case_id is set, RLS enforces inheritance of the
@@ -697,11 +697,11 @@ export const tasks = pgTable(
 );
 
 // =============================================================================
-// events — calendar entries
+// events, calendar entries
 // =============================================================================
 // Like tasks, case_id is nullable for firm-wide events. attendees is an
 // array of user_ids; when a user is in attendees we surface the event in
-// their personal feed. ical_uid is the UID for .ics export — generated on
+// their personal feed. ical_uid is the UID for .ics export, generated on
 // create and immutable so re-exports stay stable for external calendars.
 // =============================================================================
 
@@ -776,7 +776,7 @@ export const events = pgTable(
 );
 
 // =============================================================================
-// event_alerts — scheduled reminders (email/inapp) per event
+// event_alerts, scheduled reminders (email/inapp) per event
 // =============================================================================
 // One row per offset. The background cron job (lib/events/alerts.ts)
 // fetches due rows where sent_at IS NULL AND now() >= due_at and emits the
@@ -811,7 +811,7 @@ export const eventAlerts = pgTable(
 export type EventAlert = typeof eventAlerts.$inferSelect;
 
 // =============================================================================
-// external_calendar_subscriptions — iCal feeds the user wants to ingest
+// external_calendar_subscriptions, iCal feeds the user wants to ingest
 // =============================================================================
 // User pastes an .ics URL (Outlook share / Google calendar URL / a colleague's
 // LDP feed); on demand or on schedule we fetch and upsert into events with
@@ -845,9 +845,9 @@ export const externalCalendarSubscriptions = pgTable(
 export type ExternalCalendarSubscription = typeof externalCalendarSubscriptions.$inferSelect;
 
 // =============================================================================
-// expenses — case expenses (always case-scoped per maestro)
+// expenses, case expenses (always case-scoped per maestro)
 // =============================================================================
-// receipt_url is just text in Fase 1 (no upload UI yet — Fase 2). currency
+// receipt_url is just text in Fase 1 (no upload UI yet, Fase 2). currency
 // defaults to firm.default_currency at create time but stored explicitly so
 // historical reports stay correct if firm currency changes.
 // =============================================================================
@@ -961,7 +961,7 @@ export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 
 // =============================================================================
-// FASE 2 — Documentos · Notas · Facturación · OCR
+// FASE 2, Documentos · Notas · Facturación · OCR
 // =============================================================================
 
 // ----- Enums F2 -------------------------------------------------------------
@@ -971,7 +971,7 @@ export const documentOcrStatusEnum = pgEnum("document_ocr_status", [
   "processing", // worker is running OCR
   "done", // ocr_text is populated
   "failed", // OCR failed (network, parsing, etc.)
-  "skipped", // file too large or non-OCRable mime type — see DECISIONS.md F2
+  "skipped", // file too large or non-OCRable mime type, see DECISIONS.md F2
 ]);
 
 export const invoiceStatusEnum = pgEnum("invoice_status", [
@@ -984,10 +984,10 @@ export const invoiceStatusEnum = pgEnum("invoice_status", [
 ]);
 
 // NCF / e-CF types per DGII (RD). § 9.3 of the maestro.
-//   B01 — comprobante de crédito fiscal (paper)
-//   B02 — comprobante de consumidor final (paper)
-//   E31 — e-CF crédito fiscal (electrónico)
-//   E32 — e-CF consumidor final (electrónico)
+//   B01, comprobante de crédito fiscal (paper)
+//   B02, comprobante de consumidor final (paper)
+//   E31, e-CF crédito fiscal (electrónico)
+//   E32, e-CF consumidor final (electrónico)
 export const ncfTypeEnum = pgEnum("ncf_type", ["B01", "B02", "E31", "E32"]);
 
 export const invoiceItemSourceEnum = pgEnum("invoice_item_source", [
@@ -1005,17 +1005,17 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 ]);
 
 // =============================================================================
-// documents — files attached to a case (or client, or firm-wide)
+// documents, files attached to a case (or client, or firm-wide)
 // =============================================================================
 // version + parent_document_id form a simple version chain: uploading a new
 // version of a file points to its parent. v1 has parent NULL. There is no
-// diff yet — that's a Fase 3 enhancement.
+// diff yet, that's a Fase 3 enhancement.
 // ocr_text is filled by the OCR worker; until then it's NULL and ocr_status
 // reflects the state. Search joins `documents.ocr_text` once it's populated.
 // =============================================================================
 
 // =============================================================================
-// folders — organización tipo explorador de archivos (jerarquía ilimitada)
+// folders, organización tipo explorador de archivos (jerarquía ilimitada)
 // =============================================================================
 // Una firma puede tener carpetas a nivel global (case_id=null, client_id=null)
 // y a nivel de caso (case_id NOT NULL). El parent_folder_id es self-FK; null
@@ -1034,7 +1034,7 @@ export const folders = pgTable(
     firmId: uuid("firm_id")
       .notNull()
       .references(() => firms.id, { onDelete: "cascade" }),
-    // Scope opcional — case_id NOT NULL → carpeta dentro del caso.
+    // Scope opcional, case_id NOT NULL → carpeta dentro del caso.
     // case_id NULL y client_id NULL → carpeta global del firm.
     caseId: uuid("case_id").references(() => cases.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
@@ -1044,7 +1044,7 @@ export const folders = pgTable(
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "cascade" }),
     parentFolderId: uuid("parent_folder_id"), // self-FK, declarada en SQL para evitar circularidad
     name: text("name").notNull(),
-    // Path materializada — "/Demandas/2026/Caso-X". Se reconstruye al mover.
+    // Path materializada, "/Demandas/2026/Caso-X". Se reconstruye al mover.
     // Útil para buscar por path y para el breadcrumb sin recursión.
     path: text("path").notNull().default("/"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -1091,12 +1091,12 @@ export const documents = pgTable(
     ocrText: text("ocr_text"),
     ocrStatus: documentOcrStatusEnum("ocr_status").notNull().default("pending"),
     // Portal Cliente (Fase 4): when true, this document is visible to the
-    // client in /portal/documentos. Default false — internal docs (drafts,
+    // client in /portal/documentos. Default false, internal docs (drafts,
     // working notes, lawyer-prep material) stay hidden until explicitly
     // shared by an admin/partner/lawyer.
     sharedWithClient: boolean("shared_with_client").notNull().default(false),
     // Fase 13: visibilidad INTERNA. 'case' = todo el equipo del caso/firm lo
-    // ve (default). 'private' = solo el uploaded_by — trabajo individual
+    // ve (default). 'private' = solo el uploaded_by, trabajo individual
     // (borradores, notas personales) que no es para todos.
     visibility: text("visibility").$type<"case" | "private">().notNull().default("case"),
     // Caché del Markdown reestructurado por IA (preview de DOCX/escaneos).
@@ -1145,7 +1145,7 @@ export const documents = pgTable(
 );
 
 // =============================================================================
-// rate_limits — sliding-window rate limiting for API endpoints (Fase 6+)
+// rate_limits, sliding-window rate limiting for API endpoints (Fase 6+)
 // =============================================================================
 // Single-row-per-key tracking. checkRateLimit() upserts atomically, resetting
 // the window when expired. Keys are app-defined strings like
@@ -1164,7 +1164,7 @@ export const rateLimits = pgTable("rate_limits", {
 export type RateLimit = typeof rateLimits.$inferSelect;
 
 // =============================================================================
-// notes — Tiptap richtext per case (jsonb document model)
+// notes, Tiptap richtext per case (jsonb document model)
 // =============================================================================
 
 export const notes = pgTable(
@@ -1305,7 +1305,7 @@ export const payments = pgTable(
   ],
 );
 
-// invoice_counters — atomic per (firm_id, year) for INV-YYYY-NNN. Same race-safe
+// invoice_counters, atomic per (firm_id, year) for INV-YYYY-NNN. Same race-safe
 // pattern as case_counters from Fase 0.
 export const invoiceCounters = pgTable(
   "invoice_counters",
@@ -1335,7 +1335,7 @@ export const proformaCounters = pgTable(
   (t) => [uniqueIndex("proforma_counters_pk").on(t.firmId, t.year)],
 );
 
-// ncf_counters — separate counter per (firm_id, ncf_type) for fiscal mode.
+// ncf_counters, separate counter per (firm_id, ncf_type) for fiscal mode.
 // In modo interno this stays empty. Documented in DECISIONS.md F2.3.
 export const ncfCounters = pgTable(
   "ncf_counters",
@@ -1428,7 +1428,7 @@ export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
 
 // =============================================================================
-// FASE 3 — Bitácora (audit_log)
+// FASE 3, Bitácora (audit_log)
 // =============================================================================
 // Cada cambio relevante (crear/editar/eliminar/aprobar/enviar/pagar/anular/
 // subir/iniciar-timer/detener-timer) se registra para auditoría. Usado por:
@@ -1491,7 +1491,7 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type NewAuditLog = typeof auditLog.$inferInsert;
 
 // =============================================================================
-// matter_templates — plantillas para autopoblar tareas/eventos al crear un caso
+// matter_templates, plantillas para autopoblar tareas/eventos al crear un caso
 // =============================================================================
 // Each row is a "type of case" preset. When a partner creates a case and picks
 // a template, we copy the entries in defaultTasks/defaultEvents into the
@@ -1546,14 +1546,14 @@ export type MatterTemplate = typeof matterTemplates.$inferSelect;
 export type NewMatterTemplate = typeof matterTemplates.$inferInsert;
 
 // =============================================================================
-// rates — tarifas con override por user / matter / cliente
+// rates, tarifas con override por user / matter / cliente
 // =============================================================================
 // Lookup precedence (most specific wins):
 //   1. (user, client)
 //   2. (user, matter)
 //   3. (user)
 //   4. fallback to users.hourly_rate
-// All NULL means "applies to anyone in this firm" — a firm-wide default.
+// All NULL means "applies to anyone in this firm", a firm-wide default.
 // validFrom/validTo carve historical periods so old time entries keep their
 // rate even when current rates change.
 
@@ -1590,7 +1590,7 @@ export type Rate = typeof rates.$inferSelect;
 export type NewRate = typeof rates.$inferInsert;
 
 // =============================================================================
-// ai_usage — cost tracking of every Claude call (Fase 6)
+// ai_usage, cost tracking of every Claude call (Fase 6)
 // =============================================================================
 // One row per LLM request. We persist input/output tokens so the admin can
 // see consumption breakdown by feature and by user in /reportes. Cost is
@@ -1640,7 +1640,7 @@ export type AiUsage = typeof aiUsage.$inferSelect;
 export type NewAiUsage = typeof aiUsage.$inferInsert;
 
 // =============================================================================
-// notifications — in-app inbox per user (Fase 6)
+// notifications, in-app inbox per user (Fase 6)
 // =============================================================================
 
 export const notifications = pgTable(
@@ -1670,7 +1670,7 @@ export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 
 // =============================================================================
-// matter_chats — per-case persistent chat history (F7 — Gabriel spec)
+// matter_chats, per-case persistent chat history (F7, Gabriel spec)
 // =============================================================================
 // Each row is one message in the chat panel inside /casos/[id]. Messages
 // persist across users + sessions so when Marc opens the chat today he sees
@@ -1723,7 +1723,7 @@ export type MatterChat = typeof matterChats.$inferSelect;
 export type NewMatterChat = typeof matterChats.$inferInsert;
 
 // =============================================================================
-// matter_contexts — incremental narrative summary per case (cost optimization)
+// matter_contexts, incremental narrative summary per case (cost optimization)
 // =============================================================================
 // Instead of sending the 47 documents + events + notes + timesheet of a case
 // in every chat request, we maintain a narrative summary that the LLM
@@ -1731,7 +1731,7 @@ export type NewMatterChat = typeof matterChats.$inferInsert;
 // when it actually needs the full content of one.
 //
 // One row per case (unique). Updated by a background job when the matter
-// changes (new doc uploaded, new event, etc.) — debounced.
+// changes (new doc uploaded, new event, etc.), debounced.
 
 export const matterContexts = pgTable(
   "matter_contexts",
@@ -1769,11 +1769,11 @@ export const matterContexts = pgTable(
 export type MatterContext = typeof matterContexts.$inferSelect;
 
 // =============================================================================
-// two_factors — TOTP secret + backup codes (F7 bloque 4, 2FA)
+// two_factors, TOTP secret + backup codes (F7 bloque 4, 2FA)
 // =============================================================================
 // Managed entirely by better-auth's twoFactor plugin. We declare the table
 // here so Drizzle's introspection sees it, but app code should NOT touch it
-// — go through auth.api.enableTwoFactor / verifyTotp / etc. The secret +
+// go through auth.api.enableTwoFactor / verifyTotp / etc. The secret +
 // backup codes are encrypted at rest by better-auth before persisting.
 
 export const twoFactors = pgTable(
@@ -1797,7 +1797,7 @@ export const twoFactors = pgTable(
 export type TwoFactor = typeof twoFactors.$inferSelect;
 
 // =============================================================================
-// ai_suggestions — bandeja proactiva de sugerencias generadas por la IA
+// ai_suggestions, bandeja proactiva de sugerencias generadas por la IA
 // =============================================================================
 // El worker NLP (lib/ai/suggestions.ts) escanea periódicamente cada firm y
 // produce sugerencias accionables ("caso sin movimiento 21 días", "borrador
@@ -1854,7 +1854,7 @@ export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 export type NewAiSuggestion = typeof aiSuggestions.$inferInsert;
 
 // =============================================================================
-// user_muted_suggestion_kinds — el usuario silenció un tipo de sugerencia
+// user_muted_suggestion_kinds, el usuario silenció un tipo de sugerencia
 // =============================================================================
 
 export const userMutedSuggestionKinds = pgTable(
@@ -1875,7 +1875,7 @@ export const userMutedSuggestionKinds = pgTable(
 );
 
 // =============================================================================
-// user_email_prefs — el usuario ACTIVÓ recibir por correo un tipo de
+// user_email_prefs, el usuario ACTIVÓ recibir por correo un tipo de
 // notificación. Opt-in: la presencia de la fila = email activado para ese
 // `kind`. Sin fila = no se envía correo (la notificación in-app igual entra).
 // =============================================================================
@@ -1895,7 +1895,7 @@ export const userEmailPrefs = pgTable(
 );
 
 // =============================================================================
-// calendar_integrations — OAuth tokens (Google/Microsoft) por usuario
+// calendar_integrations, OAuth tokens (Google/Microsoft) por usuario
 // =============================================================================
 // Conectar el calendario personal del socio para sync bidireccional. También
 // usado para correos (mismo OAuth, scopes adicionales). access_token y
@@ -1918,7 +1918,7 @@ export const calendarIntegrations = pgTable(
      *  errores de descifrado intermitentes en producción. */
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
-    /** Columnas legacy del cifrado anterior — quedan por audit pero el
+    /** Columnas legacy del cifrado anterior, quedan por audit pero el
      *  código nuevo no las usa. */
     accessTokenCipher: text("access_token_cipher"),
     refreshTokenCipher: text("refresh_token_cipher"),
@@ -1950,7 +1950,7 @@ export const calendarIntegrations = pgTable(
 export type CalendarIntegration = typeof calendarIntegrations.$inferSelect;
 
 // =============================================================================
-// sent_emails — correos salientes desde el chat con audit trail completo
+// sent_emails, correos salientes desde el chat con audit trail completo
 // =============================================================================
 
 export const sentEmails = pgTable(
@@ -1992,7 +1992,7 @@ export const sentEmails = pgTable(
 export type SentEmail = typeof sentEmails.$inferSelect;
 
 // =============================================================================
-// inbox_processed — correos entrantes analizados (dedupe + clasificación)
+// inbox_processed, correos entrantes analizados (dedupe + clasificación)
 // =============================================================================
 // El cuerpo del correo NO se persiste aquí. Sólo metadata + decisión. El
 // contenido completo se mantiene en el provider y se recupera vía API
@@ -2034,7 +2034,7 @@ export const inboxProcessed = pgTable(
 export type InboxProcessed = typeof inboxProcessed.$inferSelect;
 
 // =============================================================================
-// system_events — fallos silenciosos visibles (Fase 12)
+// system_events, fallos silenciosos visibles (Fase 12)
 // =============================================================================
 // Registro de eventos que antes morian en un try/catch con console.error:
 // emails que no salieron, sync de calendario fallido, Graph rechazando
@@ -2068,7 +2068,7 @@ export type SystemEvent = typeof systemEvents.$inferSelect;
 export type NewSystemEvent = typeof systemEvents.$inferInsert;
 
 // =============================================================================
-// marketing_photos — fotos custom subidas para el editor de publicaciones
+// marketing_photos, fotos custom subidas para el editor de publicaciones
 // =============================================================================
 // Cada firm sube sus propias fotos (logos del cliente, equipo nuevo, etc.).
 // Conviven con las built-in del repo (/public/marketing-photos/). El editor
@@ -2100,7 +2100,7 @@ export const marketingPhotos = pgTable(
 export type MarketingPhoto = typeof marketingPhotos.$inferSelect;
 
 // =============================================================================
-// marketing_presets — snapshots reutilizables del state de un template
+// marketing_presets, snapshots reutilizables del state de un template
 // =============================================================================
 
 export const marketingPresets = pgTable(
@@ -2130,12 +2130,12 @@ export const marketingPresets = pgTable(
 export type MarketingPreset = typeof marketingPresets.$inferSelect;
 
 // =============================================================================
-// hearing_reports — reportes de audiencia (Fase 11)
+// hearing_reports, reportes de audiencia (Fase 11)
 // =============================================================================
 // Cada reporte está atado a UN evento con event_type='audiencia'. Tiene un
 // editor rico (tiptap JSON) y un render HTML pre-calculado que se usa para
 // el email enviado a usuarios elegidos y como vista rápida en la UI.
-// UNIQUE(event_id) garantiza upsert simple — un reporte por audiencia.
+// UNIQUE(event_id) garantiza upsert simple, un reporte por audiencia.
 
 export const hearingReports = pgTable(
   "hearing_reports",
@@ -2170,7 +2170,7 @@ export type HearingReport = typeof hearingReports.$inferSelect;
 export type NewHearingReport = typeof hearingReports.$inferInsert;
 
 // =============================================================================
-// hearing_report_sends — audit de envíos por email
+// hearing_report_sends, audit de envíos por email
 // =============================================================================
 // Cada envío deja una fila con la lista de destinatarios. Permite re-enviar
 // (no es unique) y muestra en UI "Último envío: X a N personas".

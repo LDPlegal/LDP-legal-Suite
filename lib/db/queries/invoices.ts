@@ -37,7 +37,7 @@ async function nextInvoiceNumber(tx: Tx, firmId: string, year: number): Promise<
   return `INV-${year}-${row.lastSeq.toString().padStart(3, "0")}`;
 }
 
-// Contador independiente para proformas — formato PRO-2026-001.
+// Contador independiente para proformas, formato PRO-2026-001.
 async function nextProformaNumber(tx: Tx, firmId: string, year: number): Promise<string> {
   const [row] = await tx
     .insert(proformaCounters)
@@ -146,7 +146,7 @@ export type GenerateInvoiceInput = {
   clientId: string;
   // The drawer pre-builds the line items (with user edits to description /
   // qty / unit_price / tax_rate). This action no longer reads the source
-  // rows to build defaults — it just inserts the lines as given and marks
+  // rows to build defaults, it just inserts the lines as given and marks
   // the source IDs as `invoiced`.
   lines: LineInput[];
   // Source IDs to mark as `invoiced` (so they don't reappear in the next
@@ -169,7 +169,7 @@ export type GenerateInvoiceInput = {
   kind?: "standard" | "proforma";
 };
 
-// Legacy alias — kept so we don't churn imports.
+// Legacy alias, kept so we don't churn imports.
 export type GenerateFromCaseInput = GenerateInvoiceInput;
 
 export async function generateInvoiceFromCase(
@@ -188,7 +188,7 @@ export async function generateInvoiceFromCase(
 
     const isProforma = input.kind === "proforma";
 
-    // 2. Reserve number atomically — contador separado para proformas.
+    // 2. Reserve number atomically, contador separado para proformas.
     const issuedOn = new Date();
     const year = issuedOn.getUTCFullYear();
     const number = isProforma

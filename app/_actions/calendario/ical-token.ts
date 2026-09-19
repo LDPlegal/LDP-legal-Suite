@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth/session";
 import { users } from "@/lib/db/schema";
 
 // Regenerate (or initially create) the iCal feed token. Always issues a fresh
-// 32-byte hex string, even if a token already exists — that's the point: any
+// 32-byte hex string, even if a token already exists, that's the point: any
 // previous URL stops working immediately. The admin connection is used so
 // RLS doesn't gate this update; the user can only target their own row.
 export async function regenerarIcalTokenAction(): Promise<{ token: string }> {

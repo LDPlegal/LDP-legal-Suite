@@ -31,7 +31,7 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    {/* Centrar con flex en un wrapper full-screen — más robusto que
+    {/* Centrar con flex en un wrapper full-screen, más robusto que
         position:fixed + translate cuando hay ancestros con transform
         (e.g. framer-motion PageTransition). El wrapper es pointer-events-none
         y solo el contenido recibe clicks. */}
