@@ -11,9 +11,10 @@ import Image from "next/image";
 // dejaba el formulario en ~200px y era inusable entre 768 y 1024px.
 // Debajo de lg el formulario ocupa la pantalla completa.
 //
-// PENDIENTE: la foto final de los socios. El zip del handoff trae los
-// <image-slot> vacíos, así que el archivo definitivo hay que pedirlo.
-const PARTNERS_PHOTO = "/marketing-photos/oficina-grabados.jpg";
+// Foto del panel: elegida por el usuario (papelería de la firma). El zip
+// del handoff traía los <image-slot> vacíos, así que la referencia salió
+// del propio repo.
+const PARTNERS_PHOTO = "/marketing-photos/oficina-membrete.jpg";
 
 const PHOTO_MASK =
   "linear-gradient(to top, rgba(0,0,0,1) 62%, rgba(0,0,0,0.5) 88%, rgba(0,0,0,0) 100%)";
