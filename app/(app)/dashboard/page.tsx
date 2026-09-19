@@ -760,7 +760,14 @@ export default async function DashboardPage() {
             const node = nodes[w.id];
             if (!node) return null;
             return (
-              <div key={w.id} className={SPAN_CLASS[w.span]}>
+              // [&>*]:h-full estira la Card hasta el alto de la fila: los
+              // wrappers del grid ya se estiran solos, pero la Card adentro
+              // se quedaba a la altura de su contenido y dos widgets lado a
+              // lado terminaban desparejos.
+              <div
+                key={w.id}
+                className={`${SPAN_CLASS[w.span]} [&>*]:h-full [&>*]:flex [&>*]:flex-col`}
+              >
                 {node}
               </div>
             );

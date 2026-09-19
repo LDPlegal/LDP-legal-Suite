@@ -62,7 +62,14 @@ CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("px-[18px] py-[14px]", className)} {...props} />
+    <div
+      ref={ref}
+      // min-h-0 + flex-1: cuando la Card se estira (grid de widgets del
+      // dashboard), el contenido ocupa el alto sobrante en vez de dejar
+      // un hueco abajo.
+      className={cn("min-h-0 flex-1 px-[18px] py-[14px]", className)}
+      {...props}
+    />
   ),
 );
 CardContent.displayName = "CardContent";
