@@ -137,7 +137,7 @@ export function CasoFormDrawer({
             <div className="grid grid-cols-2 gap-3">
               <Field
                 label={
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex w-full items-center justify-between gap-2">
                     <span>Cliente *</span>
                     {/*
                       Trigger del form COMPLETO de cliente (mismo que /clientes).
@@ -425,7 +425,11 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      {/* min-h-8 iguala el alto de la fila de etiqueta en todos los campos.
+          Sin esto, un label con boton inline ("Cliente *" + "Nuevo cliente",
+          32px) queda mas alto que uno de solo texto (17px) y los dos
+          controles de la misma fila del grid arrancan a distinta altura. */}
+      <Label className="flex min-h-8 items-center">{label}</Label>
       {children}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
