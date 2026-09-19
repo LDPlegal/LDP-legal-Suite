@@ -766,7 +766,7 @@ export default async function DashboardPage() {
               // lado terminaban desparejos.
               <div
                 key={w.id}
-                className={`${SPAN_CLASS[w.span]} [&>*]:h-full [&>*]:flex [&>*]:flex-col`}
+                className={`${SPAN_CLASS[w.span]} [&>*]:h-full`}
               >
                 {node}
               </div>

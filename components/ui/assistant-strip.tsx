@@ -6,9 +6,11 @@
 //
 // Variante `warn` (fondo oro) cuando advierte de algo que el usuario
 // debería revisar; por defecto es neutra sobre superficie blanca.
+//
+// Sin icono: el handoff proponía un auto_awesome dorado, pero el usuario
+// pidió quitarlo.
 
 import Link from "next/link";
-import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
 export function AssistantStrip({
@@ -32,7 +34,6 @@ export function AssistantStrip({
         className,
       )}
     >
-      <Icon name="auto_awesome" size={18} className="text-[#B89254]" />
       <span className="min-w-0 flex-1">{children}</span>
       {action ? (
         <Link
