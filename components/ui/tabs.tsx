@@ -13,9 +13,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // Glass pill bar — segmented control estilo Apple.
-      "inline-flex items-center justify-start gap-0.5 rounded-xl p-1",
-      "glass text-muted-foreground",
+      // Tabs subrayadas sobre línea inferior — no segmented control.
+      "inline-flex items-center justify-start gap-5 border-b border-border",
       // Mobile-safe: si hay muchos tabs (ej. Configuración tiene 7), en vez
       // de desbordar la página el bar scrollea horizontalmente. max-w-full lo
       // confina al ancho del contenedor; el scrollbar se oculta por estética.
@@ -34,13 +33,12 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "relative inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium",
-      "transition-[color,background,box-shadow] duration-200",
+      // Activa: subrayado 2px azul de acción, texto #0B1929 peso 600.
+      "relative -mb-px inline-flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-1 pb-2.5 pt-1 text-[13.5px] font-medium text-muted-foreground",
+      "transition-colors duration-150 ease-out",
       "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       "disabled:pointer-events-none disabled:opacity-50",
-      "data-[state=active]:bg-[var(--glass-bg-strong)] data-[state=active]:text-foreground",
-      "data-[state=active]:shadow-[0_1px_2px_rgba(11,25,41,0.06),inset_0_1px_0_rgba(255,255,255,0.5)]",
-      "dark:data-[state=active]:shadow-[0_1px_2px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)]",
+      "data-[state=active]:border-[#0F4C81] data-[state=active]:font-semibold data-[state=active]:text-foreground",
       className,
     )}
     {...props}

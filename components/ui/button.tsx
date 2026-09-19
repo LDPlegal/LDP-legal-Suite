@@ -3,31 +3,35 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Button system — refinado con press animation, sombras suaves, y
-// transiciones cubicas Apple-ish. Mantiene el azul LDP en `default`.
+// Button system — plano. Sin gradientes, sin sombras, sin radio en el CTA
+// marino. Solo transiciones de color de 140ms.
+//   default     → CTA marino #0B2239 (radio 0)
+//   action      → CTA azul de acción #0F4C81 (radio 0)
+//   outline     → borde #DFE0DC sobre blanco
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium press transition-[background,color,box-shadow,opacity] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4 [&_svg]:shrink-0 select-none",
+  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        // Primary: gradient sutil navy → más claro (luz catch arriba)
         default:
-          "text-primary-foreground shadow-[0_1px_2px_rgba(11,25,41,0.20),inset_0_1px_0_rgba(255,255,255,0.18)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--primary)_100%,white_8%),var(--primary))] hover:brightness-110 active:brightness-95",
+          "rounded-none bg-primary text-primary-foreground hover:bg-primary/90",
+        action:
+          "rounded-none bg-[#0F4C81] text-white hover:bg-[#0A3A63]",
         destructive:
-          "text-destructive-foreground shadow-[0_1px_2px_rgba(11,25,41,0.20),inset_0_1px_0_rgba(255,255,255,0.18)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--destructive)_100%,white_8%),var(--destructive))] hover:brightness-110 active:brightness-95",
+          "rounded-none bg-[#B4462E] text-white hover:bg-[#9A3A25]",
         outline:
-          "border border-border bg-[var(--glass-bg)] backdrop-blur-md text-foreground shadow-[0_1px_2px_rgba(11,25,41,0.04),inset_0_1px_0_rgba(255,255,255,0.5)] hover:bg-accent/60 hover:text-accent-foreground",
+          "rounded-[3px] border border-border bg-card text-foreground hover:bg-secondary",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-[0_1px_2px_rgba(11,25,41,0.04),inset_0_1px_0_rgba(255,255,255,0.4)] hover:bg-secondary/80",
+          "rounded-[3px] bg-secondary text-foreground hover:bg-muted",
         ghost:
-          "text-foreground hover:bg-accent/60 hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline px-0",
+          "rounded-[3px] text-foreground hover:bg-accent",
+        link: "px-0 text-action underline-offset-4 hover:text-action-hover hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-11 rounded-xl px-7 text-[15px]",
-        icon: "h-9 w-9 rounded-lg",
+        sm: "h-8 px-3 text-xs",
+        lg: "h-11 px-7 text-[15px]",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

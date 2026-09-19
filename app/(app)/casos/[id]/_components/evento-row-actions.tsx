@@ -10,7 +10,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Eye,
   Pencil,
   Trash2,
   FileText,
@@ -483,7 +482,7 @@ function ReportSection({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Reporte de audiencia
           </p>
-          <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50">
+          <Badge variant="outline" className="text-[10px] text-action border-action/30 bg-action/10">
             Tiene reporte
           </Badge>
         </div>

@@ -6,6 +6,7 @@ import { ShortcutsHelp } from "@/components/layout/shortcuts-help";
 import { IdleLogout } from "@/components/layout/idle-logout";
 import { PageTransition } from "@/components/layout/page-transition";
 import { SidebarStateProvider } from "@/components/layout/sidebar-state-context";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCurrentFirm } from "@/lib/db/queries/firms";
@@ -41,11 +42,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 paneable toda la página en mobile. El scroll horizontal real
                 que SÍ queremos (tablas anchas) vive en wrappers internos con
                 su propio overflow-x-auto. */}
-            <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6">
+            {/* pb-[74px] en móvil deja libre el alto de la tab bar fija
+                para que el último elemento de cada página no quede tapado. */}
+            <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 pb-[86px] md:p-6 md:pb-6">
               <PageTransition>{children}</PageTransition>
             </main>
           </div>
         </div>
+        <MobileTabBar />
         <ShortcutsHelp />
         <IdleLogout />
       </SidebarStateProvider>

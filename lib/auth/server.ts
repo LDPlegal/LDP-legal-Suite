@@ -20,7 +20,37 @@ import * as schema from "@/lib/db/schema";
 //     queries through withFirm.
 
 const secret = process.env.BETTER_AUTH_SECRET;
-const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
+// URL base y orígenes de confianza.
+//
+// En Vercel cada deployment de preview vive en su propia URL (VERCEL_URL /
+// VERCEL_BRANCH_URL), pero BETTER_AUTH_URL está configurada con la de
+// producción para todos los entornos. El cliente postea a
+// window.location.origin — o sea, a la URL del preview — y better-auth
+// compara ese Origin contra trustedOrigins, que por defecto es solo
+// [baseURL]. Resultado: en cualquier preview el login se rechazaba por
+// origen inválido y el usuario volvía a la pantalla de login.
+//
+// Por eso: en preview la baseURL es la del propio deployment, y los tres
+// orígenes posibles entran en trustedOrigins.
+const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+const vercelBranchUrl = process.env.VERCEL_BRANCH_URL
+  ? `https://${process.env.VERCEL_BRANCH_URL}`
+  : null;
+const configuredUrl = process.env.BETTER_AUTH_URL ?? null;
+
+const baseUrl =
+  process.env.VERCEL_ENV === "preview" && vercelUrl
+    ? vercelUrl
+    : (configuredUrl ?? vercelUrl ?? "http://localhost:3000");
+
+const trustedOrigins = [
+  ...new Set(
+    [baseUrl, configuredUrl, vercelUrl, vercelBranchUrl].filter(
+      (u): u is string => Boolean(u),
+    ),
+  ),
+];
 
 if (!secret) {
   throw new Error("BETTER_AUTH_SECRET is required in .env");
@@ -28,6 +58,7 @@ if (!secret) {
 
 export const auth = betterAuth({
   baseURL: baseUrl,
+  trustedOrigins,
   secret,
   database: drizzleAdapter(adminDb, {
     provider: "pg",

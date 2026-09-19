@@ -98,7 +98,7 @@ export function TweakSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.currentTarget.value)}
-        className="h-9 w-full rounded-lg border border-input bg-[var(--glass-bg-subtle)] backdrop-blur-sm px-3 text-sm"
+        className="h-9 w-full rounded-lg border border-input bg-[var(--glass-bg-subtle)] px-3 text-sm"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

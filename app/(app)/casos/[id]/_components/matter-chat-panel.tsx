@@ -853,7 +853,7 @@ function ToolUseCard({
     return (
       <div className="mt-3 rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-400">
+          <span className="rounded bg-warning/10 px-1.5 py-0.5 font-medium text-warning dark:text-warning">
             📅 Evento propuesto
           </span>
           <span>{inp.eventType ?? "evento"}</span>
@@ -868,7 +868,7 @@ function ToolUseCard({
         </ul>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {use.eventCreated ? (
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+            <span className="text-[11px] text-action dark:text-action">
               ✓ Evento creado · {use.eventCreated.alertCount}{" "}
               {use.eventCreated.alertCount === 1 ? "alerta programada" : "alertas programadas"}
             </span>
@@ -903,7 +903,7 @@ function ToolUseCard({
     return (
       <div className="mt-3 rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded bg-blue-500/10 px-1.5 py-0.5 font-medium text-blue-700 dark:text-blue-300">
+          <span className="rounded bg-action/10 px-1.5 py-0.5 font-medium text-action dark:text-action">
             ✏️ Reagendar evento
           </span>
           {inp.reason ? <span className="truncate">{inp.reason}</span> : null}
@@ -920,7 +920,7 @@ function ToolUseCard({
         </ul>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {use.done ? (
-            <span className="text-[11px] text-emerald-600">✓ Evento actualizado</span>
+            <span className="text-[11px] text-action">✓ Evento actualizado</span>
           ) : use.creating ? (
             <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" /> Actualizando…
@@ -941,7 +941,7 @@ function ToolUseCard({
     return (
       <div className="mt-3 rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded bg-red-500/10 px-1.5 py-0.5 font-medium text-red-700 dark:text-red-300">
+          <span className="rounded bg-destructive/10 px-1.5 py-0.5 font-medium text-destructive dark:text-destructive">
             ❌ Cancelar evento
           </span>
         </div>
@@ -950,7 +950,7 @@ function ToolUseCard({
         ) : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {use.done ? (
-            <span className="text-[11px] text-emerald-600">✓ Evento cancelado</span>
+            <span className="text-[11px] text-action">✓ Evento cancelado</span>
           ) : use.creating ? (
             <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" /> Cancelando…
@@ -989,7 +989,7 @@ function ToolUseCard({
     return (
       <div className="mt-3 rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded bg-violet-500/10 px-1.5 py-0.5 font-medium text-violet-700 dark:text-violet-300">
+          <span className="rounded bg-action/10 px-1.5 py-0.5 font-medium text-action dark:text-action">
             ✉️ Correo propuesto
           </span>
         </div>
@@ -1020,7 +1020,7 @@ function ToolUseCard({
         ) : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {use.done ? (
-            <span className="text-[11px] text-emerald-600">
+            <span className="text-[11px] text-action">
               ✓ Correo enviado · copia en tu carpeta Sent
             </span>
           ) : use.creating ? (

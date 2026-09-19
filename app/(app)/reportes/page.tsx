@@ -37,7 +37,7 @@ import {
 import { isAiEnabled } from "@/lib/ai";
 import { formatMoney, num } from "@/lib/invoicing/calculate";
 import { formatInFirmTz } from "@/lib/datetime/format";
-import { AgingChart, HoursMonthlyChart } from "./_components/charts";
+import { HoursMonthlyChart } from "./_components/charts";
 import { AlertTriangle, Hourglass, TrendingUp, TrendingDown, Briefcase } from "lucide-react";
 
 export const metadata = { title: "Reportes · LDP Legal Suite" };
@@ -181,9 +181,9 @@ export default async function ReportesPage() {
                 </CardTitle>
                 {billedDeltaPct !== null ? (
                   billedDeltaPct >= 0 ? (
-                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    <TrendingUp className="h-4 w-4 text-action" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-rose-500" />
+                    <TrendingDown className="h-4 w-4 text-destructive" />
                   )
                 ) : (
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -198,8 +198,8 @@ export default async function ReportesPage() {
                     <span
                       className={
                         billedDeltaPct >= 0
-                          ? "font-medium text-emerald-600 dark:text-emerald-400"
-                          : "font-medium text-rose-600 dark:text-rose-400"
+                          ? "font-medium text-action dark:text-action"
+                          : "font-medium text-destructive dark:text-destructive"
                       }
                     >
                       {billedDeltaPct >= 0 ? "+" : ""}
@@ -218,7 +218,7 @@ export default async function ReportesPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Trabajo sin facturar (WIP)
                 </CardTitle>
-                <Hourglass className="h-4 w-4 text-amber-500" />
+                <Hourglass className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
                 <p className="font-mono text-2xl font-semibold tabular-nums">
@@ -239,7 +239,7 @@ export default async function ReportesPage() {
                 <AlertTriangle
                   className={
                     stalledCases.length > 0
-                      ? "h-4 w-4 text-rose-500"
+                      ? "h-4 w-4 text-destructive"
                       : "h-4 w-4 text-muted-foreground"
                   }
                 />
@@ -260,7 +260,7 @@ export default async function ReportesPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Hourglass className="h-4 w-4 text-amber-500" />
+                  <Hourglass className="h-4 w-4 text-warning" />
                   Dónde está el dinero parado
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
@@ -321,7 +321,7 @@ export default async function ReportesPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertTriangle className="h-4 w-4 text-rose-500" />
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
                   Casos que necesitan atención
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
@@ -378,7 +378,7 @@ export default async function ReportesPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Briefcase className="h-4 w-4 text-blue-500" />
+                <Briefcase className="h-4 w-4 text-action" />
                 Top 5 clientes por facturación (YTD)
               </CardTitle>
             </CardHeader>
@@ -413,7 +413,7 @@ export default async function ReportesPage() {
                         <TableCell className="text-right font-mono tabular-nums text-sm">
                           {formatMoney(num(c.totalBilled))}
                         </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums text-sm text-emerald-600 dark:text-emerald-400">
+                        <TableCell className="text-right font-mono tabular-nums text-sm text-action dark:text-action">
                           {formatMoney(num(c.totalCollected))}
                         </TableCell>
                       </TableRow>
@@ -425,19 +425,14 @@ export default async function ReportesPage() {
           </Card>
         </TabsContent>
 
+        {/* Handoff 3p: tablas, no gráficos decorativos. La tabla de
+            antigüedad ya existía acá, así que se retiró el gráfico en vez
+            de duplicar los mismos datos en dos formatos. */}
         <TabsContent value="cobros" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>Pendiente por antigüedad</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AgingChart data={agingFull} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalle por bucket</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -532,7 +527,7 @@ export default async function ReportesPage() {
             <CardHeader>
               <CardTitle>Horas por mes (últimos 6)</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <HoursMonthlyChart data={hoursByMonth.map((r) => ({
                 month: r.month,
                 total: r.total_seconds / 3600,

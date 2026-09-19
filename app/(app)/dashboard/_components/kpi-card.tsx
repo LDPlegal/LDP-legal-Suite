@@ -1,26 +1,14 @@
-"use client";
-
-// KPI Card sobria — neutra, sin gradientes pastel ni glow effects. El
-// número es el protagonista. Un acento mínimo (línea brand de 2px en
-// la parte superior cuando hover) marca interactividad sin gritar.
+// KPI Card — cifra protagonista sobre superficie blanca plana.
 //
-// El icono es discreto, monocromático, no decorativo.
+// El handoff no admite animaciones de entrada ni movimiento decorativo,
+// así que se retiran la entrada con framer-motion, el contador animado y
+// la línea de gradiente en hover. El hover solo cambia color de borde.
+//
+// `color` se conserva en la API (los widgets del dashboard lo pasan) pero
+// ya no pinta nada: un solo acento por pantalla.
 
-import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  Briefcase,
-  Calendar,
-  CheckSquare,
-  Clock,
-  FileText,
-  ListChecks,
-  Receipt,
-  Sparkles,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import { AnimatedCounter } from "./animated-counter";
+import { Icon } from "@/components/ui/icon";
 
 export type KpiIconName =
   | "briefcase"
@@ -33,31 +21,20 @@ export type KpiIconName =
   | "checkSquare"
   | "sparkles";
 
-const ICON_MAP: Record<KpiIconName, LucideIcon> = {
-  briefcase: Briefcase,
-  users: Users,
-  clock: Clock,
-  receipt: Receipt,
-  calendar: Calendar,
-  listChecks: ListChecks,
-  fileText: FileText,
-  checkSquare: CheckSquare,
-  sparkles: Sparkles,
+// Equivalentes sólidos de esquinas rectas en Material Symbols Sharp.
+const ICON_MAP: Record<KpiIconName, string> = {
+  briefcase: "work",
+  users: "groups",
+  clock: "schedule",
+  receipt: "receipt_long",
+  calendar: "calendar_month",
+  listChecks: "checklist",
+  fileText: "description",
+  checkSquare: "task_alt",
+  sparkles: "auto_awesome",
 };
 
-// Color se mantiene como prop pero solo se usa para el acento sutil
-// (la línea brand del top en hover). Los KPIs son fundamentalmente
-// neutros — el color es indicativo, no decorativo.
 export type KpiColor = "blue" | "teal" | "amber" | "rose" | "violet" | "emerald";
-
-const ACCENT_LINE: Record<KpiColor, string> = {
-  blue: "from-blue-500/60 to-blue-600/60",
-  teal: "from-teal-500/60 to-teal-600/60",
-  amber: "from-amber-500/60 to-amber-600/60",
-  rose: "from-rose-500/60 to-rose-600/60",
-  violet: "from-violet-500/60 to-violet-600/60",
-  emerald: "from-emerald-500/60 to-emerald-600/60",
-};
 
 export type KpiNumeric = {
   type: "number";
@@ -75,65 +52,44 @@ export type KpiCardProps = {
   color: KpiColor;
   numeric?: KpiNumeric;
   displayValue?: string;
+  /** Se acepta por compatibilidad; ya no hay entrada escalonada. */
   delay?: number;
 };
+
+function formatNumeric(n: KpiNumeric): string {
+  const body = n.value.toLocaleString("es-DO", {
+    minimumFractionDigits: n.decimals ?? 0,
+    maximumFractionDigits: n.decimals ?? 0,
+  });
+  return `${n.prefix ?? ""}${body}${n.suffix ?? ""}`;
+}
 
 export function KpiCard({
   label,
   hint,
   href,
   iconName,
-  color,
   numeric,
   displayValue,
-  delay = 0,
 }: KpiCardProps) {
-  const Icon = ICON_MAP[iconName];
-  const accent = ACCENT_LINE[color];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.4,
-        delay,
-        ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-      }}
-    >
-      <Link href={href} className="group block">
-        <div className="relative overflow-hidden rounded-xl border border-border bg-card backdrop-blur-xl transition-colors duration-200 group-hover:border-border/80 group-hover:bg-[var(--glass-bg-strong)]">
-          {/* Acento sutil arriba — aparece solo en hover */}
-          <div
-            className={`absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r ${accent} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-            aria-hidden
-          />
-
-          <div className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                {label}
-              </p>
-              <Icon
-                className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-colors group-hover:text-foreground/70"
-                aria-hidden
-              />
-            </div>
-            <p className="mt-3 stat-number text-[30px] leading-none text-foreground">
-              {numeric ? (
-                <AnimatedCounter
-                  value={numeric.value}
-                  prefix={numeric.prefix}
-                  suffix={numeric.suffix}
-                  decimals={numeric.decimals}
-                />
-              ) : (
-                displayValue ?? "—"
-              )}
-            </p>
-            <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
+    <Link href={href} className="group block">
+      <div className="relative overflow-hidden rounded-[4px] border border-border bg-card transition-colors duration-150 ease-out group-hover:border-input">
+        <div className="p-[18px]">
+          <div className="flex items-start justify-between gap-3">
+            <p className="microlabel">{label}</p>
+            <Icon
+              name={ICON_MAP[iconName]}
+              size={18}
+              className="text-faint transition-colors group-hover:text-action"
+            />
           </div>
+          <p className="stat-number tabular mt-3 text-[30px] leading-none text-foreground">
+            {numeric ? formatNumeric(numeric) : (displayValue ?? "—")}
+          </p>
+          <p className="mt-2 text-[11.5px] text-subtle">{hint}</p>
         </div>
-      </Link>
-    </motion.div>
+      </div>
+    </Link>
   );
 }

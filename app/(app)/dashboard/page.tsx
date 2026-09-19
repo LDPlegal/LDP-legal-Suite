@@ -234,7 +234,7 @@ export default async function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Receipt className="h-4 w-4 text-rose-500" />
+              <Receipt className="h-4 w-4 text-destructive" />
               Cuentas por cobrar
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -257,7 +257,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Calendar className="h-4 w-4 text-blue-500" />
+            <Calendar className="h-4 w-4 text-action" />
             Próximos 7 días
           </CardTitle>
           <Link
@@ -290,10 +290,10 @@ export default async function DashboardPage() {
                   >
                     <Link
                       href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
-                      className="group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
-                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-blue-200/50 bg-gradient-to-br from-blue-500/10 to-blue-500/0 dark:border-blue-800/40">
-                        <span className="text-[10px] uppercase font-semibold tracking-wider text-blue-600 dark:text-blue-400">
+                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[3px] border border-border bg-secondary">
+                        <span className="text-[10px] uppercase font-semibold tracking-wider text-action dark:text-action">
                           {startAt.toLocaleDateString("es-DO", { month: "short" }).replace(".", "")}
                         </span>
                         <span className="text-lg font-semibold leading-none">
@@ -346,10 +346,10 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-emerald-500" />
+            <ListChecks className="h-4 w-4 text-action" />
             Mis tareas pendientes
             {misTareas.length > 0 ? (
-              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-action/15 px-1.5 text-[10px] font-semibold text-action dark:text-action">
                 {misTareas.length}
               </span>
             ) : null}
@@ -364,8 +364,8 @@ export default async function DashboardPage() {
         <CardContent>
           {misTareas.length === 0 ? (
             <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
-                <CheckSquare className="h-5 w-5 text-emerald-500" />
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-action/10">
+                <CheckSquare className="h-5 w-5 text-action" />
               </span>
               <p className="text-sm text-muted-foreground">
                 Sin tareas pendientes. ¡A respirar!
@@ -377,14 +377,14 @@ export default async function DashboardPage() {
                 const overdue = t.dueAt && new Date(t.dueAt).getTime() < now.getTime();
                 const priorityColor =
                   t.priority === "urgent"
-                    ? "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20"
+                    ? "text-destructive dark:text-destructive bg-destructive/10 border-destructive/20"
                     : t.priority === "high"
-                      ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20"
+                      ? "text-warning dark:text-warning bg-warning/10 border-warning/20"
                       : "text-muted-foreground bg-muted/40 border-border";
                 return (
                   <li
                     key={t.id}
-                    className="fade-in-up group flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    className="fade-in-up group flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <span
@@ -409,7 +409,7 @@ export default async function DashboardPage() {
                             <span className="opacity-50">·</span>
                             <span
                               className={
-                                overdue ? "font-medium text-rose-600 dark:text-rose-400" : ""
+                                overdue ? "font-medium text-destructive dark:text-destructive" : ""
                               }
                             >
                               {overdue ? "Vencida " : "Vence "}
@@ -437,7 +437,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Clock className="h-4 w-4 text-violet-500" />
+            <Clock className="h-4 w-4 text-action" />
             Actividad reciente
           </CardTitle>
         </CardHeader>
@@ -464,10 +464,10 @@ export default async function DashboardPage() {
                     {i < arr.length - 1 ? (
                       <span
                         aria-hidden
-                        className="absolute left-[14px] top-7 h-[calc(100%-1.5rem)] w-px bg-gradient-to-b from-border to-transparent"
+                        className="absolute left-[14px] top-7 h-[calc(100%-1.5rem)] w-px bg-border"
                       />
                     ) : null}
-                    <span className="z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,var(--color-brand-500),var(--color-brand-700))] text-[10px] font-semibold text-white ring-2 ring-background">
+                    <span className="z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground ring-2 ring-background">
                       {initials}
                     </span>
                     <div className="min-w-0 flex-1 leading-tight">
@@ -499,7 +499,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Briefcase className="h-4 w-4 text-blue-500" />
+            <Briefcase className="h-4 w-4 text-action" />
             Casos recientes
           </CardTitle>
           <Link
@@ -527,7 +527,7 @@ export default async function DashboardPage() {
                 >
                   <Link
                     href={`/casos/${c.id}`}
-                    className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                    className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{c.title}</p>
@@ -558,7 +558,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Calendar className="h-4 w-4 text-blue-500" />
+            <Calendar className="h-4 w-4 text-action" />
             Agenda de hoy
           </CardTitle>
           <Link
@@ -584,9 +584,9 @@ export default async function DashboardPage() {
                   <li key={e.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <Link
                       href={e.caseId ? `/casos/${e.caseId}` : "/calendario"}
-                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
-                      <span className="shrink-0 rounded-lg border border-blue-200/50 bg-blue-500/10 px-2 py-1 font-mono text-xs font-semibold text-blue-600 dark:border-blue-800/40 dark:text-blue-400">
+                      <span className="shrink-0 rounded-lg border border-action/50 bg-action/10 px-2 py-1 font-mono text-xs font-semibold text-action dark:border-action/40 dark:text-action">
                         {startAt.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -613,10 +613,10 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Receipt className="h-4 w-4 text-rose-500" />
+            <Receipt className="h-4 w-4 text-destructive" />
             Facturas vencidas
             {facturasVencidas.length > 0 ? (
-              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500/15 px-1.5 text-[10px] font-semibold text-rose-700 dark:text-rose-400">
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive/15 px-1.5 text-[10px] font-semibold text-destructive dark:text-destructive">
                 {facturasVencidas.length}
               </span>
             ) : null}
@@ -631,8 +631,8 @@ export default async function DashboardPage() {
         <CardContent>
           {facturasVencidas.length === 0 ? (
             <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
-                <Receipt className="h-5 w-5 text-emerald-500" />
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-action/10">
+                <Receipt className="h-5 w-5 text-action" />
               </span>
               <p className="text-sm text-muted-foreground">Sin facturas vencidas. 👌</p>
             </div>
@@ -644,14 +644,14 @@ export default async function DashboardPage() {
                   <li key={f.id} className="fade-in-up" style={{ animationDelay: `${idx * 50}ms` }}>
                     <Link
                       href={`/facturacion/${f.id}`}
-                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                      className="group flex items-center gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           <span className="font-mono">{f.number}</span>
                           {f.clientName ? ` · ${f.clientName}` : ""}
                         </p>
-                        <p className="text-xs text-rose-600 dark:text-rose-400">
+                        <p className="text-xs text-destructive dark:text-destructive">
                           Vencida hace {dias} {dias === 1 ? "día" : "días"}
                         </p>
                       </div>
@@ -671,7 +671,7 @@ export default async function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-emerald-500" />
+            <ListChecks className="h-4 w-4 text-action" />
             Tareas del equipo
           </CardTitle>
           <Link
@@ -684,8 +684,8 @@ export default async function DashboardPage() {
         <CardContent>
           {tareasEquipo.length === 0 ? (
             <div className="flex h-[160px] flex-col items-center justify-center gap-2 text-center">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-emerald-500/10">
-                <CheckSquare className="h-5 w-5 text-emerald-500" />
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-action/10">
+                <CheckSquare className="h-5 w-5 text-action" />
               </span>
               <p className="text-sm text-muted-foreground">Sin tareas pendientes en la firma.</p>
             </div>
@@ -694,7 +694,7 @@ export default async function DashboardPage() {
               {tareasEquipo.map((t, idx) => (
                 <li
                   key={t.id}
-                  className="fade-in-up flex items-start gap-3 rounded-xl border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
+                  className="fade-in-up flex items-start gap-3 rounded-[3px] border border-transparent p-2.5 transition-all hover:border-border hover:bg-accent/40"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="min-w-0 flex-1">

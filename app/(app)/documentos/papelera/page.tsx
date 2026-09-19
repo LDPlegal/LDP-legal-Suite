@@ -77,7 +77,7 @@ export default async function PapeleraPage() {
                     className="flex flex-wrap items-center justify-between gap-3 p-3"
                   >
                     <div className="flex min-w-0 items-center gap-2">
-                      <FolderIcon className="h-4 w-4 shrink-0 text-amber-500" />
+                      <FolderIcon className="h-4 w-4 shrink-0 text-warning" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{f.name}</p>
                         <p className="text-xs text-muted-foreground">

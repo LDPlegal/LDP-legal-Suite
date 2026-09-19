@@ -90,7 +90,7 @@ export function DocumentGlobalRow({
             </WithTooltip>
           ) : null}
           {doc.sharedWithClient ? (
-            <Eye className="h-3.5 w-3.5 text-emerald-600" aria-label="Compartido" />
+            <Eye className="h-3.5 w-3.5 text-action" aria-label="Compartido" />
           ) : (
             <EyeOff className="h-3.5 w-3.5 text-muted-foreground" aria-label="No compartido" />
           )}
@@ -132,7 +132,7 @@ export function DocumentGlobalRow({
                 : `/${doc.folderName}`
             }
           >
-            <Folder className="h-3 w-3 shrink-0 text-amber-500" />
+            <Folder className="h-3 w-3 shrink-0 text-warning" />
             <span className="truncate">{doc.folderName}</span>
           </div>
         ) : null}

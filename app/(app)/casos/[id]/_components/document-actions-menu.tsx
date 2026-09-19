@@ -222,7 +222,7 @@ export function DocumentActionsMenu({
                 </>
               ) : (
                 <>
-                  <Eye className="h-4 w-4 text-emerald-600" />
+                  <Eye className="h-4 w-4 text-action" />
                   Compartir con cliente
                 </>
               )}

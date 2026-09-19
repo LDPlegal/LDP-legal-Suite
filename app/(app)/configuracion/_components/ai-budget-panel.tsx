@@ -38,12 +38,12 @@ export function AiBudgetPanel({ initial, canEdit }: { initial: Status; canEdit: 
   const barWidth = Math.min(100, Math.round(pct * 100));
   const stateColor =
     status.state === "blocked" || status.state === "over"
-      ? "bg-red-500"
+      ? "bg-destructive"
       : status.state === "warn90"
-        ? "bg-amber-500"
+        ? "bg-warning"
         : status.state === "warn70"
-          ? "bg-yellow-400"
-          : "bg-emerald-500";
+          ? "bg-warning"
+          : "bg-action";
 
   function save() {
     const parsed = monthlyInput.trim() === "" ? null : Number(monthlyInput);
@@ -108,8 +108,8 @@ export function AiBudgetPanel({ initial, canEdit }: { initial: Status; canEdit: 
             />
             {/* Markers at 70/90/100 */}
             <div className="pointer-events-none absolute left-0 top-0 h-full w-full">
-              <div className="absolute left-[70%] top-0 h-full w-px bg-yellow-400/70" />
-              <div className="absolute left-[90%] top-0 h-full w-px bg-amber-500/70" />
+              <div className="absolute left-[70%] top-0 h-full w-px bg-warning/70" />
+              <div className="absolute left-[90%] top-0 h-full w-px bg-warning/70" />
             </div>
           </div>
         ) : null}
@@ -172,7 +172,7 @@ export function AiBudgetPanel({ initial, canEdit }: { initial: Status; canEdit: 
       </div>
 
       {status.state === "warn90" || status.state === "warn70" ? (
-        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             La firma ya consumió {Math.round(pct * 100)}% del presupuesto IA.{" "}

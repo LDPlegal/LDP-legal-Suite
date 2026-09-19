@@ -266,9 +266,9 @@ export function OAuthIntegrationsPanel({
           tenants corporativos). Solo tiene sentido mostrarla si Microsoft
           está configurado. */}
       {microsoftConfigured ? (
-        <div className="rounded-md border border-emerald-500/25 bg-emerald-500/[0.06] p-3">
+        <div className="rounded-md border border-action/25 bg-action/[0.06] p-3">
           <div className="flex items-start gap-2.5">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-action dark:text-action" />
             <div className="flex-1 space-y-2">
               <div>
                 <p className="text-[13px] font-medium text-foreground">
@@ -302,9 +302,9 @@ export function OAuthIntegrationsPanel({
       ) : null}
 
       {/* Guidance sobre el flow de admin approval per-usuario */}
-      <div className="rounded-md border border-blue-500/20 bg-blue-500/[0.06] p-3 text-[11px] text-muted-foreground">
+      <div className="rounded-md border border-action/20 bg-action/[0.06] p-3 text-[11px] text-muted-foreground">
         <div className="flex items-start gap-2">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-action dark:text-action" />
           <div className="space-y-1.5">
             <p>
               <strong className="text-foreground">

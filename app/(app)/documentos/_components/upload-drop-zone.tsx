@@ -105,7 +105,7 @@ export function UploadDropZone({
         void uploadFiles(files);
       }}
       className={[
-        "flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-all",
+        "flex flex-col items-center justify-center gap-2 rounded-[4px] border-2 border-dashed px-6 py-8 text-center transition-all",
         busy
           ? "cursor-default border-primary/40 bg-primary/5"
           : isOver

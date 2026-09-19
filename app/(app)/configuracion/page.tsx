@@ -537,8 +537,8 @@ export default async function ConfiguracionPage() {
                 <span
                   className={
                     roi.netSavingUsd >= 0
-                      ? "font-mono tabular-nums text-emerald-600"
-                      : "font-mono tabular-nums text-red-600"
+                      ? "font-mono tabular-nums text-action"
+                      : "font-mono tabular-nums text-destructive"
                   }
                 >
                   {roi.netSavingUsd >= 0 ? "+" : ""}

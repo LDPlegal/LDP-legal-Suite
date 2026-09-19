@@ -116,12 +116,12 @@ export function ConfidentialTierSwitch({
               </span>
             </SelectItem>
             <SelectItem value="confidential">
-              <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1.5 text-warning dark:text-warning">
                 <ShieldAlert className="h-3 w-3" /> Confidencial
               </span>
             </SelectItem>
             <SelectItem value="ultra_confidential">
-              <span className="inline-flex items-center gap-1.5 text-red-600 dark:text-red-400">
+              <span className="inline-flex items-center gap-1.5 text-destructive dark:text-destructive">
                 <Lock className="h-3 w-3" /> Ultra confidencial
               </span>
             </SelectItem>
@@ -143,7 +143,7 @@ export function ConfidentialTierSwitch({
                 cifrar (no se re-procesan automáticamente). Si necesitás que también
                 queden cifrados, descargálos y re-subílos después del cambio.
               </span>
-              <span className="block text-amber-600">
+              <span className="block text-warning">
                 Sólo admins y partners pueden ver los documentos cifrados descifrados.
               </span>
             </DialogDescription>

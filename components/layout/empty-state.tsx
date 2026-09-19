@@ -22,7 +22,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border bg-card backdrop-blur-xl",
+        "relative overflow-hidden rounded-[4px] border border-border bg-card",
         "px-6 py-16 text-center",
         className,
       )}
@@ -37,7 +37,7 @@ export function EmptyState({
 
       <div className="relative mx-auto max-w-md space-y-3">
         {icon ? (
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-border bg-muted/50 text-muted-foreground">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-[3px] border border-border bg-secondary text-subtle">
             {icon}
           </div>
         ) : null}
