@@ -9,7 +9,8 @@ const optionalString = (max: number) =>
     .trim()
     .max(max)
     .optional()
-    .or(z.literal("").transform(() => undefined));
+    .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined));
 
 const decimalString = (label = "Monto inválido") =>
   z.string().trim().regex(/^\d+(\.\d{1,2})?$/u, label);
@@ -54,17 +55,20 @@ export const TareaSchema = z.object({
     .string()
     .uuid()
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
   assigneeId: z
     .string()
     .uuid()
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
   dueAt: z
     .string()
     .datetime({ offset: true })
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
   priority: z.enum(["low", "med", "high", "urgent"]).default("med"),
   status: z.enum(["todo", "in_progress", "waiting", "done"]).default("todo"),
 });
@@ -95,7 +99,8 @@ export const EventoSchema = z
       .string()
       .uuid()
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     startAt: z.string().datetime({ offset: true }),
     endAt: z.string().datetime({ offset: true }),
     allDay: z.boolean().default(false),

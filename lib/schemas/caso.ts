@@ -33,9 +33,12 @@ export const CaseFeeInputSchema = z
       .trim()
       .max(200)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
-    amountUsd: moneyString.optional().or(z.literal("").transform(() => undefined)),
-    amountDop: moneyString.optional().or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
+    amountUsd: moneyString.optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
+    amountDop: moneyString.optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
   })
   .superRefine((val, ctx) => {
     if (!val.amountUsd && !val.amountDop) {
@@ -95,29 +98,35 @@ export const CasoSchema = z
       .string()
       .uuid("Caso padre inválido")
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     clientId: z.string().uuid("Cliente inválido"),
     matterType: MatterTypeEnum,
-    description: z.string().trim().max(4000).optional().or(z.literal("").transform(() => undefined)),
+    description: z.string().trim().max(4000).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     status: z.enum(["open", "on_hold", "closed"]).default("open"),
-    leadLawyerId: z.string().uuid().optional().or(z.literal("").transform(() => undefined)),
+    leadLawyerId: z.string().uuid().optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     billingMode: z.enum(["hourly", "flat_fee", "retainer", "contingency"]).default("hourly"),
     // Honorarios multi-moneda. Cada uno: tipo + descripción opcional + monto + moneda.
     // Vacío permitido, un caso por hora puede no tener fees fijos cargados.
     fees: z.array(CaseFeeInputSchema).default([]),
-    court: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
+    court: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     counterpartyName: z
       .string()
       .trim()
       .max(200)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     counterpartyTaxId: z
       .string()
       .trim()
       .max(40)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     tags: z.array(z.string().trim().min(1).max(40)).default([]),
     visibility: z.enum(["firm", "restricted"]).default("firm"),
     assignments: z

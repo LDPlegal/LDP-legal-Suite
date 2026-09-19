@@ -7,7 +7,8 @@ export const SignUpSchema = z.object({
     .trim()
     .regex(/^\d{3}-?\d{5}-?\d$/u, "RNC inválido")
     .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
   name: z.string().trim().min(2, "Nombre muy corto").max(120),
   email: z.string().trim().email("Email inválido").toLowerCase(),
   password: z

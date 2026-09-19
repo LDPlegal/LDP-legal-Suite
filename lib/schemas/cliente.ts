@@ -7,30 +7,37 @@ export const ClienteSchema = z
   .object({
     type: z.enum(["individual", "corporate"]),
     displayName: z.string().trim().min(2, "Nombre muy corto").max(160),
-    legalName: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined)),
+    legalName: z.string().trim().max(200).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     taxIdType: TaxIdType.optional(),
-    taxId: z.string().trim().max(40).optional().or(z.literal("").transform(() => undefined)),
+    taxId: z.string().trim().max(40).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     primaryContactName: z
       .string()
       .trim()
       .max(120)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     email: z
       .string()
       .trim()
       .email("Email inválido")
       .toLowerCase()
       .optional()
-      .or(z.literal("").transform(() => undefined)),
-    phone: z.string().trim().max(40).optional().or(z.literal("").transform(() => undefined)),
-    address: z.string().trim().max(400).optional().or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
+    phone: z.string().trim().max(40).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
+    address: z.string().trim().max(400).optional().or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     billingAddress: z
       .string()
       .trim()
       .max(400)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     // Registro Mercantil, opcional, generalmente sólo para personas jurídicas.
     // No se enforza tipo corporate aquí porque permitimos que cualquiera lo
     // tenga (raro pero posible: persona física con RM por actividad comercial).
@@ -39,7 +46,8 @@ export const ClienteSchema = z
       .trim()
       .max(60)
       .optional()
-      .or(z.literal("").transform(() => undefined)),
+      .or(z.literal("").transform(() => undefined))
+    .or(z.null().transform(() => undefined)),
     status: z.enum(["active", "prospect", "closed"]).default("active"),
   })
   .superRefine((val, ctx) => {
