@@ -43,19 +43,40 @@ async function createUserViaAuth(input: {
   firmId: string;
   role: Role;
 }): Promise<string> {
-  const res = await auth.api.signUpEmail({
-    body: {
-      email: input.email,
-      name: input.name,
-      password: SEED_PASSWORD,
-      firmId: input.firmId,
-      role: input.role,
-    },
-  });
-  if (!res?.user?.id) {
-    throw new Error(`signUpEmail returned no user for ${input.email}`);
+  // Se usa internalAdapter (vía servidor, de confianza) y NO
+  // auth.api.signUpEmail (vía pública HTTP).
+  //
+  // El hook databaseHooks.user.create.before de lib/auth/server.ts rechaza
+  // toda alta pública contra una firm que ya tenga usuarios: es la defensa
+  // contra escalada de privilegios (alguien con la URL de signup podría
+  // inyectar role:"admin" + un firmId conocido y plantarse en la firma de
+  // otro). Ese hook solo deja pasar la vía interna, donde context === null.
+  //
+  // Con signUpEmail el seed moría en el segundo usuario de cada firm,
+  // dejando la base a medio sembrar. Mismo patron que invitarStaffAction.
+  const ctx = await auth.$context;
+  const email = input.email.toLowerCase();
+
+  const created = await ctx.internalAdapter.createUser({
+    email,
+    name: input.name,
+    emailVerified: false,
+    firmId: input.firmId,
+    role: input.role,
+  } as Parameters<typeof ctx.internalAdapter.createUser>[0]);
+  if (!created?.id) {
+    throw new Error(`createUser returned no user for ${input.email}`);
   }
-  return res.user.id;
+
+  // Sin la cuenta "credential" el usuario existe pero no puede iniciar sesión.
+  await ctx.internalAdapter.linkAccount({
+    userId: created.id,
+    providerId: "credential",
+    accountId: created.id,
+    password: await ctx.password.hash(SEED_PASSWORD),
+  });
+
+  return created.id;
 }
 
 function pad3(n: number) {
